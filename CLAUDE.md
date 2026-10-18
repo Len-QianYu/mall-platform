@@ -42,6 +42,8 @@ npm run lint         # oxlint + eslint
 npm run format       # prettier
 ```
 
+本地配置：各端 `.env` 均不入库（模板为 `.env.example`，新克隆后复制填写）；后端数据库连接写在 `api/.env`，由 `application.yaml` 的 `spring.config.import` 读入。
+
 ## 技术栈
 
 - 后端：Java 21 · Spring Boot 4.1 · Maven（已含 Web MVC / Validation）；规划接入 MyBatis-Plus、MySQL、Redis、RustFS（S3 兼容对象存储）。

@@ -1,3 +1,15 @@
 spring:
   application:
     name: api
+
+  # 本地配置从 .env 读入（KEY=VALUE，按 properties 格式解析；文件不入库，模板见 api/.env.example）
+  # optional: 文件不存在时不报错（CI/部署时可直接用系统环境变量注入）
+  # 同时兼容「仓库根目录」和「api 目录」两种启动位置
+  config:
+    import: "optional:file:.env[.properties],optional:file:api/.env[.properties]"
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: "jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:mall_platform}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
