@@ -8,6 +8,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -19,7 +21,8 @@ public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(
         HttpSecurity httpSecurity,
-        JwtDecoder jwtDecoder
+        JwtDecoder jwtDecoder,
+        JwtAuthenticationConverter jwtAuthenticationConverter
     ) throws Exception {
 
         httpSecurity
@@ -65,6 +68,8 @@ public class SecurityConfiguration {
                 authorize.requestMatchers("/ws/**").permitAll();
                 // 放行用户匿名注册接口
 				authorize.requestMatchers("/user/create").permitAll();
+                // 管理端接口只允许管理员访问：前端路由守卫只是界面拦截，真正的权限在这里收口
+                authorize.requestMatchers("/admin/**").hasRole("admin");
                 // 其他所有请求都需要JWT认证
                 authorize.anyRequest().authenticated();
             })
@@ -72,10 +77,24 @@ public class SecurityConfiguration {
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .decoder(jwtDecoder)
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter)
                 )
             );
 
         return httpSecurity.build();
+    }
+
+    // 把 JWT 的 role 声明转成角色权限：role=admin → ROLE_admin，供 hasRole("admin") 判断。
+    // 默认转换器只读 scope 声明，不配置的话 JWT 里的角色不会生效，任何登录用户都能访问管理端
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        authoritiesConverter.setAuthoritiesClaimName("role");
+        authoritiesConverter.setAuthorityPrefix("ROLE_");
+
+        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+        return authenticationConverter;
     }
 
     // 库里存的是不带 {bcrypt} 前缀的 BCrypt 哈希（见 db/data.sql），

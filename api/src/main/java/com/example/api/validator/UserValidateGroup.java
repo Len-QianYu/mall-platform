@@ -6,6 +6,8 @@ public interface UserValidateGroup {
 
     public interface Update {}
 
+    public interface UpdateStatus {}
+
     public interface Remove {}
 
     public interface Login {}

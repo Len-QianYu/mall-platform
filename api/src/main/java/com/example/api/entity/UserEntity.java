@@ -10,7 +10,11 @@ import com.example.api.validator.UserValidateGroup;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -20,6 +24,11 @@ import lombok.Data;
 public class UserEntity {
 
     @TableId(type = IdType.AUTO)
+    @NotNull(
+        groups = {
+        UserValidateGroup.Update.class,
+        UserValidateGroup.UpdateStatus.class
+    })
     private Integer id;
 
     @NotBlank(
@@ -63,11 +72,22 @@ public class UserEntity {
     // 角色：user 普通用户 / admin 管理员（与前端账户类型取值一致）
     @NotBlank(
         groups = {
+        UserValidateGroup.Update.class,
         UserValidateGroup.Login.class
+    })
+    @Pattern(
+        regexp = "user|admin",
+        groups = {
+        UserValidateGroup.Update.class
     })
     private String role = "user";
 
     // 性别：F 女 / M 男（对应 schema 的 CHAR(1)）
+    @Pattern(
+        regexp = "[FM]",
+        groups = {
+        UserValidateGroup.Update.class
+    })
     private String gender;
 
     @Email(
@@ -83,12 +103,32 @@ public class UserEntity {
     })
     private String email;
 
+    // 与前端校验规则一致：大陆手机号
+    @Pattern(
+        regexp = "1[3-9]\\d{9}",
+        groups = {
+        UserValidateGroup.Update.class
+    })
     private String phone;
 
     // 数据库列为 avatar_url，MyBatis-Plus 默认驼峰映射即可对应
     private String avatarUrl;
 
     // 状态：1 启用 / 0 禁用（对应 schema 的 TINYINT）
+    @NotNull(
+        groups = {
+        UserValidateGroup.UpdateStatus.class
+    })
+    @Min(
+        value = 0,
+        groups = {
+        UserValidateGroup.UpdateStatus.class
+    })
+    @Max(
+        value = 1,
+        groups = {
+        UserValidateGroup.UpdateStatus.class
+    })
     private Integer status = 1;
 
     private LocalDateTime registeredAt;
