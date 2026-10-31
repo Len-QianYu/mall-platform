@@ -25,14 +25,14 @@
     <!-- 右侧:登录表单 -->
     <div class="login-right">
       <div class="login-form-box">
-        <!-- 主题切换按钮 -->
+        <!-- 主题切换按钮：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
         <div class="theme-toggle-button_box">
           <button
             class="change-theme"
-            @click="changeTheme"
+            @click="toggleTheme"
             :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
           >
-            <i v-if="!isDark" class="bi bi-brightness-high sun-icon"></i>
+            <i v-if="isDark" class="bi bi-brightness-high sun-icon"></i>
             <i v-else class="bi bi-moon-stars moon-icon"></i>
           </button>
         </div>
@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, h, onUnmounted } from 'vue'
+import { ref, reactive, h, onUnmounted, watchEffect } from 'vue'
 import {
   ElForm,
   ElFormItem,
@@ -125,6 +125,7 @@ import {
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
+import { useTheme } from '@/utils/useTheme'
 import ModerationIcon from '@/assets/svg/moderation-icon.svg?component'
 // npm install bootstrap-icons
 // 引入 Bootstrap Icons
@@ -135,7 +136,7 @@ const userStore = useUserStore()
 const form = ref<FormInstance>()
 const router = useRouter()
 const route = useRoute()
-const isDark = ref(false)
+const { isDark, toggleTheme } = useTheme() // 日夜主题全站共用
 const rememberAccount = ref(false)
 const currentYear = new Date().getFullYear()
 const registeredUsername = typeof route.query.username === 'string' ? route.query.username : ''
@@ -158,18 +159,11 @@ const rules = reactive({
   ],
 })
 
-// 切换主题
-const changeTheme = () => {
-  isDark.value = !isDark.value
-  // 同时给 body 添加暗黑主题类,让下拉框等弹出层也能应用暗黑样式
-  if (isDark.value) {
-    document.body.classList.add('dark-theme')
-    console.log('暗黑主题已开启,body 类名:', document.body.className)
-  } else {
-    document.body.classList.remove('dark-theme')
-    console.log('暗黑主题已关闭,body 类名:', document.body.className)
-  }
-}
+// 给 body 添加暗黑主题类,让下拉框等弹出层也能应用暗黑样式（见下方全局 <style>）。
+// 主题全站共享，进入登录页时可能已经是暗色，所以跟随状态同步，而不是只在点击时设置
+watchEffect(() => {
+  document.body.classList.toggle('dark-theme', isDark.value)
+})
 
 const login = () => {
   if (!form.value) return
@@ -207,7 +201,7 @@ const login = () => {
 
               // 根据角色跳转到不同首页（暂时都跳转到用户首页）
               if (model.role === 'admin') {
-                router.replace({ name: 'user_index' }) // 管理员首页
+                router.replace({ name: 'admin_dashboard' }) // 管理员首页
               } else {
                 router.replace({ name: 'index' }) // 用户首页
               }

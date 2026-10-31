@@ -1,3 +1,4 @@
+// scss优先级比element高
 :root {
     --el-color-primary: #0da5aa;
     --el-color-primary-light-3: #14c9c9;
@@ -6,6 +7,18 @@
     --el-color-primary-light-8: #89e9e0;
     --el-color-primary-light-9: #e8fffb;
     --el-color-primary-dark-2: #07828b;
+}
+
+// 暗色主题：Element Plus 的 dark/css-vars.css 会把主题色换回默认蓝色，这里改回青色。
+// 色阶按它的规则生成：light-N 为主题色与暗色背景 #141414 按 N0% 混合，dark-2 为与白色按 20% 混合
+html.dark {
+    --el-color-primary: #0da5aa;
+    --el-color-primary-light-3: #0f797d;
+    --el-color-primary-light-5: #115d5f;
+    --el-color-primary-light-7: #124041;
+    --el-color-primary-light-8: #133132;
+    --el-color-primary-light-9: #132323;
+    --el-color-primary-dark-2: #3db7bb;
 }
 
 $red: red;

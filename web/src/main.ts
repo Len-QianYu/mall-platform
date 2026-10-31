@@ -2,6 +2,8 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import 'element-plus/dist/index.css'
+// Element Plus 暗色主题变量，<html> 带 dark 类时生效；要放在 rootConfig 之前，让那里的暗色主题色覆盖它
+import 'element-plus/theme-chalk/dark/css-vars.css'
 import '@/styles/element/rootConfig.scss'
 
 import App from './App.vue'

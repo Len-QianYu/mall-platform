@@ -27,16 +27,47 @@ const router = createRouter({
       meta: { guestOnly: true },
     },
     {
-      // 管理员首页（与登录页跳转的 name 对应）
+      // 管理端：AdminLayout 提供侧边栏、顶栏和页脚，子路由渲染在内容区；
+      // meta 会合并到子路由，守卫按 requiresAuth / requiresAdmin 拦截整个 /admin
       path: '/admin',
-      name: 'user_index',
-      component: () => import('@/views/admin/DashboardView.vue'),
+      component: () => import('@/layouts/AdminLayout.vue'),
       meta: {
-        breadcrumbParent: '首页',
-        breadcrumbCurrent: '管理面板',
         requiresAuth: true,
         requiresAdmin: true,
       },
+      children: [
+        {
+          // 管理员首页（与登录页跳转的 name 对应）
+          path: '',
+          name: 'admin_dashboard',
+          component: () => import('@/views/admin/DashboardView.vue'),
+          meta: { breadcrumbCurrent: '仪表盘' },
+        },
+        {
+          path: 'users',
+          name: 'admin_users',
+          component: () => import('@/views/admin/UsersView.vue'),
+          meta: { breadcrumbCurrent: '用户管理' },
+        },
+        {
+          path: 'products',
+          name: 'admin_products',
+          component: () => import('@/views/admin/ProductsView.vue'),
+          meta: { breadcrumbCurrent: '商品管理' },
+        },
+        {
+          path: 'orders',
+          name: 'admin_orders',
+          component: () => import('@/views/admin/OrdersView.vue'),
+          meta: { breadcrumbParent: '交易管理', breadcrumbCurrent: '订单管理' },
+        },
+        {
+          path: 'payments',
+          name: 'admin_payments',
+          component: () => import('@/views/admin/PaymentsView.vue'),
+          meta: { breadcrumbParent: '交易管理', breadcrumbCurrent: '支付流水' },
+        },
+      ],
     },
   ],
 })

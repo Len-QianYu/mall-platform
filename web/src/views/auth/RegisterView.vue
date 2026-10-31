@@ -25,14 +25,14 @@
     <!-- 右侧:注册表单 -->
     <div class="register-right">
       <div class="register-form-box">
-        <!-- 主题切换按钮 -->
+        <!-- 主题切换按钮：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
         <div class="theme-toggle-button_box">
           <button
             class="change-theme"
-            @click="changeTheme"
+            @click="toggleTheme"
             :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
           >
-            <i v-if="!isDark" class="bi bi-brightness-high sun-icon"></i>
+            <i v-if="isDark" class="bi bi-brightness-high sun-icon"></i>
             <i v-else class="bi bi-moon-stars moon-icon"></i>
           </button>
         </div>
@@ -159,6 +159,7 @@ import {
 } from 'element-plus'
 import { useRouter, RouterLink } from 'vue-router'
 import request from '@/utils/request'
+import { useTheme } from '@/utils/useTheme'
 import ModerationIcon from '@/assets/svg/moderation-icon.svg?component'
 
 // 引入 Bootstrap Icons
@@ -171,7 +172,7 @@ interface RegistrationResponse {
 
 const form = ref<FormInstance>()
 const router = useRouter()
-const isDark = ref(false)
+const { isDark, toggleTheme } = useTheme() // 日夜主题全站共用
 const submitting = ref(false)
 const submitError = ref('')
 const currentYear = new Date().getFullYear()
@@ -247,10 +248,6 @@ watch(
     submitError.value = ''
   },
 )
-
-const changeTheme = () => {
-  isDark.value = !isDark.value
-}
 
 const register = async () => {
   if (!form.value || submitting.value) return
