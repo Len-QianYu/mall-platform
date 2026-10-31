@@ -4,15 +4,16 @@ import { defineStore } from 'pinia'
 // 用户角色
 export type UserRole = 'user' | 'admin'
 
-// 后端 /login 返回的用户信息（密码为 WRITE_ONLY，不会下发）
+// 后端 /login 返回的用户信息（密码为 WRITE_ONLY，不会下发；未填写的资料为 null）
 export interface UserInfo {
   id?: number
   username: string
-  name?: string
+  name?: string | null
+  gender?: 'F' | 'M' | null
   role: UserRole
-  email?: string
-  phone?: string
-  avatarUrl?: string
+  email?: string | null
+  phone?: string | null
+  avatarUrl?: string | null
   status?: number
   registeredAt?: string
 }

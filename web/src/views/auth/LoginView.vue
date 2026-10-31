@@ -140,6 +140,13 @@ const { isDark, toggleTheme } = useTheme() // 日夜主题全站共用
 const rememberAccount = ref(false)
 const currentYear = new Date().getFullYear()
 const registeredUsername = typeof route.query.username === 'string' ? route.query.username : ''
+// 只接受站内路径（排除 // 开头的协议相对地址），防止 ?redirect= 被拼成外部地址
+const redirect =
+  typeof route.query.redirect === 'string' &&
+  route.query.redirect.startsWith('/') &&
+  !route.query.redirect.startsWith('//')
+    ? route.query.redirect
+    : ''
 
 const model = reactive({
   role: registeredUsername ? 'user' : '',
@@ -199,9 +206,11 @@ const login = () => {
                 duration: 3000,
               })
 
-              // 根据角色跳转到不同首页（暂时都跳转到用户首页）
+              // 根据角色跳转到不同首页；普通用户若是从需登录的页面被拦过来的，跳回原页面
               if (model.role === 'admin') {
                 router.replace({ name: 'admin_dashboard' }) // 管理员首页
+              } else if (redirect) {
+                router.replace(redirect)
               } else {
                 router.replace({ name: 'index' }) // 用户首页
               }
