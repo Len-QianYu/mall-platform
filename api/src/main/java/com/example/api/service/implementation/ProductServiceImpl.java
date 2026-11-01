@@ -1,6 +1,7 @@
 package com.example.api.service.implementation;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -37,8 +38,44 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public Integer countOnSale(String keyword, String category) {
+        return this.count(keyword, category, 1);
+    }
+
+    @Override
+    public List<ProductEntity> fetchOnSale(String keyword, String category, String sort, Pagination pagination) {
+        LambdaQueryWrapper<ProductEntity> wrapper = this.filter(keyword, category, 1);
+
+        // 排序值来自 URL，只认白名单内的几种，其余一律按综合（新建的在前）
+        switch (sort == null ? "default" : sort) {
+            case "sales" -> wrapper.orderByDesc(ProductEntity::getSales);
+            case "newest" -> wrapper.orderByDesc(ProductEntity::getCreatedAt);
+            case "price_asc" -> wrapper.orderByAsc(ProductEntity::getPrice);
+            case "price_desc" -> wrapper.orderByDesc(ProductEntity::getPrice);
+            default -> { }
+        }
+        // 主键兜底：排序列有并列时翻页结果仍然稳定，不会同一商品出现在两页
+        wrapper.orderByDesc(ProductEntity::getId);
+
+        return this.productMapper.selectList(
+            new Page<>(pagination.getCurrentPage(), pagination.getPageSize(), false),
+            wrapper
+        );
+    }
+
+    @Override
+    public Optional<ProductEntity> fetchById(Integer id) {
+        return Optional.ofNullable(this.productMapper.selectById(id));
+    }
+
+    @Override
     public List<String> fetchCategories() {
         return this.productMapper.selectCategories();
+    }
+
+    @Override
+    public List<String> fetchOnSaleCategories() {
+        return this.productMapper.selectOnSaleCategories();
     }
 
     @Override

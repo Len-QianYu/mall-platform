@@ -106,9 +106,9 @@ export interface DashboardStats {
 }
 
 /*
- * 商城前台（用户侧）接口约定，后端待实现：
+ * 商城前台（用户侧）接口约定（后端实现见 api/ 的 ProductController、CartController、OrderController、PaymentController、UserController）：
  *
- *   公开（游客可访问，后端需对这几个 GET 放行）：
+ *   公开（游客可访问，SecurityConfiguration 只对这几个 GET 放行）：
  *     GET  /product                 page, pageSize, keyword, category, sort → { products, pagination }（只含上架商品）
  *     GET  /product/categories      → { categories }
  *     GET  /product/{id}            → { product }（不存在或已下架时 status=false）

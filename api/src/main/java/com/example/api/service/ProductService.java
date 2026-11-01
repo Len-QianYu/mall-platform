@@ -1,6 +1,7 @@
 package com.example.api.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.example.api.entity.ProductEntity;
 import com.example.api.utils.Pagination;
@@ -13,8 +14,19 @@ public interface ProductService {
     // 按条件查询一页商品，新建的在前
     List<ProductEntity> fetch(String keyword, String category, Integer status, Pagination pagination);
 
+    // 前台商品数：只统计上架商品，和 fetchOnSale 条件一致
+    Integer countOnSale(String keyword, String category);
+
+    // 前台商品列表：只查上架商品；sort 取值 default / sales / newest / price_asc / price_desc
+    List<ProductEntity> fetchOnSale(String keyword, String category, String sort, Pagination pagination);
+
+    Optional<ProductEntity> fetchById(Integer id);
+
     // 已用过的全部分类（去重）
     List<String> fetchCategories();
+
+    // 有上架商品的分类（前台用）
+    List<String> fetchOnSaleCategories();
 
     // 创建商品，返回受影响行数
     Integer create(ProductEntity product);

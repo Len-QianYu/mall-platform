@@ -3,10 +3,13 @@ package com.example.api.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.api.dto.ProfileRequests;
 import com.example.api.entity.UserEntity;
 import com.example.api.utils.Pagination;
 
 public interface UserService {
+
+    Optional<UserEntity> fetchById(Integer id);
 
     // 按用户名查询（登录、注册查重用）
     Optional<UserEntity> fetchByUsername(String username);
@@ -25,5 +28,11 @@ public interface UserService {
 
     // 启用 / 禁用，返回受影响行数（0 表示用户不存在）
     Integer updateStatus(Integer id, Integer status);
+
+    // 用户改自己的资料，返回受影响行数（0 表示用户不存在）
+    Integer updateProfile(Integer id, ProfileRequests.Update profile);
+
+    // 改密码：传入明文，在此加密，返回受影响行数（0 表示用户不存在）
+    Integer updatePassword(Integer id, String password);
 
 }

@@ -2,6 +2,7 @@ package com.example.api.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -68,6 +69,8 @@ public class SecurityConfiguration {
                 authorize.requestMatchers("/ws/**").permitAll();
                 // 放行用户匿名注册接口
 				authorize.requestMatchers("/user/create").permitAll();
+                // 放行商城前台的商品浏览（游客可看）：只放行 GET，购物车、下单等仍需登录
+                authorize.requestMatchers(HttpMethod.GET, "/product", "/product/**").permitAll();
                 // 管理端接口只允许管理员访问：前端路由守卫只是界面拦截，真正的权限在这里收口
                 authorize.requestMatchers("/admin/**").hasRole("admin");
                 // 其他所有请求都需要JWT认证

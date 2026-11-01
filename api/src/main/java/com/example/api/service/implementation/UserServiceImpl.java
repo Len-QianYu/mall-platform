@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.api.dto.ProfileRequests;
 import com.example.api.entity.UserEntity;
 import com.example.api.mapper.UserMapper;
 import com.example.api.service.UserService;
@@ -26,6 +27,11 @@ public class UserServiceImpl implements UserService {
     public UserServiceImpl(UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    @Override
+    public Optional<UserEntity> fetchById(Integer id) {
+        return Optional.ofNullable(this.userMapper.selectById(id));
     }
 
     @Override
@@ -84,6 +90,30 @@ public class UserServiceImpl implements UserService {
         return this.userMapper.update(
             Wrappers.<UserEntity>lambdaUpdate()
                 .set(UserEntity::getStatus, status)
+                .eq(UserEntity::getId, id)
+        );
+    }
+
+    @Override
+    public Integer updateProfile(Integer id, ProfileRequests.Update profile) {
+        // 和管理端编辑一样逐列 set：选填项清空后要能存回 NULL
+        return this.userMapper.update(
+            Wrappers.<UserEntity>lambdaUpdate()
+                .set(UserEntity::getName, profile.name())
+                .set(UserEntity::getGender, profile.gender())
+                .set(UserEntity::getEmail, profile.email())
+                .set(UserEntity::getPhone, profile.phone())
+                .set(UserEntity::getAvatarUrl, profile.avatarUrl())
+                .eq(UserEntity::getId, id)
+        );
+    }
+
+    @Override
+    public Integer updatePassword(Integer id, String password) {
+        // 和注册一样，数据库只存 BCrypt 哈希
+        return this.userMapper.update(
+            Wrappers.<UserEntity>lambdaUpdate()
+                .set(UserEntity::getPassword, this.passwordEncoder.encode(password))
                 .eq(UserEntity::getId, id)
         );
     }
