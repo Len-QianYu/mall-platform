@@ -14,7 +14,7 @@
 
 - **后端**：Java 21 · Spring Boot 4.1 · Maven（已引入 Web MVC / Validation 起步依赖）
 - **前端**：Vue 3 · TypeScript · Vite · Pinia · Vue Router
-- **数据与基础设施（规划中）**：MyBatis-Plus · MySQL · Redis · RustFS（S3 兼容对象存储）
+- **数据与基础设施（规划中）**：MyBatis-Plus · MySQL · Redis · RocketMQ（消息队列）· RustFS（S3 兼容对象存储）
 - **智能体（规划中）**：Python · FastAPI · LangGraph · Milvus
 
 ## 快速开始
@@ -24,6 +24,17 @@
 - JDK 21+
 - Node.js ≥ 22.18
 - Maven 3.9+
+- MySQL 8（本机安装）
+- Docker Desktop（运行 Redis、RocketMQ、RustFS）
+
+### 本地依赖（Redis + RocketMQ + RustFS）
+
+```bash
+docker compose up -d     # 仓库根目录执行：Redis 8.10 + RocketMQ 5.5 + RustFS 1.0
+docker compose stop      # 停止
+```
+
+端口：Redis **6380**（本机 6379 常被占用）、RocketMQ NameServer **9876** / Broker **10911** / Proxy gRPC **8081**、RustFS S3 API **9000** / 控制台 **9001**（`/rustfs/console/`），均只绑定 127.0.0.1。更多命令见 [`docker-compose.yml`](docker-compose.yml) 顶部注释。
 
 ### 后端（api/）
 
@@ -50,7 +61,7 @@ npm run dev        # 开发服务器，默认端口 5173
 - 前后端工程骨架（Spring Boot 4.1 + Vue 3 + Vite）
 - 数据库设计：业务 6 表（用户 / 商品 / 订单主表+明细 / 购物车 / 支付流水）+ AI 域（会话 / 知识库 / 反馈）
 - 主站核心业务：登录鉴权、商品浏览、下单与库存
-- 基础设施接入：MySQL / Redis / RustFS（docker-compose 一键启动）
+- 基础设施接入：MySQL / Redis / RocketMQ / RustFS（docker-compose 一键启动）
 - 面向智能体的工具接口：订单 / 库存 / 售后查询（供客服 Agent 调用）
 - 面向问数的接口：元数据服务 + 受权限控制的查询执行
 - 接入 Python 智能体服务：SSE 流式对话与问数

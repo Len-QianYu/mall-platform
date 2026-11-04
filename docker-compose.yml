@@ -1,0 +1,123 @@
+# Mall Platform 本地开发依赖：Redis + RocketMQ + RustFS（MySQL 用本机安装的，不在这里）
+#
+# 常用命令（在仓库根目录执行，需先启动 Docker Desktop）：
+#   docker compose up -d                  # 后台启动全部服务（首次会拉取镜像）
+#   docker compose up -d redis            # 只启动 Redis
+#   docker compose up -d rmqnamesrv rmqbroker   # 只启动 RocketMQ
+#   docker compose up -d rustfs           # 只启动 RustFS
+#   docker compose ps                     # 查看运行状态
+#   docker compose logs -f rmqbroker      # 跟踪某个服务的日志
+#   docker compose stop                   # 停止（容器保留，再 start 数据还在）
+#   docker compose start                  # 重新启动已停止的容器
+#   docker compose down                   # 停止并删除容器；Redis、RustFS 数据在数据卷里会保留，RocketMQ 的消息会清空
+#   docker compose down -v                # 连同数据卷一起删除，Redis、RustFS 数据也清空
+#   docker compose exec redis redis-cli   # 进入 Redis 命令行
+#   docker compose exec rmqbroker sh mqadmin clusterList -n rmqnamesrv:9876   # 查看 RocketMQ 集群（broker 是否注册成功）
+#
+# RocketMQ 5.x 客户端（走 Proxy gRPC）不会自动建 Topic 和消费组，用之前先建好（<...> 换成实际名称）：
+#   docker compose exec rmqbroker sh mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t <Topic名>
+#   docker compose exec rmqbroker sh mqadmin updateSubGroup -n rmqnamesrv:9876 -c DefaultCluster -g <消费组名>
+#
+# RustFS 控制台：http://127.0.0.1:9001/rustfs/console/ （账号密码见下面 rustfs 的 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY）
+#
+# 端口只绑定 127.0.0.1，局域网访问不到，所以本地开发不设密码（RustFS 必须有账号，用固定的开发账号）。
+# 镜像版本固定为写入时的最新稳定版，升级时改这里的版本号。
+
+name: mall-platform
+
+services:
+  redis:
+    image: redis:8.10.3
+    container_name: mall-platform-redis
+    restart: unless-stopped
+    ports:
+      # 宿主机用 6380：本机 6379 已被 Windows 版 Redis 服务和其他项目的 Redis 容器占用；应用连 127.0.0.1:6380
+      - "127.0.0.1:6380:6379"
+    # 开启 AOF 持久化，重启容器数据不丢
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # RocketMQ 5.x：NameServer（路由注册中心）+ Broker（存消息），Proxy 以 Local 模式跑在 Broker 进程里。
+  # 应用连接地址：
+  #   5.x gRPC 客户端（rocketmq-client-java）→ 127.0.0.1:8081（Proxy）
+  #   4.x Remoting 客户端（rocketmq-spring-boot-starter 等）→ NameServer 127.0.0.1:9876
+  rmqnamesrv:
+    image: apache/rocketmq:5.5.0
+    container_name: mall-platform-rmqnamesrv
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9876:9876"
+    environment:
+      # 默认堆内存按机器内存算，开发环境收小
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m"
+    command: ["sh", "mqnamesrv"]
+
+  rmqbroker:
+    image: apache/rocketmq:5.5.0
+    container_name: mall-platform-rmqbroker
+    restart: unless-stopped
+    depends_on:
+      - rmqnamesrv
+    ports:
+      - "127.0.0.1:10911:10911" # Remoting 客户端收发消息
+      - "127.0.0.1:10909:10909" # VIP 通道（老版本客户端会用到）
+      - "127.0.0.1:8081:8081" # Proxy gRPC
+      # Proxy 的 Remoting 端口 8080 不映射：与后端 Spring Boot 的 8080 冲突
+    environment:
+      NAMESRV_ADDR: "rmqnamesrv:9876"
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+    configs:
+      - source: broker-conf
+        target: /home/rocketmq/broker.conf
+    command: ["sh", "mqbroker", "--enable-proxy", "-c", "/home/rocketmq/broker.conf"]
+
+  # RustFS：S3 兼容对象存储，存商品图片、头像等文件（后端接入前上传文件仍在本地磁盘，见 api 的 upload.root）。
+  # 应用用 S3 SDK 连 http://127.0.0.1:9000（path-style 访问），账号即下面的 ACCESS_KEY / SECRET_KEY
+  rustfs:
+    image: rustfs/rustfs:1.0.4
+    container_name: mall-platform-rustfs
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9000:9000" # S3 API
+      - "127.0.0.1:9001:9001" # Web 控制台
+    environment:
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      # 本地开发账号（只绑定本机）；不设时会退回内置默认账号 rustfsadmin 并打印警告
+      RUSTFS_ACCESS_KEY: "mallplatform"
+      RUSTFS_SECRET_KEY: "mallplatform123"
+      # 置空：日志输出到标准输出，docker compose logs 能看到（镜像默认写进容器里的 /logs）
+      RUSTFS_OBS_LOG_DIRECTORY: ""
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://127.0.0.1:9000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+configs:
+  broker-conf:
+    content: |
+      brokerClusterName = DefaultCluster
+      brokerName = broker-a
+      brokerId = 0
+      brokerRole = ASYNC_MASTER
+      flushDiskType = ASYNC_FLUSH
+      # Broker 注册到 NameServer 的地址：默认是容器 IP，宿主机上的应用连不上，改成 127.0.0.1（配合上面的端口映射）
+      brokerIP1 = 127.0.0.1
+      # 开发环境自动创建 Topic，免去手动 mqadmin updateTopic
+      autoCreateTopicEnable = true
+      # 磁盘使用率超过默认的 75% 时 Broker 会拒绝写入，开发机磁盘常常比较满，放宽
+      diskMaxUsedSpaceRatio = 95
+
+volumes:
+  redis-data:
+  rustfs-data:
