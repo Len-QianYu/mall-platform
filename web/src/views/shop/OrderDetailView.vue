@@ -83,7 +83,7 @@
                   <ElImage
                     v-if="row.productImage"
                     class="product-image"
-                    :src="row.productImage"
+                    :src="assetUrl(row.productImage)"
                     fit="cover"
                   />
                   <div v-else class="product-image image-placeholder">
@@ -140,7 +140,7 @@ import {
 } from 'element-plus'
 import request from '@/utils/request'
 import type { ApiResult, Order, OrderItem, OrderStatus } from '@/types/api'
-import { ORDER_STATUS, formatDateTime, formatMoney } from '@/utils/format'
+import { ORDER_STATUS, assetUrl, formatDateTime, formatMoney } from '@/utils/format'
 import { changeOrderStatus, type UserOrderAction } from '@/utils/order'
 
 // 各状态已完成的步骤数（ElSteps 的 active）：已完成时 4 步全部打勾

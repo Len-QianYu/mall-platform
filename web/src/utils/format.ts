@@ -12,6 +12,15 @@ export const formatMoney = (value: number | null | undefined): string =>
 export const formatDateTime = (value: string | null | undefined): string =>
   value ? value.replace('T', ' ').slice(0, 19) : '-'
 
+// 图片地址：上传的文件在库里存相对路径（如 /images/xxx.png），文件由后端提供，拼上后端地址才能访问；
+// 完整的外链 URL 原样返回。没有图片时返回 undefined，ElAvatar 会改为显示首字母。
+// 传入确定的字符串（如 v-if 判断过之后）时返回 string，可以直接放进 ElImage 的 preview-src-list
+export function assetUrl(path: string): string
+export function assetUrl(path: string | null | undefined): string | undefined
+export function assetUrl(path: string | null | undefined): string | undefined {
+  return path ? new URL(path, import.meta.env.APP_BASE_URL).href : undefined
+}
+
 // 以下字典的键与数据库里的英文编码一一对应（见 schema.sql 列注释）。
 // 按 string 取值：编码来自后端，可能取不到，调用方兜底显示原编码；satisfies 保证每个编码都有条目
 

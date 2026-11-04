@@ -44,8 +44,8 @@
             <ElImage
               v-if="row.mainImage"
               class="product-image"
-              :src="row.mainImage"
-              :preview-src-list="[row.mainImage]"
+              :src="assetUrl(row.mainImage)"
+              :preview-src-list="[assetUrl(row.mainImage)]"
               preview-teleported
               fit="cover"
             />
@@ -163,9 +163,7 @@
         />
       </ElFormItem>
       <ElFormItem label="主图" prop="mainImage">
-        <!-- RustFS 对象存储还没接入，先填图片 URL -->
-        <ElInput v-model="form.mainImage" :maxlength="512" placeholder="选填，图片 URL" />
-        <ElImage v-if="form.mainImage" class="image-preview" :src="form.mainImage" fit="cover" />
+        <ImageUploader v-model="form.mainImage" type="images" />
       </ElFormItem>
       <ElFormItem label="商品详情" prop="description">
         <ElInput v-model="form.description" type="textarea" :rows="5" placeholder="选填" />
@@ -211,7 +209,8 @@ import {
 } from 'element-plus'
 import request from '@/utils/request'
 import type { ApiResult, Pagination, Product } from '@/types/api'
-import { formatDateTime, formatMoney } from '@/utils/format'
+import { assetUrl, formatDateTime, formatMoney } from '@/utils/format'
+import ImageUploader from '@/components/ImageUploader.vue'
 
 const loading = ref(false)
 const products = ref<Product[]>([])
@@ -336,7 +335,6 @@ const rules: FormRules<typeof form> = {
   ],
   price: [{ required: true, message: '请输入售价', trigger: 'blur' }],
   stock: [{ required: true, message: '请输入库存', trigger: 'blur' }],
-  mainImage: [{ type: 'url', message: '请输入有效的图片 URL', trigger: 'blur' }],
 }
 
 // 传入商品为编辑，不传为新增
@@ -376,7 +374,7 @@ const save = async () => {
         category: form.category.trim(),
         price: form.price,
         stock: form.stock,
-        mainImage: form.mainImage.trim() || null,
+        mainImage: form.mainImage || null,
         description: form.description.trim() || null,
         status: form.status,
       },
@@ -444,13 +442,5 @@ const save = async () => {
 .form-unit {
   margin-left: 0.5rem;
   color: var(--el-text-color-secondary);
-}
-
-.image-preview {
-  width: 120px;
-  height: 120px;
-  margin-top: 0.5rem;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
 }
 </style>

@@ -15,8 +15,8 @@
             <ElImage
               v-if="product.mainImage"
               class="detail-image"
-              :src="product.mainImage"
-              :preview-src-list="[product.mainImage]"
+              :src="assetUrl(product.mainImage)"
+              :preview-src-list="[assetUrl(product.mainImage)]"
               fit="cover"
             />
             <div v-else class="detail-image image-placeholder">
@@ -109,7 +109,7 @@ import {
 } from 'element-plus'
 import request from '@/utils/request'
 import type { ApiResult, Product } from '@/types/api'
-import { formatMoney } from '@/utils/format'
+import { assetUrl, formatMoney } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
 

@@ -32,7 +32,7 @@
                   <ElImage
                     v-if="row.productImage"
                     class="product-image"
-                    :src="row.productImage"
+                    :src="assetUrl(row.productImage)"
                     fit="cover"
                   />
                   <div v-else class="product-image image-placeholder">
@@ -134,7 +134,7 @@ import {
 } from 'element-plus'
 import request from '@/utils/request'
 import type { ApiResult, CartItem } from '@/types/api'
-import { formatMoney } from '@/utils/format'
+import { assetUrl, formatMoney } from '@/utils/format'
 import { isSettleable, useCartStore } from '@/stores/cart'
 
 const router = useRouter()

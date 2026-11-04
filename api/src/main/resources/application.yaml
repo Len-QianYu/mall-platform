@@ -11,3 +11,13 @@ spring:
     url: "jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:mall_platform}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
+
+  servlet:
+    multipart:
+      # 上传的都是图片（头像、商品图），单个 5MB 足够；超出时直接返回 413
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+# 上传文件暂存本地磁盘（RustFS 接入前），目录放在项目之外，可在 api/.env 里用 UPLOAD_ROOT 指定
+upload:
+  root: ${UPLOAD_ROOT:${user.home}/mall-platform/uploads}

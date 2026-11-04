@@ -39,7 +39,7 @@
       <ElTableColumn label="用户" min-width="180">
         <template #default="{ row }">
           <div class="user-cell">
-            <ElAvatar :size="32" :src="row.avatarUrl || undefined">
+            <ElAvatar :size="32" :src="assetUrl(row.avatarUrl)">
               {{ row.username.charAt(0).toUpperCase() }}
             </ElAvatar>
             <div>
@@ -176,7 +176,7 @@ import {
 import request from '@/utils/request'
 import { useUserStore, type UserRole } from '@/stores/user'
 import type { ApiResult, Pagination, User } from '@/types/api'
-import { formatDateTime } from '@/utils/format'
+import { assetUrl, formatDateTime } from '@/utils/format'
 
 const userStore = useUserStore()
 

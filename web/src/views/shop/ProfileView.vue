@@ -4,7 +4,7 @@
 
     <div v-loading="loading" class="profile-body">
       <ElCard shadow="never" class="profile-side">
-        <ElAvatar :size="88" :src="form.avatarUrl || undefined">
+        <ElAvatar :size="88" :src="assetUrl(form.avatarUrl)">
           <span class="avatar-letter">{{ userStore.name.charAt(0).toUpperCase() }}</span>
         </ElAvatar>
         <div class="side-name">{{ form.name || userStore.name }}</div>
@@ -51,9 +51,8 @@
               <ElFormItem label="手机号" prop="phone">
                 <ElInput v-model="form.phone" maxlength="11" placeholder="选填，下单时自动带入" />
               </ElFormItem>
-              <!-- 头像暂用图片地址；对象存储接入后改成上传 -->
-              <ElFormItem label="头像地址" prop="avatarUrl">
-                <ElInput v-model="form.avatarUrl" maxlength="512" placeholder="图片 URL，选填" />
+              <ElFormItem label="头像" prop="avatarUrl">
+                <ImageUploader v-model="form.avatarUrl" type="avatars" :size="88" />
               </ElFormItem>
               <ElFormItem>
                 <ElButton type="primary" :loading="saving" @click="saveProfile">保存</ElButton>
@@ -112,8 +111,9 @@ import {
 } from 'element-plus'
 import request from '@/utils/request'
 import type { ApiResult, User } from '@/types/api'
-import { formatDateTime } from '@/utils/format'
+import { assetUrl, formatDateTime } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
+import ImageUploader from '@/components/ImageUploader.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -173,7 +173,7 @@ const saveProfile = async () => {
     gender: form.gender || null,
     email: form.email.trim() || null,
     phone: form.phone || null,
-    avatarUrl: form.avatarUrl.trim() || null,
+    avatarUrl: form.avatarUrl || null,
   }
 
   saving.value = true

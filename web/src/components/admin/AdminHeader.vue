@@ -84,6 +84,7 @@ import {
   ElTag,
 } from 'element-plus'
 import request from '@/utils/request'
+import { assetUrl } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { useTheme } from '@/utils/useTheme'
 
@@ -100,7 +101,7 @@ const userStore = useUserStore()
 const { isDark, toggleTheme } = useTheme()
 
 // 没有头像时后端返回 null，交给 ElAvatar 显示用户名首字母
-const avatarUrl = computed(() => userStore.user?.user.avatarUrl || undefined)
+const avatarUrl = computed(() => assetUrl(userStore.user?.user.avatarUrl))
 
 // 全屏状态以 fullscreenchange 事件为准：按 Esc 退出全屏不会经过按钮
 const isFullscreen = ref(false)

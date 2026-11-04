@@ -4,7 +4,7 @@
       <ElImage
         v-if="product.mainImage"
         class="card-image"
-        :src="product.mainImage"
+        :src="assetUrl(product.mainImage)"
         fit="cover"
         lazy
       />
@@ -29,7 +29,7 @@
 import { RouterLink } from 'vue-router'
 import { ElImage } from 'element-plus'
 import type { Product } from '@/types/api'
-import { formatMoney } from '@/utils/format'
+import { assetUrl, formatMoney } from '@/utils/format'
 
 defineProps<{ product: Product }>()
 </script>

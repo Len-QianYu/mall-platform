@@ -57,7 +57,7 @@ public class ProductEntity {
     // 销量由下单流程累加，管理端不能改
     private Integer sales;
 
-    // 主图 URL（RustFS 接入前先存图片外链）
+    // 主图：上传后存访问路径（如 /images/xxx.png），也兼容完整的图片外链
     @Size(max = 512, groups = { ProductValidateGroup.Create.class, ProductValidateGroup.Update.class })
     private String mainImage;
 

@@ -43,7 +43,12 @@
             <ElTableColumn label="商品" min-width="280">
               <template #default="{ row }">
                 <div class="product-cell">
-                  <ElImage v-if="row.image" class="product-image" :src="row.image" fit="cover" />
+                  <ElImage
+                    v-if="row.image"
+                    class="product-image"
+                    :src="assetUrl(row.image)"
+                    fit="cover"
+                  />
                   <div v-else class="product-image image-placeholder">
                     <i class="bi bi-image"></i>
                   </div>
@@ -99,7 +104,7 @@ import {
 } from 'element-plus'
 import request from '@/utils/request'
 import type { ApiResult, CartItem, Order, Product } from '@/types/api'
-import { formatMoney } from '@/utils/format'
+import { assetUrl, formatMoney } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { isSettleable, useCartStore } from '@/stores/cart'
 

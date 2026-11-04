@@ -92,6 +92,7 @@ import {
   ElMessage,
 } from 'element-plus'
 import request from '@/utils/request'
+import { assetUrl } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
 import { useTheme } from '@/utils/useTheme'
@@ -102,8 +103,8 @@ const userStore = useUserStore()
 const cartStore = useCartStore()
 const { isDark, toggleTheme } = useTheme()
 
-// 没有头像时为 null，交给 ElAvatar 显示用户名首字母
-const avatarUrl = computed(() => userStore.user?.user.avatarUrl || undefined)
+// 没有头像时为 undefined，交给 ElAvatar 显示用户名首字母
+const avatarUrl = computed(() => assetUrl(userStore.user?.user.avatarUrl))
 
 // 登录状态变化时同步购物车角标：登录后拉取，退出后清零（401 被拦截器登出时也会走到这里）
 watch(

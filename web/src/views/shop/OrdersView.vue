@@ -26,7 +26,7 @@
                 <ElImage
                   v-if="item.productImage"
                   class="product-image"
-                  :src="item.productImage"
+                  :src="assetUrl(item.productImage)"
                   fit="cover"
                 />
                 <div v-else class="product-image image-placeholder">
@@ -119,7 +119,7 @@ import {
 } from 'element-plus'
 import request from '@/utils/request'
 import type { ApiResult, OrderStatus, OrderWithItems, Pagination } from '@/types/api'
-import { ORDER_STATUS, formatDateTime, formatMoney } from '@/utils/format'
+import { ORDER_STATUS, assetUrl, formatDateTime, formatMoney } from '@/utils/format'
 import { changeOrderStatus, type UserOrderAction } from '@/utils/order'
 
 // 标签页用买家视角的叫法：已支付即「待发货」，已发货即「待收货」
