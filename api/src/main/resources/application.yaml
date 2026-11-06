@@ -11,6 +11,32 @@ spring:
     url: "jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:mall_platform}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
+    # 数据库连接池 Druid（连接信息沿用上面的配置）：参数对齐原来 HikariCP 的默认值——固定 10 个连接、拿连接最多等 30 秒；
+    # Druid 自己默认最多 8 个、拿不到就一直等。启动时就建好连接，MySQL 没开的话后端会直接启动失败
+    druid:
+      initial-size: 10
+      min-idle: 10
+      max-active: 10
+      max-wait: 30000
+      # 监控页 http://127.0.0.1:8080/druid/ ：连接池实时状态、每条 SQL 的执行次数和耗时、每个接口的请求数和查库次数。
+      # 只许本机打开（localhost 走 IPv6 的 ::1 也算本机），另有一层登录；Spring Security 对 /druid/** 整段放行。
+      # 部署到 Nginx 等反向代理后面时，请求都从本机转发过来，白名单就拦不住了，到时要关掉监控页
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        allow: 127.0.0.1
+        login-username: ${DRUID_USERNAME}
+        login-password: ${DRUID_PASSWORD}
+      # SQL 统计：「SQL 监控」页的数据来源
+      filter:
+        stat:
+          enabled: true
+      # Web 统计：「Web 应用」「URI 监控」页的数据来源。静态文件、上传的图片、监控页自己的请求不计入
+      # （前半段是 Druid 的默认值，改 exclusions 要整串写全）；接口用 JWT 认证、不建 session，session 统计关掉
+      web-stat-filter:
+        enabled: true
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/avatars/*,/images/*"
+        session-stat-enable: false
 
   servlet:
     multipart:

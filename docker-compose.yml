@@ -31,8 +31,8 @@ services:
     container_name: mall-platform-redis
     restart: unless-stopped
     ports:
-      # 宿主机用 6380：本机 6379 已被 Windows 版 Redis 服务和其他项目的 Redis 容器占用；应用连 127.0.0.1:6380
-      - "127.0.0.1:6380:6379"
+      # 应用连 127.0.0.1:6379；本机若有别的 Redis 占着 6379（如 Windows 版 Redis 服务、其他项目的 Redis 容器），先停掉再启动
+      - "127.0.0.1:6379:6379"
     # 开启 AOF 持久化，重启容器数据不丢
     command: ["redis-server", "--appendonly", "yes"]
     volumes:

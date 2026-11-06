@@ -65,6 +65,8 @@ public class SecurityConfiguration {
                     // "/public/**",
                     // "/static/**"
                 ).permitAll();
+                // 放行 Druid 监控页：浏览器打开时不带 JWT，访问控制交给它自带的本机白名单和登录（见 application.yaml）
+                authorize.requestMatchers("/druid/**").permitAll();
                 // 放行WebSocket端点
                 authorize.requestMatchers("/ws/**").permitAll();
                 // 放行用户匿名注册接口

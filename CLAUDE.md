@@ -45,7 +45,7 @@ npm run format       # prettier
 本地依赖（仓库根目录，需先启动 Docker Desktop；MySQL 用本机安装的）：
 
 ```bash
-docker compose up -d     # 启动 Redis 8.10（宿主机 6380，本机 6379 已被占用）+ RocketMQ 5.5（NameServer 9876 / Broker 10911 / Proxy gRPC 8081）+ RustFS 1.0（S3 API 9000 / 控制台 9001）
+docker compose up -d     # 启动 Redis 8.10（6379）+ RocketMQ 5.5（NameServer 9876 / Broker 10911 / Proxy gRPC 8081）+ RustFS 1.0（S3 API 9000 / 控制台 9001）
 docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注释
 ```
 
@@ -53,7 +53,7 @@ docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注
 
 ## 技术栈
 
-- 后端：Java 21 · Spring Boot 4.1 · Maven（已含 Web MVC / Validation）；规划接入 MyBatis-Plus、MySQL、Redis、RocketMQ（消息队列，不用 Kafka；Java 端用 rocketmq-client-java 5.x 经 Proxy gRPC 连接，不用与 Boot 4 不配套的 rocketmq-spring-boot-starter）、RustFS（S3 兼容对象存储）。
+- 后端：Java 21 · Spring Boot 4.1 · Maven（已含 Web MVC / Validation）；规划接入 MyBatis-Plus、MySQL、Redis、RocketMQ（消息队列，不用 Kafka；Java 端用 rocketmq-client-java 5.x 经 Proxy gRPC 连接，不用与 Boot 4 不配套的 rocketmq-spring-boot-starter）、RustFS（S3 兼容对象存储）。连接池已换成 Druid（Boot 4 专用的 druid-spring-boot-4-starter，排除了 HikariCP），参数在 `application.yaml` 的 `spring.datasource.druid`；监控页 `/druid/`（只许本机访问 + 登录，Security 对它整段放行）。
 - 前端：Vue 3 · TypeScript · Vite · Pinia · Vue Router。
 - 智能体（规划）：Python · FastAPI · LangGraph · Milvus。
 

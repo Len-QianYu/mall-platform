@@ -58,11 +58,18 @@
             <artifactId>spring-security-oauth2-resource-server</artifactId>
         </dependency>
 
-		<!-- 数据访问：MyBatis-Plus + MySQL 驱动 -->
+		<!-- 数据访问：MyBatis-Plus + MySQL 驱动 + Druid 连接池 -->
 		<dependency>
 			<groupId>com.baomidou</groupId>
 			<artifactId>mybatis-plus-spring-boot4-starter</artifactId>
 			<version>3.5.17</version>
+			<!-- 排除经 spring-boot-starter-jdbc 带进来的 HikariCP：连接池换成了下面的 Druid -->
+			<exclusions>
+				<exclusion>
+					<groupId>com.zaxxer</groupId>
+					<artifactId>HikariCP</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.baomidou</groupId>
@@ -78,6 +85,12 @@
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+		<!-- Spring Boot 4 要用 boot-4 专用的 starter（自动配置适配了 Boot 4 新的包路径）；连接池参数见 application.yaml -->
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid-spring-boot-4-starter</artifactId>
+			<version>1.2.28</version>
 		</dependency>
 
 		<!-- 消息队列：RocketMQ 5.x 官方 Java 客户端，走 gRPC 连 Proxy（docker-compose 里的 127.0.0.1:8081）。

@@ -14,7 +14,7 @@
 
 - **后端**：Java 21 · Spring Boot 4.1 · Maven（已引入 Web MVC / Validation 起步依赖）
 - **前端**：Vue 3 · TypeScript · Vite · Pinia · Vue Router
-- **数据与基础设施（规划中）**：MyBatis-Plus · MySQL · Redis · RocketMQ（消息队列）· RustFS（S3 兼容对象存储）
+- **数据与基础设施（规划中）**：MyBatis-Plus · MySQL · Druid（连接池）· Redis · RocketMQ（消息队列）· RustFS（S3 兼容对象存储）
 - **智能体（规划中）**：Python · FastAPI · LangGraph · Milvus
 
 ## 快速开始
@@ -34,7 +34,7 @@ docker compose up -d     # 仓库根目录执行：Redis 8.10 + RocketMQ 5.5 + R
 docker compose stop      # 停止
 ```
 
-端口：Redis **6380**（本机 6379 常被占用）、RocketMQ NameServer **9876** / Broker **10911** / Proxy gRPC **8081**、RustFS S3 API **9000** / 控制台 **9001**（`/rustfs/console/`），均只绑定 127.0.0.1。更多命令见 [`docker-compose.yml`](docker-compose.yml) 顶部注释。
+端口：Redis **6379**、RocketMQ NameServer **9876** / Broker **10911** / Proxy gRPC **8081**、RustFS S3 API **9000** / 控制台 **9001**（`/rustfs/console/`），均只绑定 127.0.0.1。更多命令见 [`docker-compose.yml`](docker-compose.yml) 顶部注释。
 
 ### 后端（api/）
 
@@ -44,6 +44,7 @@ cd api
 ```
 
 服务默认端口 **8080**。
+数据库连接池监控（Druid）：<http://127.0.0.1:8080/druid/>，只允许本机访问，默认账号 druid / druid123（可在 `api/.env` 里改）。
 打包命令：`./mvnw clean package`。
 
 ### 前端（web/）
