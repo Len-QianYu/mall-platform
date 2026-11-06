@@ -8,7 +8,7 @@
  *   4. 商品名 = 前缀 + 品类词 + 型号，如「便携蓝牙耳机 K327」，每个品类词约占 1/48，关键字搜索能搜出两千件左右；
  *   5. 只造商品：订单、购物车不引用这批商品，不影响原有的演示数据。
  *
- * 执行（仓库根目录，约十几秒）：mysql -uroot -p mall_platform < api/src/main/resources/db/bench-product.sql
+ * 执行（仓库根目录,即使用CMD命令行窗口， cd C:\Code-AI\mall-platform，约十几秒）：mysql -uroot -p mall_platform < api/src/main/resources/db/bench-product.sql
  * 清理：DELETE FROM product WHERE id BETWEEN 1001 AND 101000;
  */
 
