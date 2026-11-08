@@ -38,10 +38,14 @@ docker compose stop      # 停止
 
 ### 后端（api/）
 
+后端依赖 RocketMQ，启动前先执行 `docker compose up -d`；首次使用还要建一次 Topic 和消费组（命令见 [`docker-compose.yml`](docker-compose.yml) 顶部注释）。
+
 ```bash
 cd api
 ./mvnw spring-boot:run        # Windows 下使用 mvnw.cmd spring-boot:run
 ```
+
+下单后 15 分钟未支付的订单会自动取消并回补库存（RocketMQ 延时消息 + 定时扫描兜底），时长可用 `ORDER_PAY_TIMEOUT` 调整。
 
 服务默认端口 **8080**。
 数据库连接池监控（Druid）：<http://127.0.0.1:8080/druid/>，只允许本机访问，默认账号 druid / druid123（可在 `api/.env` 里改）。

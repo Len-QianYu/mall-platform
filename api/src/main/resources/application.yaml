@@ -47,3 +47,11 @@ spring:
 # 上传文件暂存本地磁盘（RustFS 接入前），目录放在项目之外，可在 api/.env 里用 UPLOAD_ROOT 指定
 upload:
   root: ${UPLOAD_ROOT:${user.home}/mall-platform/uploads}
+
+# RocketMQ Proxy 的 gRPC 地址（docker-compose 启动的 RocketMQ）
+rocketmq:
+  endpoints: ${ROCKETMQ_ENDPOINTS:127.0.0.1:8081}
+
+# 下单后多久不支付就自动取消、回补库存（如 15m、30s）；RocketMQ 延时消息最长 3 天
+order:
+  pay-timeout: ${ORDER_PAY_TIMEOUT:15m}

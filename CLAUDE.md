@@ -49,6 +49,10 @@ docker compose up -d     # 启动 Redis 8.10（6379）+ RocketMQ 5.5（NameServe
 docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注释
 ```
 
+后端依赖 RocketMQ（订单支付超时取消）：启动后端前要先 `docker compose up -d`，新环境还要按 `docker-compose.yml` 顶部注释建一次 Topic `order-pay-timeout`（DELAY 类型）和消费组 `order-pay-timeout-consumer`。
+
+多个后端实例用同一个消费组会分摊消息：连测试库的实例不要和连真实库的实例同时运行，否则消息可能被另一边消费。
+
 本地配置：各端 `.env` 均不入库（模板为 `.env.example`，新克隆后复制填写）；后端数据库连接写在 `api/.env`，由 `application.yaml` 的 `spring.config.import` 读入。
 
 ## 技术栈

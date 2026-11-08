@@ -1,6 +1,7 @@
 package com.example.api.service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,8 +41,12 @@ public interface OrderService {
     BigDecimal sumSalesAmount();
 
     // 下单：扣库存，按商品当前售价生成订单和明细，fromCart 时把这些商品移出购物车，返回新订单。
-    // 商品下架或库存不足时抛 TradeFailedException，已扣的库存随事务回滚
+    // 商品下架或库存不足时抛 TradeFailedException，已扣的库存随事务回滚。
+    // 事务提交后发一条支付超时延时消息，到期仍未支付就自动取消（时长见 order.pay-timeout）
     OrderEntity create(Integer userId, TradeRequests.OrderCreate request);
+
+    // 下单超过 expireAfter 仍是待支付的订单 ID，最早的在前，最多 limit 个（支付超时兜底扫描用）
+    List<Long> fetchExpiredIds(Duration expireAfter, Integer limit);
 
     // 发货：只有已支付的订单能发货，返回是否成功（订单不存在或状态不对时为 false）
     boolean ship(Long id);

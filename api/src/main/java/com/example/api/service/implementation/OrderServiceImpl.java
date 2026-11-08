@@ -1,6 +1,7 @@
 package com.example.api.service.implementation;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,7 @@ import com.example.api.mapper.CartMapper;
 import com.example.api.mapper.OrderItemMapper;
 import com.example.api.mapper.OrderMapper;
 import com.example.api.mapper.ProductMapper;
+import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.OrderService;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.TradeNo;
@@ -43,16 +45,20 @@ public class OrderServiceImpl implements OrderService {
 
     private final CartMapper cartMapper;
 
+    private final OrderPayTimeoutProducer payTimeoutProducer;
+
     public OrderServiceImpl(
         OrderMapper orderMapper,
         OrderItemMapper orderItemMapper,
         ProductMapper productMapper,
-        CartMapper cartMapper
+        CartMapper cartMapper,
+        OrderPayTimeoutProducer payTimeoutProducer
     ) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
         this.cartMapper = cartMapper;
+        this.payTimeoutProducer = payTimeoutProducer;
     }
 
     @Override
@@ -192,8 +198,24 @@ public class OrderServiceImpl implements OrderService {
             );
         }
 
+        // 到期未支付自动取消、回补库存；消息在事务提交后才发出
+        this.payTimeoutProducer.sendAfterCommit(order);
+
         // 重新查一次：created_at 等列由数据库填写
         return this.orderMapper.selectById(order.getId());
+    }
+
+    @Override
+    public List<Long> fetchExpiredIds(Duration expireAfter, Integer limit) {
+        // 用数据库的 NOW() 和 created_at（也由数据库填写）比较，不受应用服务器和数据库时钟不一致影响；走 idx_status
+        return this.orderMapper.selectList(
+            new Page<>(1, limit, false),
+            Wrappers.<OrderEntity>lambdaQuery()
+                .select(OrderEntity::getId)
+                .eq(OrderEntity::getStatus, OrderStatus.PENDING_PAYMENT)
+                .apply("created_at < NOW() - INTERVAL {0} SECOND", expireAfter.toSeconds())
+                .orderByAsc(OrderEntity::getId)
+        ).stream().map(OrderEntity::getId).toList();
     }
 
     // 状态流转都用条件更新：WHERE 里带上当前应有的状态，判断和修改在同一条 SQL 里完成，

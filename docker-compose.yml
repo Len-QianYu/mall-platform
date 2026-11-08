@@ -18,6 +18,11 @@
 #   docker compose exec rmqbroker sh mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t <Topic名>
 #   docker compose exec rmqbroker sh mqadmin updateSubGroup -n rmqnamesrv:9876 -c DefaultCluster -g <消费组名>
 #
+# 后端已用到的 Topic 和消费组（首次启动后端前执行一次；Git Bash 里在命令前加 MSYS_NO_PATHCONV=1）：
+#   订单支付超时（延时消息，Topic 类型必须是 DELAY）
+#   docker compose exec rmqbroker sh mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t order-pay-timeout -a +message.type=DELAY
+#   docker compose exec rmqbroker sh mqadmin updateSubGroup -n rmqnamesrv:9876 -c DefaultCluster -g order-pay-timeout-consumer
+#
 # RustFS 控制台：http://127.0.0.1:9001/rustfs/console/ （账号密码见下面 rustfs 的 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY）
 #
 # 端口只绑定 127.0.0.1，局域网访问不到，所以本地开发不设密码（RustFS 必须有账号，用固定的开发账号）。
