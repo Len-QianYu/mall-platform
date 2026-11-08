@@ -57,6 +57,39 @@ npm run dev        # 开发服务器，默认端口 5173
 
 打包命令：`npm run build`（类型检查 + 生产构建）
 
+## 性能压测
+
+商品接口用 JMeter 压测，脚本和一键运行脚本在 [`api/bench/`](api/bench/)（`run.cmd <结果名> [并发数] [秒数]`，先 10 并发预热 10 秒再正式压测）。
+
+### 基线（未加缓存：MySQL + Druid 连接池）
+
+- 数据量：商品表 **10 万条**（`api/src/main/resources/db/bench-product.sql` 生成）
+- 压测方式：5 个场景**依次**执行（线程组串行），每个场景 **50 并发、持续 60 秒**，ramp-up 5 秒
+- 环境：本机单机（后端、MySQL、JMeter 同一台 Windows 电脑），结果仅作优化前后对比参考
+
+| 场景 | 接口 | 请求数 | 吞吐量 (req/s) | 平均 (ms) | P90 (ms) | P99 (ms) | 错误率 |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 分类列表 | `GET /product/categories` | 226,906 | 3780.3 | 12.5 | 27 | 51 | 0% |
+| 商品详情 | `GET /product/{id}`（随机 id） | 204,383 | 3405.4 | 13.9 | 31 | 58 | 0% |
+| 商品列表-默认排序 | `GET /product?page=1~10&pageSize=20` | 6,653 | 110.6 | 434.0 | 505 | 641 | 0% |
+| 商品搜索-关键字 | `GET /product?keyword=...` | 4,655 | 77.2 | 618.7 | 707 | 945 | 0% |
+| 商品列表-销量排序 | `GET /product?sort=sales` | 1,469 | 23.8 | 1993.5 | 2156 | 2223 | 0% |
+
+**结论**：按主键查询的详情和分类接口很快；瓶颈在分页列表、关键字搜索和销量排序——10 万行上的排序/模糊匹配加 COUNT 统计让单次请求达到数百毫秒到 2 秒。下一步：接入 Redis 缓存热点列表与详情，并针对排序/搜索做索引优化，再用同一脚本复测对比。
+
+<details>
+<summary>压测截图（JMeter 报告 / Druid 监控）</summary>
+
+![JMeter 统计](docs/bench/baseline/jmeter-statistics.png)
+![吞吐量](docs/bench/baseline/jmeter-TransactionsPerSecond.png)
+![响应时间](docs/bench/baseline/jmeter-ResponseTimesOverTime.png)
+![响应时间百分位](docs/bench/baseline/jmeter-ResponseTimesPercentiles.png)
+![Druid 数据源](docs/bench/baseline/druid-datasource.png)
+![Druid SQL 监控](docs/bench/baseline/druid-sql.png)
+![Druid URI 监控](docs/bench/baseline/druid-weburi.png)
+
+</details>
+
 ## Roadmap
 
 - 前后端工程骨架（Spring Boot 4.1 + Vue 3 + Vite）
