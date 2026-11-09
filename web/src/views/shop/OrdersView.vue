@@ -62,6 +62,15 @@
                   </ElPopconfirm>
                 </template>
                 <ElPopconfirm
+                  v-if="order.status === 'PAID'"
+                  title="商品还没发货，确定退款吗？"
+                  @confirm="changeStatus(order.id, 'refund')"
+                >
+                  <template #reference>
+                    <ElButton size="small">申请退款</ElButton>
+                  </template>
+                </ElPopconfirm>
+                <ElPopconfirm
                   v-if="order.status === 'SHIPPED'"
                   title="确认已收到商品吗？"
                   @confirm="changeStatus(order.id, 'confirm')"
@@ -130,6 +139,7 @@ const TABS: { name: OrderStatus | 'ALL'; label: string }[] = [
   { name: 'SHIPPED', label: '待收货' },
   { name: 'COMPLETED', label: '已完成' },
   { name: 'CANCELLED', label: '已取消' },
+  { name: 'REFUNDED', label: '已退款' },
 ]
 
 const router = useRouter()

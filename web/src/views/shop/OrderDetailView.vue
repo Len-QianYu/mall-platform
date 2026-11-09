@@ -9,12 +9,19 @@
           </ElButton>
         </div>
 
-        <!-- 进度：已取消的订单没有后续步骤，改为提示条 -->
+        <!-- 进度：已取消、已退款的订单没有后续步骤，改为提示条（已退款的订单不会再变，updatedAt 即退款时间） -->
         <ElCard shadow="never" class="detail-card">
           <ElAlert
             v-if="order.status === 'CANCELLED'"
             type="info"
             :title="`订单已于 ${formatDateTime(order.cancelledAt)} 取消`"
+            :closable="false"
+            show-icon
+          />
+          <ElAlert
+            v-else-if="order.status === 'REFUNDED'"
+            type="info"
+            :title="`订单已于 ${formatDateTime(order.updatedAt)} 退款，${formatMoney(order.totalAmount)} 已原路退回`"
             :closable="false"
             show-icon
           />
@@ -39,6 +46,15 @@
                 去支付
               </ElButton>
             </template>
+            <ElPopconfirm
+              v-if="order.status === 'PAID'"
+              title="商品还没发货，确定退款吗？"
+              @confirm="changeStatus('refund')"
+            >
+              <template #reference>
+                <ElButton>申请退款</ElButton>
+              </template>
+            </ElPopconfirm>
             <ElPopconfirm
               v-if="order.status === 'SHIPPED'"
               title="确认已收到商品吗？"
@@ -150,6 +166,7 @@ const STEP_BY_STATUS: Record<OrderStatus, number> = {
   SHIPPED: 3,
   COMPLETED: 4,
   CANCELLED: 0,
+  REFUNDED: 0,
 }
 
 const route = useRoute()
@@ -161,8 +178,10 @@ const detail = ref<{ order: Order; items: OrderItem[] } | null>(null)
 // 模板里只在 detail 存在时使用
 const order = computed(() => detail.value!.order)
 const activeStep = computed(() => STEP_BY_STATUS[order.value.status] ?? 0)
-// 待支付可取消、去支付，已发货可确认收货，其余状态没有操作
-const hasActions = computed(() => ['PENDING_PAYMENT', 'SHIPPED'].includes(order.value.status))
+// 待支付可取消、去支付，已支付（未发货）可退款，已发货可确认收货，其余状态没有操作
+const hasActions = computed(() =>
+  ['PENDING_PAYMENT', 'PAID', 'SHIPPED'].includes(order.value.status),
+)
 
 // 还没走到的步骤不显示时间
 const stepTime = (value: string | null) => (value ? formatDateTime(value) : '')

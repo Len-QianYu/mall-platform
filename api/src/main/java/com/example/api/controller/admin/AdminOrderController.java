@@ -17,6 +17,7 @@ import com.example.api.entity.OrderEntity;
 import com.example.api.enums.OrderStatus;
 import com.example.api.exception.ValidateFailedException;
 import com.example.api.service.OrderService;
+import com.example.api.service.PaymentService;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.ResultTemplate;
 import com.example.api.validator.OrderValidateGroup;
@@ -28,8 +29,11 @@ public class AdminOrderController {
 
     private final OrderService orderService;
 
-    public AdminOrderController(OrderService orderService) {
+    private final PaymentService paymentService;
+
+    public AdminOrderController(OrderService orderService, PaymentService paymentService) {
         this.orderService = orderService;
+        this.paymentService = paymentService;
     }
 
     // 订单列表：关键字匹配订单号 / 收货人 / 收货电话，可按状态筛选
@@ -91,7 +95,7 @@ public class AdminOrderController {
         return result;
     }
 
-    // 取消：待支付 → 已取消（已支付的订单要走退款，暂不支持）
+    // 取消：待支付 → 已取消（已支付的订单走下面的退款）
     @PostMapping("/cancel")
     public ResultTemplate cancel(
         @RequestBody @Validated({ OrderValidateGroup.UpdateStatus.class }) OrderEntity fields,
@@ -110,6 +114,28 @@ public class AdminOrderController {
         }
 
         result.putPayload("message", "订单已取消");
+        return result;
+    }
+
+    // 退款：已支付（未发货）→ 已退款，回补库存、扣回销量。已发货的要先退货，暂不支持
+    @PostMapping("/refund")
+    public ResultTemplate refund(
+        @RequestBody @Validated({ OrderValidateGroup.UpdateStatus.class }) OrderEntity fields,
+        BindingResult bindingResult
+    ) {
+        ResultTemplate result = new ResultTemplate();
+
+        if (bindingResult.hasErrors()) {
+            throw new ValidateFailedException("缺少订单 ID");
+        }
+
+        if (!this.paymentService.refund(fields.getId())) {
+            result.setStatus(false);
+            result.putPayload("message", "只有已支付、未发货的订单才能退款，请刷新后重试");
+            return result;
+        }
+
+        result.putPayload("message", "已退款");
         return result;
     }
 

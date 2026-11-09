@@ -38,6 +38,19 @@ spring:
         exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/avatars/*,/images/*"
         session-stat-enable: false
 
+  # Redis（docker-compose 启动的，本地不设密码）：目前只用来缓存商品数据。
+  # Redis 连不上或超时，读写缓存失败只记日志、改为直接查库，后端照常启动、接口照常返回（见 CacheConfiguration）
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      # 单条命令的超时：默认 60 秒，Redis 卡住时每个请求都要干等；缓存命令正常 1 毫秒内就返回
+      timeout: 500ms
+
+  # 缓存实现用 Redis（各缓存的过期时间、序列化方式见 CacheConfiguration）
+  cache:
+    type: redis
+
   servlet:
     multipart:
       # 上传的都是图片（头像、商品图），单个 5MB 足够；超出时直接返回 413

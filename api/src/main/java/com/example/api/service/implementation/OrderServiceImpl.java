@@ -31,6 +31,7 @@ import com.example.api.mapper.OrderMapper;
 import com.example.api.mapper.ProductMapper;
 import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.OrderService;
+import com.example.api.service.ProductService;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.TradeNo;
 
@@ -43,6 +44,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final ProductMapper productMapper;
 
+    private final ProductService productService;
+
     private final CartMapper cartMapper;
 
     private final OrderPayTimeoutProducer payTimeoutProducer;
@@ -51,12 +54,14 @@ public class OrderServiceImpl implements OrderService {
         OrderMapper orderMapper,
         OrderItemMapper orderItemMapper,
         ProductMapper productMapper,
+        ProductService productService,
         CartMapper cartMapper,
         OrderPayTimeoutProducer payTimeoutProducer
     ) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
+        this.productService = productService;
         this.cartMapper = cartMapper;
         this.payTimeoutProducer = payTimeoutProducer;
     }
@@ -157,7 +162,7 @@ public class OrderServiceImpl implements OrderService {
             Integer productId = entry.getKey();
             Integer quantity = entry.getValue();
 
-            if (this.productMapper.deductStock(productId, quantity) == 0) {
+            if (!this.productService.deductStock(productId, quantity)) {
                 throw this.deductFailure(productId);
             }
             // 扣减成功后本事务持有这行商品的锁，这时读到的售价在提交前不会被改，订单金额和明细单价一致
@@ -252,7 +257,7 @@ public class OrderServiceImpl implements OrderService {
                     .orderByAsc(OrderItemEntity::getProductId)
             );
             for (OrderItemEntity item : items) {
-                this.productMapper.restoreStock(item.getProductId(), item.getQuantity());
+                this.productService.restoreStock(item.getProductId(), item.getQuantity());
             }
         }
         return cancelled;

@@ -20,4 +20,8 @@ public interface PaymentService {
     // 订单已不是待支付（已付过、已取消）时抛 TradeFailedException
     PaymentEntity pay(OrderEntity order, PaymentMethod method);
 
+    // 退款：只有已支付、未发货的订单能退。订单改为已退款、成功的流水改为已退款、回补库存、扣回销量；
+    // 返回是否成功（订单不存在或状态不对时为 false）。目前只有模拟支付，不经过第三方，直接视为已退回
+    boolean refund(Long orderId);
+
 }

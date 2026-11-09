@@ -20,8 +20,8 @@ import com.example.api.exception.TradeFailedException;
 import com.example.api.mapper.OrderItemMapper;
 import com.example.api.mapper.OrderMapper;
 import com.example.api.mapper.PaymentMapper;
-import com.example.api.mapper.ProductMapper;
 import com.example.api.service.PaymentService;
+import com.example.api.service.ProductService;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.TradeNo;
 
@@ -34,18 +34,18 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final OrderItemMapper orderItemMapper;
 
-    private final ProductMapper productMapper;
+    private final ProductService productService;
 
     public PaymentServiceImpl(
         PaymentMapper paymentMapper,
         OrderMapper orderMapper,
         OrderItemMapper orderItemMapper,
-        ProductMapper productMapper
+        ProductService productService
     ) {
         this.paymentMapper = paymentMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
-        this.productMapper = productMapper;
+        this.productService = productService;
     }
 
     @Override
@@ -97,11 +97,46 @@ public class PaymentServiceImpl implements PaymentService {
                 .orderByAsc(OrderItemEntity::getProductId)
         );
         for (OrderItemEntity item : items) {
-            this.productMapper.addSales(item.getProductId(), item.getQuantity());
+            this.productService.addSales(item.getProductId(), item.getQuantity());
         }
 
         // 重新查一次：created_at 等列由数据库填写
         return this.paymentMapper.selectById(payment.getId());
+    }
+
+    @Override
+    @Transactional
+    public boolean refund(Long orderId) {
+        // 条件更新：WHERE 里带上已支付状态，重复点退款、或退款时管理员恰好发了货，都只有一方能改成功
+        boolean refunded = this.orderMapper.update(
+            Wrappers.<OrderEntity>lambdaUpdate()
+                .set(OrderEntity::getStatus, OrderStatus.REFUNDED)
+                .eq(OrderEntity::getId, orderId)
+                .eq(OrderEntity::getStatus, OrderStatus.PAID)
+        ) > 0;
+        if (!refunded) {
+            return false;
+        }
+
+        // 一单可能有多条流水（失败重试），退的是成功的那条
+        this.paymentMapper.update(
+            Wrappers.<PaymentEntity>lambdaUpdate()
+                .set(PaymentEntity::getStatus, PaymentStatus.REFUNDED)
+                .eq(PaymentEntity::getOrderId, orderId)
+                .eq(PaymentEntity::getStatus, PaymentStatus.SUCCESS)
+        );
+
+        // 商品没发出去，库存还回去、销量扣回来；按商品 ID 从小到大更新，和下单扣库存的加锁顺序一致
+        List<OrderItemEntity> items = this.orderItemMapper.selectList(
+            Wrappers.<OrderItemEntity>lambdaQuery()
+                .eq(OrderItemEntity::getOrderId, orderId)
+                .orderByAsc(OrderItemEntity::getProductId)
+        );
+        for (OrderItemEntity item : items) {
+            this.productService.restoreStock(item.getProductId(), item.getQuantity());
+            this.productService.subtractSales(item.getProductId(), item.getQuantity());
+        }
+        return true;
     }
 
     // 列表筛选条件：count 和 fetch 共用，保证总数和当前页按同一条件查询

@@ -66,7 +66,7 @@
               <ElButton link type="success">发货</ElButton>
             </template>
           </ElPopconfirm>
-          <!-- 只有待支付的订单能直接取消；已支付的取消要走退款，暂不支持 -->
+          <!-- 只有待支付的订单能直接取消；已支付、未发货的走退款（已发货的要先退货，暂不支持） -->
           <ElPopconfirm
             v-if="row.status === 'PENDING_PAYMENT'"
             title="确定取消该订单吗？"
@@ -74,6 +74,15 @@
           >
             <template #reference>
               <ElButton link type="danger">取消</ElButton>
+            </template>
+          </ElPopconfirm>
+          <ElPopconfirm
+            v-if="row.status === 'PAID'"
+            title="确定给该订单退款吗？库存会回补、销量会扣回"
+            @confirm="changeStatus(row.id, 'refund')"
+          >
+            <template #reference>
+              <ElButton link type="danger">退款</ElButton>
             </template>
           </ElPopconfirm>
         </template>
@@ -250,14 +259,16 @@ const resetFilter = () => {
 }
 
 // 发货、取消会同时改订单状态和对应时间，成功后重新拉列表
-const changeStatus = async (id: number, action: 'ship' | 'cancel') => {
+const ACTION_MESSAGE = { ship: '已发货', cancel: '订单已取消', refund: '已退款' }
+
+const changeStatus = async (id: number, action: keyof typeof ACTION_MESSAGE) => {
   try {
     const { data } = await request.post<ApiResult>(`/admin/order/${action}`, { id })
     if (!data.status) {
       ElMessage.error(data.payload.message || '操作失败')
       return
     }
-    ElMessage.success(action === 'ship' ? '已发货' : '订单已取消')
+    ElMessage.success(ACTION_MESSAGE[action])
     fetchOrders()
   } catch {
     ElMessage.error('操作失败')

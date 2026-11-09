@@ -63,8 +63,7 @@ public class ProductController {
     public ResultTemplate show(@PathVariable Integer id) {
         ResultTemplate result = new ResultTemplate();
 
-        Optional<ProductEntity> product = this.productService.fetchById(id)
-            .filter(found -> found.getStatus() == 1);
+        Optional<ProductEntity> product = this.productService.fetchOnSaleById(id);
         if (product.isEmpty()) {
             result.setStatus(false);
             result.putPayload("message", "商品不存在或已下架");

@@ -48,7 +48,11 @@ CREATE TABLE `product` (
   `created_at`  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at`  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  KEY `idx_category_status` (`category`, `status`)
+  KEY `idx_category_status` (`category`, `status`),
+  -- 前台按销量排序：WHERE status = 1 ORDER BY sales DESC, id DESC 倒序读这个索引，读够一页就停，不用全表扫描再排序
+  -- （二级索引末尾自带主键 id，排序里的 id 兜底也能用上；status 回表判断，九成商品在售，多读几条就够）。
+  -- 不建 (status, sales)：status 只有 0/1，优化器会拿它走 ref，关键字计数、按价格/最新排序都先读 9 万条索引项再逐条回表，实测比全表扫描慢 2~4 倍
+  KEY `idx_sales` (`sales`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '商品表';
 
 /* ---------- 3. 订单主表 ---------- */
@@ -57,7 +61,7 @@ CREATE TABLE `orders` (
   `order_no`         VARCHAR(32)     NOT NULL                COMMENT '订单号（对外展示）',
   `user_id`          INT UNSIGNED    NOT NULL                COMMENT '用户 ID（逻辑外键 user.id）',
   `total_amount`     DECIMAL(10, 2)  NOT NULL                COMMENT '订单总额（元）',
-  `status`           VARCHAR(16)     NOT NULL DEFAULT 'PENDING_PAYMENT' COMMENT '状态【PENDING_PAYMENT:待支付;PAID:已支付;SHIPPED:已发货;COMPLETED:已完成;CANCELLED:已取消】',
+  `status`           VARCHAR(16)     NOT NULL DEFAULT 'PENDING_PAYMENT' COMMENT '状态【PENDING_PAYMENT:待支付;PAID:已支付;SHIPPED:已发货;COMPLETED:已完成;CANCELLED:已取消;REFUNDED:已退款】',
   `receiver_name`    VARCHAR(32)     NOT NULL                COMMENT '收货人（下单时快照）',
   `receiver_phone`   VARCHAR(20)     NOT NULL                COMMENT '收货电话（下单时快照）',
   `receiver_address` VARCHAR(255)    NOT NULL                COMMENT '收货地址（下单时快照）',

@@ -30,6 +30,7 @@ export const ORDER_STATUS: Record<string, StatusTag> = {
   SHIPPED: { label: '已发货', type: 'primary' },
   COMPLETED: { label: '已完成', type: 'success' },
   CANCELLED: { label: '已取消', type: 'danger' },
+  REFUNDED: { label: '已退款', type: 'info' },
 } satisfies Record<OrderStatus, StatusTag>
 
 export const PAYMENT_STATUS: Record<string, StatusTag> = {

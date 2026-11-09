@@ -22,6 +22,7 @@ import com.example.api.enums.OrderStatus;
 import com.example.api.exception.TradeFailedException;
 import com.example.api.exception.ValidateFailedException;
 import com.example.api.service.OrderService;
+import com.example.api.service.PaymentService;
 import com.example.api.utils.CurrentUser;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.ResultTemplate;
@@ -34,8 +35,11 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    public OrderController(OrderService orderService) {
+    private final PaymentService paymentService;
+
+    public OrderController(OrderService orderService, PaymentService paymentService) {
         this.orderService = orderService;
+        this.paymentService = paymentService;
     }
 
     // 我的订单：可按状态筛选，每个订单带上商品明细
@@ -157,6 +161,35 @@ public class OrderController {
         }
 
         result.putPayload("message", "已确认收货");
+        return result;
+    }
+
+    // 退款：已支付（未发货）→ 已退款，回补库存、扣回销量
+    @PostMapping("/refund")
+    public ResultTemplate refund(
+        @RequestBody @Validated({ OrderValidateGroup.UpdateStatus.class }) OrderEntity fields,
+        BindingResult bindingResult,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        ResultTemplate result = new ResultTemplate();
+
+        if (bindingResult.hasErrors()) {
+            throw new ValidateFailedException("缺少订单 ID");
+        }
+
+        if (!this.isOwnOrder(fields.getId(), jwt)) {
+            result.setStatus(false);
+            result.putPayload("message", "订单不存在");
+            return result;
+        }
+
+        if (!this.paymentService.refund(fields.getId())) {
+            result.setStatus(false);
+            result.putPayload("message", "只有已支付、未发货的订单才能退款，请刷新后重试");
+            return result;
+        }
+
+        result.putPayload("message", "退款成功，款项已原路退回");
         return result;
     }
 

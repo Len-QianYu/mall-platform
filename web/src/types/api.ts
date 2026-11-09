@@ -46,7 +46,8 @@ export interface Product {
   updatedAt: string
 }
 
-export type OrderStatus = 'PENDING_PAYMENT' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED'
+export type OrderStatus =
+  'PENDING_PAYMENT' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
 
 // 订单主表（orders 表；收货信息是下单时的快照）
 export interface Order {
@@ -126,6 +127,7 @@ export interface DashboardStats {
  *     GET  /order/{id}              → { order, items }
  *     POST /order/cancel            { id }    待支付 → 已取消
  *     POST /order/confirm           { id }    已发货 → 已完成
+ *     POST /order/refund            { id }    已支付（未发货）→ 已退款，回补库存、扣回销量
  *     POST /payment/pay             { orderId, method } → { payment }（目前只有模拟支付，直接成功）
  *     GET  /user/profile            → { user }
  *     POST /user/update             { name, gender, email, phone, avatarUrl }

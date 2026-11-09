@@ -33,4 +33,8 @@ public interface ProductMapper extends BaseMapper<ProductEntity> {
     @Update("UPDATE product SET sales = sales + #{quantity} WHERE id = #{id}")
     int addSales(@Param("id") Integer id, @Param("quantity") Integer quantity);
 
+    // 退款扣回销量。sales 是无符号列，减成负数会直接报错，所以最多减到 0
+    @Update("UPDATE product SET sales = sales - LEAST(sales, #{quantity}) WHERE id = #{id}")
+    int subtractSales(@Param("id") Integer id, @Param("quantity") Integer quantity);
+
 }

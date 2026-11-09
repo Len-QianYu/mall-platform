@@ -7,4 +7,5 @@ public enum OrderStatus {
     SHIPPED,         // 已发货
     COMPLETED,       // 已完成
     CANCELLED,       // 已取消
+    REFUNDED,        // 已退款：已支付、未发货时退款，退款后不再变化（退款时间即 updated_at）
 }
