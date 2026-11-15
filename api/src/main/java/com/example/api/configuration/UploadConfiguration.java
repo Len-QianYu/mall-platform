@@ -1,40 +1,52 @@
 package com.example.api.configuration;
 
-import java.nio.file.Path;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.CacheControl;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-// 上传文件存本地磁盘（RustFS 接入前）：upload.root 下按用途分目录，每个目录映射成同名的访问路径，
-// 如 <root>/avatars/a.png → /avatars/a.png（SecurityConfiguration 已放行这些路径，<img> 不带 Token 也能加载）
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
+
+// RustFS 的 S3 客户端：整个应用共用一个，关闭应用时释放 HTTP 客户端。
 @Configuration
-public class UploadConfiguration implements WebMvcConfigurer {
+public class UploadConfiguration {
 
-    // 允许的上传用途，同时是存放目录名和访问路径前缀：用户头像、商品图片
+    // 允许的上传用途，同时是对象键和访问路径的前缀：用户头像、商品图片
     public static final Set<String> DIRECTORIES = Set.of("avatars", "images");
 
-    private final Path root;
-
-    public UploadConfiguration(@Value("${upload.root}") String root) {
-        this.root = Path.of(root).toAbsolutePath().normalize();
-    }
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 只映射白名单里的目录，不把整个 upload.root 暴露出去
-        for (String directory : DIRECTORIES) {
-            String location = this.root.resolve(directory).toUri().toString();
-            registry.addResourceHandler("/" + directory + "/**")
-                // 目录还没建时 toUri() 不带结尾的 /，少了它文件会按上一级目录解析
-                .addResourceLocations(location.endsWith("/") ? location : location + "/")
-                // 文件名是 UUID，同一个地址的内容不会变，浏览器可以长期缓存
-                .setCacheControl(CacheControl.maxAge(Duration.ofDays(30)));
-        }
+    @Bean(destroyMethod = "close")
+    public S3Client rustfsClient(
+        @Value("${rustfs.endpoint}") URI endpoint,
+        @Value("${rustfs.access-key}") String accessKey,
+        @Value("${rustfs.secret-key}") String secretKey,
+        @Value("${rustfs.region}") String region
+    ) {
+        return S3Client.builder()
+            .endpointOverride(endpoint)
+            .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+            .region(Region.of(region))
+            .forcePathStyle(true)
+            // 使用已知长度的普通 PUT，避免 S3 兼容服务对 aws-chunked / 可选校验和的实现差异。
+            .serviceConfiguration(S3Configuration.builder().chunkedEncodingEnabled(false).build())
+            .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
+            .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
+            .httpClientBuilder(UrlConnectionHttpClient.builder()
+                .connectionTimeout(Duration.ofSeconds(3))
+                .socketTimeout(Duration.ofSeconds(10)))
+            .overrideConfiguration(configuration -> configuration
+                .apiCallAttemptTimeout(Duration.ofSeconds(10))
+                .apiCallTimeout(Duration.ofSeconds(30)))
+            .build();
     }
 
 }

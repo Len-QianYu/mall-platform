@@ -57,9 +57,13 @@ spring:
       max-file-size: 5MB
       max-request-size: 6MB
 
-# 上传文件暂存本地磁盘（RustFS 接入前），目录放在项目之外，可在 api/.env 里用 UPLOAD_ROOT 指定
-upload:
-  root: ${UPLOAD_ROOT:${user.home}/mall-platform/uploads}
+# RustFS 对象存储（docker-compose 启动）：桶在首次上传时自动创建，保持私有，由后端提供图片访问。
+rustfs:
+  endpoint: ${RUSTFS_ENDPOINT:http://127.0.0.1:9000}
+  access-key: ${RUSTFS_ACCESS_KEY}
+  secret-key: ${RUSTFS_SECRET_KEY}
+  region: ${RUSTFS_REGION:us-east-1}
+  bucket: ${RUSTFS_BUCKET:mall-uploads}
 
 # RocketMQ Proxy 的 gRPC 地址（docker-compose 启动的 RocketMQ）
 rocketmq:

@@ -82,8 +82,9 @@ services:
         target: /home/rocketmq/broker.conf
     command: ["sh", "mqbroker", "--enable-proxy", "-c", "/home/rocketmq/broker.conf"]
 
-  # RustFS：S3 兼容对象存储，存商品图片、头像等文件（后端接入前上传文件仍在本地磁盘，见 api 的 upload.root）。
+  # RustFS：S3 兼容对象存储，后端已接入，用于存商品图片、头像等文件。
   # 应用用 S3 SDK 连 http://127.0.0.1:9000（path-style 访问），账号即下面的 ACCESS_KEY / SECRET_KEY
+  # mall-uploads 桶在首次上传时自动创建；桶保持私有，/avatars/**、/images/** 由后端读取并返回。
   rustfs:
     image: rustfs/rustfs:1.0.4
     container_name: mall-platform-rustfs
@@ -96,8 +97,8 @@ services:
       RUSTFS_CONSOLE_ENABLE: "true"
       RUSTFS_CONSOLE_ADDRESS: ":9001"
       # 本地开发账号（只绑定本机）；不设时会退回内置默认账号 rustfsadmin 并打印警告
-      RUSTFS_ACCESS_KEY: "mallplatform"
-      RUSTFS_SECRET_KEY: "mallplatform123"
+      RUSTFS_ACCESS_KEY: "rustrf"
+      RUSTFS_SECRET_KEY: "123456"
       # 置空：日志输出到标准输出，docker compose logs 能看到（镜像默认写进容器里的 /logs）
       RUSTFS_OBS_LOG_DIRECTORY: ""
     volumes:

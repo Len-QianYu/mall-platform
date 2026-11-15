@@ -1,0 +1,72 @@
+AGENT.md
+
+本文件是 AI 编程助手在本仓库工作时的项目指引；项目约定变化时与 `CLAUDE.md` 同步更新。
+
+## 项目定位
+
+Mall Platform：个人作品集项目（AI 全栈方向）——电商平台，Java 后端 + Vue 3 前端 + Python 智能体。代码以「可运行、能讲清设计取舍」为标准。
+
+## 目录结构
+
+| 目录 | 说明 | 状态 |
+|---|---|---|
+| `api/` | Java 后端：平台业务 API + 面向智能体的工具接口 | 骨架就绪 |
+| `web/` | Vue 3 前端：商城前台 + 管理端 | 骨架就绪 |
+| `agent/` | Python 智能体：一个 LangGraph 应用，入口 router + 客服/问数两个子图 | 规划中 |
+
+## 架构约定（重要）
+
+- **Java（api/）是唯一数据出口**：Python 智能体不直连数据库，所有数据访问经 Java 接口，由 Java 收口权限、审计、限流；问数的 SQL 也由 Java 执行，不交给 Python。
+- 智能体 ↔ api/ 走 HTTP；对话流式输出用 SSE。
+- 单体架构，不引入微服务组件，架构不照搬。
+
+## 常用命令
+
+后端 `api/`（Git Bash 用 `./mvnw`，CMD / PowerShell 用 `mvnw.cmd`）：
+
+```bash
+cd api
+./mvnw spring-boot:run    # 启动，端口 8080
+./mvnw test               # 测试
+./mvnw clean package      # 打包
+```
+
+前端 `web/`（Node `^22.19.0 || >=24.12.0`）：
+
+```bash
+cd web
+npm run dev          # 开发服务器，端口 5173
+npm run build        # 类型检查 + 生产构建
+npm run test:unit    # 单元测试（Vitest）
+npm run lint         # oxlint + eslint
+npm run format       # prettier
+```
+
+本地依赖（仓库根目录，需先启动 Docker Desktop；MySQL 用本机安装的）：
+
+```bash
+docker compose up -d     # 启动 Redis 8.10（6379）+ RocketMQ 5.5（NameServer 9876 / Broker 10911 / Proxy gRPC 8081）+ RustFS 1.0（S3 API 9000 / 控制台 9001）
+docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注释
+```
+
+后端依赖 RocketMQ（订单支付超时取消）：启动后端前要先 `docker compose up -d`，新环境还要按 `docker-compose.yml` 顶部注释建一次 Topic `order-pay-timeout`（DELAY 类型）和消费组 `order-pay-timeout-consumer`。
+
+多个后端实例用同一个消费组会分摊消息：连测试库的实例不要和连真实库的实例同时运行，否则消息可能被另一边消费。
+
+本地配置：各端 `.env` 均不入库（模板为 `.env.example`，新克隆后复制填写）；后端数据库连接写在 `api/.env`，由 `application.yaml` 的 `spring.config.import` 读入。
+
+## 技术栈
+
+- 后端：Java 21 · Spring Boot 4.1 · Maven（已含 Web MVC / Validation）；已接入 MyBatis-Plus、MySQL、Redis、RocketMQ（消息队列，不用 Kafka；Java 端用 rocketmq-client-java 5.x 经 Proxy gRPC 连接，不用与 Boot 4 不配套的 rocketmq-spring-boot-starter）、RustFS（S3 兼容对象存储）。连接池已换成 Druid（Boot 4 专用的 druid-spring-boot-4-starter，排除了 HikariCP），参数在 `application.yaml` 的 `spring.datasource.druid`；监控页 `/druid/`（只许本机访问 + 登录，Security 对它整段放行）。Redis 已用于前台商品缓存（Spring Cache 注解 + `CacheConfiguration`，写库后在事务提交后删缓存；管理端和下单流程读库不读缓存；Redis 出错只记日志、回退查库）。
+- 前端：Vue 3 · TypeScript · Vite · Pinia · Vue Router。
+- 文件存储已接入 RustFS（AWS S3 SDK 2.x + path-style），配置为 `rustfs.*` / `api/.env` 的 `RUSTFS_*`；首次上传自动创建私有桶，头像和商品图片仍使用 `/avatars/**`、`/images/**`，由 Java 后端流式读取。上传权限和 5MB 图片校验保持不变，文件服务不可用时返回 503。
+- 智能体（规划）：Python · FastAPI · LangGraph · Milvus。
+
+## 数据模型（规划）
+
+- 业务库 6 表：用户 / 商品 / 订单主表 + 订单明细 / 购物车 / 支付流水。
+- AI 域独立库 `mall_ai`：会话消息 / 知识库 / 反馈与 QA 对 / 售后工单 / 问数审计、权限、指标字典。
+
+## 开发优先级
+
+登录权限细节 > 管理端页面＞核心业务与 AI 链路 。

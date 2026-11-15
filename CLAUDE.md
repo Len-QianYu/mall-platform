@@ -57,8 +57,9 @@ docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注
 
 ## 技术栈
 
-- 后端：Java 21 · Spring Boot 4.1 · Maven（已含 Web MVC / Validation）；规划接入 MyBatis-Plus、MySQL、Redis、RocketMQ（消息队列，不用 Kafka；Java 端用 rocketmq-client-java 5.x 经 Proxy gRPC 连接，不用与 Boot 4 不配套的 rocketmq-spring-boot-starter）、RustFS（S3 兼容对象存储）。连接池已换成 Druid（Boot 4 专用的 druid-spring-boot-4-starter，排除了 HikariCP），参数在 `application.yaml` 的 `spring.datasource.druid`；监控页 `/druid/`（只许本机访问 + 登录，Security 对它整段放行）。Redis 已用于前台商品缓存（Spring Cache 注解 + `CacheConfiguration`，写库后在事务提交后删缓存；管理端和下单流程读库不读缓存；Redis 出错只记日志、回退查库）。
+- 后端：Java 21 · Spring Boot 4.1 · Maven（已含 Web MVC / Validation）；已接入 MyBatis-Plus、MySQL、Redis、RocketMQ（消息队列，不用 Kafka；Java 端用 rocketmq-client-java 5.x 经 Proxy gRPC 连接，不用与 Boot 4 不配套的 rocketmq-spring-boot-starter）、RustFS（S3 兼容对象存储）。连接池已换成 Druid（Boot 4 专用的 druid-spring-boot-4-starter，排除了 HikariCP），参数在 `application.yaml` 的 `spring.datasource.druid`；监控页 `/druid/`（只许本机访问 + 登录，Security 对它整段放行）。Redis 已用于前台商品缓存（Spring Cache 注解 + `CacheConfiguration`，写库后在事务提交后删缓存；管理端和下单流程读库不读缓存；Redis 出错只记日志、回退查库）。
 - 前端：Vue 3 · TypeScript · Vite · Pinia · Vue Router。
+- 文件存储已接入 RustFS（AWS S3 SDK 2.x + path-style），配置为 `rustfs.*` / `api/.env` 的 `RUSTFS_*`；首次上传自动创建私有桶，头像和商品图片仍使用 `/avatars/**`、`/images/**`，由 Java 后端流式读取。上传权限和 5MB 图片校验保持不变，文件服务不可用时返回 503。
 - 智能体（规划）：Python · FastAPI · LangGraph · Milvus。
 
 ## 数据模型（规划）

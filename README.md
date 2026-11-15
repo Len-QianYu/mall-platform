@@ -14,7 +14,7 @@
 
 - **后端**：Java 21 · Spring Boot 4.1 · Maven（已引入 Web MVC / Validation 起步依赖）
 - **前端**：Vue 3 · TypeScript · Vite · Pinia · Vue Router
-- **数据与基础设施**：MyBatis-Plus · MySQL · Druid（连接池）· Redis（商品缓存）· RocketMQ（消息队列）· RustFS（S3 兼容对象存储，规划中）
+- **数据与基础设施**：MyBatis-Plus · MySQL · Druid（连接池）· Redis（商品缓存）· RocketMQ（消息队列）· RustFS（S3 兼容对象存储）
 - **智能体（规划中）**：Python · FastAPI · LangGraph · Milvus
 
 ## 快速开始
@@ -48,6 +48,20 @@ cd api
 下单后 15 分钟未支付的订单会自动取消并回补库存（RocketMQ 延时消息 + 定时扫描兜底），时长可用 `ORDER_PAY_TIMEOUT` 调整。
 
 前台商品列表、详情、分类缓存在 Redis（`127.0.0.1:6379`，可用 `REDIS_HOST` / `REDIS_PORT` 修改）；Redis 没启动时后端照常运行，只是每次都查库。
+
+头像、商品图片上传到 RustFS（AWS SDK for Java 2.x，S3 path-style 访问），默认使用 `mall-uploads` 私有桶，首次上传会自动创建。上传接口保持 `POST /upload/avatars`（需登录）和 `POST /upload/images`（仅管理员），支持 JPG / PNG / GIF / WEBP，单个文件不超过 5MB；扩展名和 Content-Type 按文件内容识别。返回的 `/avatars/...`、`/images/...` 由后端从 RustFS 读取，前端和数据库仍保存这些稳定路径。连接信息可在 `api/.env` 里通过 `RUSTFS_*` 修改（见 [`api/.env.example`](api/.env.example)）；RustFS 暂未启动时后端仍可启动，上传或读取文件返回 503。
+
+已有本地上传文件时，先迁移到 RustFS 再重启后端。以下命令在 `api/` 下的 PowerShell 中执行，最后的目录替换成原来的 `UPLOAD_ROOT`（原默认目录为 `$env:USERPROFILE/mall-platform/uploads`）：
+
+```powershell
+.\mvnw.cmd -DskipTests compile dependency:build-classpath "-Dmdep.outputFile=target/rustfs-classpath.txt"
+$rustfsClasspath = (Get-Content -Raw target/rustfs-classpath.txt).Trim() + ';target/classes'
+java --class-path $rustfsClasspath tools/MigrateUploads.java D:/mall-platform/uploads
+```
+
+迁移工具读取 `api/.env` 中的 `RUSTFS_*`，保留 `avatars/`、`images/` 下的文件名，并用 SHA-256 核对迁移内容；不改数据库、不删除原文件，重复执行会跳过已存在的对象。迁移后 `UPLOAD_ROOT` 不再参与后端存储。
+
+后端测试用 `.\mvnw.cmd test`。需要验证真实 RustFS 时，在 PowerShell 中先设置 `$env:RUSTFS_INTEGRATION_TESTS = 'true'` 再运行测试；集成测试使用独立的随机桶并自动清理，覆盖上传、读取、私有访问和迁移条件写入。
 
 服务默认端口 **8080**。
 数据库连接池监控（Druid）：<http://127.0.0.1:8080/druid/>，只允许本机访问，默认账号 druid / druid123（可在 `api/.env` 里改）。

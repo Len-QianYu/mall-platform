@@ -35,7 +35,7 @@ public class UploadController {
     ) throws IOException {
         ResultTemplate result = new ResultTemplate();
 
-        // type 会成为存放目录名，只认白名单：.. 之类的值进不来，文件写不到上传目录之外
+        // type 会成为 RustFS 对象键的前缀，只认白名单。
         if (!UploadConfiguration.DIRECTORIES.contains(type)) {
             result.setStatus(false);
             result.putPayload("message", "不支持的上传类型");

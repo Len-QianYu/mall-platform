@@ -13,7 +13,7 @@ public final class ImageFormat {
     private ImageFormat() {
     }
 
-    // 返回格式对应的扩展名（存盘时用它，不用原文件名的扩展名）；不是支持的图片时返回空
+    // 返回格式对应的扩展名（存储时用它，不用原文件名的扩展名）；不是支持的图片时返回空
     public static Optional<String> detect(MultipartFile file) throws IOException {
         byte[] head;
         try (InputStream input = file.getInputStream()) {
@@ -34,6 +34,16 @@ public final class ImageFormat {
             return Optional.of("webp");
         }
         return Optional.empty();
+    }
+
+    public static String contentType(String extension) {
+        return switch (extension) {
+            case "jpg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "gif" -> "image/gif";
+            case "webp" -> "image/webp";
+            default -> throw new IllegalArgumentException("不支持的图片格式");
+        };
     }
 
     private static boolean startsWith(byte[] data, int offset, int... expected) {
