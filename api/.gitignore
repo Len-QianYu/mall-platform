@@ -37,3 +37,6 @@ build/
 
 ### 压测结果（JMeter 原始数据和 HTML 报告，每次跑都会重新生成）###
 /bench/results/
+
+# Python 素材维护脚本的字节码缓存
+/tools/__pycache__/

@@ -6,7 +6,7 @@
  *   2. 角色存小写 user / admin：与 UserEntity 校验、JWT 角色声明、登录页账户类型取值一致；
  *   3. 显式指定主键，表之间的逻辑外键（user_id / product_id / order_id）直接对应，插入后自增值会自动跳到最大 ID 之后；
  *   4. 订单金额 = 明细单价 × 数量之和；已支付、已发货、已完成的订单都有一条成功的支付流水；
- *   5. 商品主图暂为 NULL（对象存储未接入），前端显示占位图。
+ *   5. 商品主图与 48 件精选演示商品由末尾图片映射初始化；运行 tools/seed-product-images.ps1 导入 RustFS 素材。
  *
  * 覆盖的演示场景：
  *   - 用户：管理员、演示用户 demo（数据最全）、普通用户、被禁用的用户；
@@ -104,3 +104,96 @@ INSERT INTO `payment` (`id`, `payment_no`, `order_id`, `user_id`, `amount`, `met
 (8,  'P202610181931000008', 8,  4, 288.00, 'ALIPAY', 'SUCCESS', '2026-10-18 19:31:40', '2026-10-18 19:31:20'),
 (9,  'P202610280851000009', 9,  4, 318.00, 'WECHAT', 'SUCCESS', '2026-10-28 08:51:15', '2026-10-28 08:51:00'),
 (10, 'P202610161200000010', 12, 6, 189.00, 'ALIPAY', 'SUCCESS', '2026-10-16 12:00:50', '2026-10-16 12:00:30');
+
+-- BEGIN DEMO PRODUCT IMAGES
+-- Generated from demo/product-images/catalog.json and manifest.json; maintain with prepare_product_images.py.
+UPDATE `product` SET `main_image` = '/images/demo-headphones-1-9c2b7b1afa98.webp' WHERE `id` = 1 AND `name` = '降噪蓝牙耳机 Pro' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-keyboard-3-39512b3911c9.webp' WHERE `id` = 2 AND `name` = '机械键盘 K87' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-smartwatch-2-5a5caa876873.webp' WHERE `id` = 3 AND `name` = '智能手表 S3' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-charger-3-f61153397046.webp' WHERE `id` = 4 AND `name` = '65W 氮化镓充电器' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-tshirt-2-0195f212a149.webp' WHERE `id` = 5 AND `name` = '纯棉圆领 T 恤' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-jacket-1-18370e5104f5.webp' WHERE `id` = 6 AND `name` = '轻薄羽绒服' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-shoes-3-667149cf8490.webp' WHERE `id` = 7 AND `name` = '休闲运动鞋' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-flask-2-e26fa3fc0b01.webp' WHERE `id` = 8 AND `name` = '316 不锈钢保温杯 500ml' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-neck-pillow-3-e50b0c16fc3b.webp' WHERE `id` = 9 AND `name` = '记忆棉护颈枕' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-humidifier-3-2bfac4a1084c.webp' WHERE `id` = 10 AND `name` = '香薰加湿器' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-coffee-3-67e59e5a66bf.webp' WHERE `id` = 11 AND `name` = '云南小粒咖啡豆 500g' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-nuts-1-829a35793a5d.webp' WHERE `id` = 12 AND `name` = '每日坚果 30 袋装' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-cleanser-1-2dc5a95600c7.webp' WHERE `id` = 13 AND `name` = '氨基酸洁面乳' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-face-cream-1-82182d3ec639.webp' WHERE `id` = 14 AND `name` = '保湿修护面霜' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-computer-systems-book-2-04064e4f0525.webp' WHERE `id` = 15 AND `name` = '《深入理解计算机系统》' AND (`main_image` IS NULL OR `main_image` = '');
+UPDATE `product` SET `main_image` = '/images/demo-ai-modern-book-3-b0514dbd8f01.webp' WHERE `id` = 16 AND `name` = '《人工智能：现代方法》' AND (`main_image` IS NULL OR `main_image` = '');
+
+-- 48 curated demonstration products; IDs 101..148 are outside the benchmark range.
+INSERT INTO `product` (`id`, `name`, `subtitle`, `description`, `category`, `price`, `stock`, `sales`, `main_image`, `status`, `created_at`) VALUES
+(101, '蓝牙耳机', '无线连接，适合通勤与日常影音', '蓝牙耳机适合日常使用与选购。无线连接，适合通勤与日常影音。请按个人需求选择，使用和保养请参考产品说明。', '数码', 499.00, 100, 20, '/images/demo-headphones-1-9c2b7b1afa98.webp', 1, '2026-11-02 10:00:00'),
+(102, '机械键盘', '独立按键，适合办公与桌面搭配', '机械键盘适合日常使用与选购。独立按键，适合办公与桌面搭配。请按个人需求选择，使用和保养请参考产品说明。', '数码', 299.00, 100, 27, '/images/demo-keyboard-2-8c0ffc1e692a.webp', 1, '2026-11-02 10:00:00'),
+(103, '智能手表', '腕上便捷查看，适合日常佩戴', '智能手表适合日常使用与选购。腕上便捷查看，适合日常佩戴。请按个人需求选择，使用和保养请参考产品说明。', '数码', 899.00, 100, 34, '/images/demo-smartwatch-1-18bdf718b48e.webp', 1, '2026-11-02 10:00:00'),
+(104, '快充充电器', '小巧便携，方便日常补充电量', '快充充电器适合日常使用与选购。小巧便携，方便日常补充电量。请按个人需求选择，使用和保养请参考产品说明。', '数码', 129.00, 100, 41, '/images/demo-charger-3-f61153397046.webp', 1, '2026-11-02 10:00:00'),
+(105, '移动电源', '随身携带，适合出行备用', '移动电源适合日常使用与选购。随身携带，适合出行备用。请按个人需求选择，使用和保养请参考产品说明。', '数码', 159.00, 100, 48, '/images/demo-powerbank-3-e61a25ec79fb.webp', 1, '2026-11-02 10:00:00'),
+(106, '无线鼠标', '简洁桌面，轻松完成日常操作', '无线鼠标适合日常使用与选购。简洁桌面，轻松完成日常操作。请按个人需求选择，使用和保养请参考产品说明。', '数码', 89.00, 100, 55, '/images/demo-mouse-1-9855336a9d7d.webp', 1, '2026-11-02 10:00:00'),
+(107, '平板电脑', '便携屏幕，适合阅读与影音', '平板电脑适合日常使用与选购。便携屏幕，适合阅读与影音。请按个人需求选择，使用和保养请参考产品说明。', '数码', 1599.00, 100, 62, '/images/demo-tablet-1-cf161a33721d.webp', 1, '2026-11-02 10:00:00'),
+(108, '数据线', '方便连接，适合桌面与出行', '数据线适合日常使用与选购。方便连接，适合桌面与出行。请按个人需求选择，使用和保养请参考产品说明。', '数码', 29.00, 100, 69, '/images/demo-cable-2-b19d77bf4baa.webp', 1, '2026-11-02 10:00:00'),
+(109, '纯棉 T 恤', '基础款式，适合日常休闲搭配', '纯棉 T 恤适合日常使用与选购。基础款式，适合日常休闲搭配。请按个人需求选择，使用和保养请参考产品说明。', '服饰', 79.00, 100, 76, '/images/demo-tshirt-2-0195f212a149.webp', 1, '2026-11-02 10:00:00'),
+(110, '连帽卫衣', '休闲版型，适合换季穿搭', '连帽卫衣适合日常使用与选购。休闲版型，适合换季穿搭。请按个人需求选择，使用和保养请参考产品说明。', '服饰', 169.00, 100, 83, '/images/demo-hoodie-1-6bb2b5f7391f.webp', 1, '2026-11-02 10:00:00'),
+(111, '羽绒服', '轻便外套，适合秋冬通勤', '羽绒服适合日常使用与选购。轻便外套，适合秋冬通勤。请按个人需求选择，使用和保养请参考产品说明。', '服饰', 459.00, 100, 90, '/images/demo-jacket-3-6d484434ab6f.webp', 1, '2026-11-02 10:00:00'),
+(112, '运动鞋', '休闲运动，适合日常出行', '运动鞋适合日常使用与选购。休闲运动，适合日常出行。请按个人需求选择，使用和保养请参考产品说明。', '服饰', 329.00, 100, 97, '/images/demo-shoes-2-581dc55a6867.webp', 1, '2026-11-02 10:00:00'),
+(113, '牛仔裤', '经典牛仔，适合多种搭配', '牛仔裤适合日常使用与选购。经典牛仔，适合多种搭配。请按个人需求选择，使用和保养请参考产品说明。', '服饰', 199.00, 100, 104, '/images/demo-jeans-2-9f6de29749bb.webp', 1, '2026-11-02 10:00:00'),
+(114, '衬衫', '简洁款式，适合通勤与休闲', '衬衫适合日常使用与选购。简洁款式，适合通勤与休闲。请按个人需求选择，使用和保养请参考产品说明。', '服饰', 139.00, 100, 111, '/images/demo-shirt-2-1555020d2976.webp', 1, '2026-11-02 10:00:00'),
+(115, '双肩包', '方便收纳，适合通勤与短途出行', '双肩包适合日常使用与选购。方便收纳，适合通勤与短途出行。请按个人需求选择，使用和保养请参考产品说明。', '服饰', 189.00, 100, 118, '/images/demo-backpack-1-097800970b1f.webp', 1, '2026-11-02 10:00:00'),
+(116, '棒球帽', '休闲配饰，适合户外穿搭', '棒球帽适合日常使用与选购。休闲配饰，适合户外穿搭。请按个人需求选择，使用和保养请参考产品说明。', '服饰', 59.00, 100, 125, '/images/demo-cap-3-2950b1a692d3.webp', 1, '2026-11-02 10:00:00'),
+(117, '保温杯', '随手饮水，方便日常携带', '保温杯适合日常使用与选购。随手饮水，方便日常携带。请按个人需求选择，使用和保养请参考产品说明。', '家居', 129.00, 100, 132, '/images/demo-flask-1-1e929192c134.webp', 1, '2026-11-02 10:00:00'),
+(118, '护颈枕', '舒适承托，适合日常休息', '护颈枕适合日常使用与选购。舒适承托，适合日常休息。请按个人需求选择，使用和保养请参考产品说明。', '家居', 159.00, 100, 139, '/images/demo-neck-pillow-2-c889f29182a9.webp', 1, '2026-11-02 10:00:00'),
+(119, '加湿器', '室内使用，适合居家生活', '加湿器适合日常使用与选购。室内使用，适合居家生活。请按个人需求选择，使用和保养请参考产品说明。', '家居', 189.00, 100, 146, '/images/demo-humidifier-3-2bfac4a1084c.webp', 1, '2026-11-02 10:00:00'),
+(120, '收纳箱', '分类整理，让日常收纳更方便', '收纳箱适合日常使用与选购。分类整理，让日常收纳更方便。请按个人需求选择，使用和保养请参考产品说明。', '家居', 59.00, 100, 153, '/images/demo-storage-box-3-9454ded4c6cd.webp', 1, '2026-11-02 10:00:00'),
+(121, '护眼台灯', '桌面照明，适合阅读与办公', '护眼台灯适合日常使用与选购。桌面照明，适合阅读与办公。请按个人需求选择，使用和保养请参考产品说明。', '家居', 129.00, 100, 160, '/images/demo-desk-lamp-2-8cf8b1e85cae.webp', 1, '2026-11-02 10:00:00'),
+(122, '床品四件套', '整洁卧室，适合日常换洗', '床品四件套适合日常使用与选购。整洁卧室，适合日常换洗。请按个人需求选择，使用和保养请参考产品说明。', '家居', 239.00, 100, 167, '/images/demo-bedding-3-2d12796937ae.webp', 1, '2026-11-02 10:00:00'),
+(123, '抱枕', '柔软靠垫，适合沙发与居家搭配', '抱枕适合日常使用与选购。柔软靠垫，适合沙发与居家搭配。请按个人需求选择，使用和保养请参考产品说明。', '家居', 49.00, 100, 174, '/images/demo-cushion-3-774f7540504c.webp', 1, '2026-11-02 10:00:00'),
+(124, '香薰蜡烛', '居家摆放，增添生活氛围', '香薰蜡烛适合日常使用与选购。居家摆放，增添生活氛围。请按个人需求选择，使用和保养请参考产品说明。', '家居', 69.00, 100, 181, '/images/demo-candle-2-cbe662deb061.webp', 1, '2026-11-02 10:00:00'),
+(125, '咖啡豆', '日常冲煮，享受咖啡风味', '咖啡豆适合日常使用与选购。日常冲煮，享受咖啡风味。请按个人需求选择，使用和保养请参考产品说明。', '食品', 68.00, 100, 188, '/images/demo-coffee-2-940dbeea0d7f.webp', 1, '2026-11-02 10:00:00'),
+(126, '每日坚果', '坚果组合，适合日常分享', '每日坚果适合日常使用与选购。坚果组合，适合日常分享。请按个人需求选择，使用和保养请参考产品说明。', '食品', 99.00, 100, 195, '/images/demo-nuts-3-3b2cf1d20ca2.webp', 1, '2026-11-02 10:00:00'),
+(127, '绿茶', '日常茶饮，适合慢慢品尝', '绿茶适合日常使用与选购。日常茶饮，适合慢慢品尝。请按个人需求选择，使用和保养请参考产品说明。', '食品', 79.00, 100, 202, '/images/demo-tea-3-382bbcdb40b0.webp', 1, '2026-11-02 10:00:00'),
+(128, '牛肉干', '方便携带，适合出行与分享', '牛肉干适合日常使用与选购。方便携带，适合出行与分享。请按个人需求选择，使用和保养请参考产品说明。', '食品', 89.00, 100, 209, '/images/demo-jerky-2-f804428a91be.webp', 1, '2026-11-02 10:00:00'),
+(129, '燕麦片', '早餐搭配，方便日常食用', '燕麦片适合日常使用与选购。早餐搭配，方便日常食用。请按个人需求选择，使用和保养请参考产品说明。', '食品', 39.00, 100, 216, '/images/demo-oats-3-b25cb0de10ed.webp', 1, '2026-11-02 10:00:00'),
+(130, '蜂蜜', '饮品搭配，享受自然甜味', '蜂蜜适合日常使用与选购。饮品搭配，享受自然甜味。请按个人需求选择，使用和保养请参考产品说明。', '食品', 69.00, 100, 223, '/images/demo-honey-3-566d9bb57760.webp', 1, '2026-11-02 10:00:00'),
+(131, '曲奇饼干', '酥脆小食，适合午后分享', '曲奇饼干适合日常使用与选购。酥脆小食，适合午后分享。请按个人需求选择，使用和保养请参考产品说明。', '食品', 49.00, 100, 230, '/images/demo-cookies-3-14dc2310edae.webp', 1, '2026-11-02 10:00:00'),
+(132, '果干', '方便小食，适合出行与分享', '果干适合日常使用与选购。方便小食，适合出行与分享。请按个人需求选择，使用和保养请参考产品说明。', '食品', 59.00, 100, 237, '/images/demo-dried-fruit-2-520bda03de4b.webp', 1, '2026-11-02 10:00:00'),
+(133, '洁面乳', '日常洁面，搭配个人护理习惯', '洁面乳适合日常使用与选购。日常洁面，搭配个人护理习惯。请按个人需求选择，使用和保养请参考产品说明。', '美妆', 89.00, 100, 244, '/images/demo-cleanser-1-2dc5a95600c7.webp', 1, '2026-11-02 10:00:00'),
+(134, '保湿面霜', '日常护理，适合按需搭配', '保湿面霜适合日常使用与选购。日常护理，适合按需搭配。请按个人需求选择，使用和保养请参考产品说明。', '美妆', 199.00, 100, 251, '/images/demo-face-cream-2-51dd0fbde8a4.webp', 1, '2026-11-02 10:00:00'),
+(135, '精华液', '日常护肤，便于个人护理搭配', '精华液适合日常使用与选购。日常护肤，便于个人护理搭配。请按个人需求选择，使用和保养请参考产品说明。', '美妆', 229.00, 100, 258, '/images/demo-serum-3-46f93b2e9242.webp', 1, '2026-11-02 10:00:00'),
+(136, '防晒霜', '户外出行，配合日常防晒习惯', '防晒霜适合日常使用与选购。户外出行，配合日常防晒习惯。请按个人需求选择，使用和保养请参考产品说明。', '美妆', 129.00, 100, 265, '/images/demo-sunscreen-1-bcb2538a0a55.webp', 1, '2026-11-02 10:00:00'),
+(137, '口红', '日常妆容，适合多种搭配', '口红适合日常使用与选购。日常妆容，适合多种搭配。请按个人需求选择，使用和保养请参考产品说明。', '美妆', 99.00, 100, 272, '/images/demo-lipstick-1-ca3b5e6f2d4e.webp', 1, '2026-11-02 10:00:00'),
+(138, '面膜', '个人护理，适合按需使用', '面膜适合日常使用与选购。个人护理，适合按需使用。请按个人需求选择，使用和保养请参考产品说明。', '美妆', 79.00, 100, 279, '/images/demo-face-mask-3-233a5e3fdc9b.webp', 1, '2026-11-02 10:00:00'),
+(139, '爽肤水', '日常护肤，方便护理搭配', '爽肤水适合日常使用与选购。日常护肤，方便护理搭配。请按个人需求选择，使用和保养请参考产品说明。', '美妆', 119.00, 100, 286, '/images/demo-toner-3-3920e3d0a9eb.webp', 1, '2026-11-02 10:00:00'),
+(140, '护手霜', '随身护理，适合日常携带', '护手霜适合日常使用与选购。随身护理，适合日常携带。请按个人需求选择，使用和保养请参考产品说明。', '美妆', 39.00, 100, 293, '/images/demo-hand-cream-3-0414877d50f0.webp', 1, '2026-11-02 10:00:00'),
+(141, 'Java 编程指南', '编程阅读，适合入门与日常查阅', 'Java 编程指南适合日常使用与选购。编程阅读，适合入门与日常查阅。请按个人需求选择，使用和保养请参考产品说明。', '图书', 89.00, 100, 300, '/images/demo-java-book-3-14570d532c85.webp', 1, '2026-11-02 10:00:00'),
+(142, 'Python 数据分析', '学习阅读，适合日常查阅', 'Python 数据分析适合日常使用与选购。学习阅读，适合日常查阅。请按个人需求选择，使用和保养请参考产品说明。', '图书', 79.00, 100, 307, '/images/demo-python-book-2-5628b112e134.webp', 1, '2026-11-02 10:00:00'),
+(143, '机器学习实战', '专题学习，适合循序阅读', '机器学习实战适合日常使用与选购。专题学习，适合循序阅读。请按个人需求选择，使用和保养请参考产品说明。', '图书', 99.00, 100, 314, '/images/demo-ml-book-2-a5f5c9e0947f.webp', 1, '2026-11-02 10:00:00'),
+(144, '数据库系统原理', '基础学习，适合日常查阅', '数据库系统原理适合日常使用与选购。基础学习，适合日常查阅。请按个人需求选择，使用和保养请参考产品说明。', '图书', 89.00, 100, 321, '/images/demo-database-book-2-21d7f659bf9a.webp', 1, '2026-11-02 10:00:00'),
+(145, '悬疑小说集', '闲暇阅读，享受故事时光', '悬疑小说集适合日常使用与选购。闲暇阅读，享受故事时光。请按个人需求选择，使用和保养请参考产品说明。', '图书', 59.00, 100, 328, '/images/demo-novel-1-3a5ff9e7f893.webp', 1, '2026-11-02 10:00:00'),
+(146, '中国通史', '历史阅读，适合日常收藏与查阅', '中国通史适合日常使用与选购。历史阅读，适合日常收藏与查阅。请按个人需求选择，使用和保养请参考产品说明。', '图书', 79.00, 100, 335, '/images/demo-history-book-1-45d5ebbb95e5.webp', 1, '2026-11-02 10:00:00'),
+(147, '英语词汇手册', '语言学习，方便随时查阅', '英语词汇手册适合日常使用与选购。语言学习，方便随时查阅。请按个人需求选择，使用和保养请参考产品说明。', '图书', 39.00, 100, 342, '/images/demo-dictionary-1-4b272ad3c95c.webp', 1, '2026-11-02 10:00:00'),
+(148, '儿童绘本', '亲子阅读，享受一起翻书的时光', '儿童绘本适合日常使用与选购。亲子阅读，享受一起翻书的时光。请按个人需求选择，使用和保养请参考产品说明。', '图书', 49.00, 100, 349, '/images/demo-picture-book-1-cb2f123007f5.webp', 1, '2026-11-02 10:00:00');
+
+-- Order images are snapshots: only initialize the original demo order items here.
+UPDATE `order_item` AS `oi` JOIN `product` AS `p` ON `p`.`id` = `oi`.`product_id`
+SET `oi`.`product_image` = `p`.`main_image`
+WHERE `oi`.`product_name` = `p`.`name` AND (`oi`.`product_image` IS NULL OR `oi`.`product_image` = '')
+  AND ((`oi`.`id` = 1 AND `oi`.`product_id` = 1 AND `oi`.`product_name` = '降噪蓝牙耳机 Pro' AND `oi`.`created_at` = '2026-10-10 10:15:00')
+    OR (`oi`.`id` = 2 AND `oi`.`product_id` = 4 AND `oi`.`product_name` = '65W 氮化镓充电器' AND `oi`.`created_at` = '2026-10-10 10:15:00')
+    OR (`oi`.`id` = 3 AND `oi`.`product_id` = 8 AND `oi`.`product_name` = '316 不锈钢保温杯 500ml' AND `oi`.`created_at` = '2026-10-25 20:30:00')
+    OR (`oi`.`id` = 4 AND `oi`.`product_id` = 11 AND `oi`.`product_name` = '云南小粒咖啡豆 500g' AND `oi`.`created_at` = '2026-10-30 09:40:00')
+    OR (`oi`.`id` = 5 AND `oi`.`product_id` = 12 AND `oi`.`product_name` = '每日坚果 30 袋装' AND `oi`.`created_at` = '2026-10-30 09:40:00')
+    OR (`oi`.`id` = 6 AND `oi`.`product_id` = 15 AND `oi`.`product_name` = '《深入理解计算机系统》' AND `oi`.`created_at` = '2026-10-31 22:05:00')
+    OR (`oi`.`id` = 7 AND `oi`.`product_id` = 16 AND `oi`.`product_name` = '《人工智能：现代方法》' AND `oi`.`created_at` = '2026-10-31 22:05:00')
+    OR (`oi`.`id` = 8 AND `oi`.`product_id` = 6 AND `oi`.`product_name` = '轻薄羽绒服' AND `oi`.`created_at` = '2026-10-20 13:00:00')
+    OR (`oi`.`id` = 9 AND `oi`.`product_id` = 3 AND `oi`.`product_name` = '智能手表 S3' AND `oi`.`created_at` = '2026-10-12 11:00:00')
+    OR (`oi`.`id` = 10 AND `oi`.`product_id` = 5 AND `oi`.`product_name` = '纯棉圆领 T 恤' AND `oi`.`created_at` = '2026-10-31 15:20:00')
+    OR (`oi`.`id` = 11 AND `oi`.`product_id` = 7 AND `oi`.`product_name` = '休闲运动鞋' AND `oi`.`created_at` = '2026-10-31 15:20:00')
+    OR (`oi`.`id` = 12 AND `oi`.`product_id` = 13 AND `oi`.`product_name` = '氨基酸洁面乳' AND `oi`.`created_at` = '2026-10-18 19:30:00')
+    OR (`oi`.`id` = 13 AND `oi`.`product_id` = 14 AND `oi`.`product_name` = '保湿修护面霜' AND `oi`.`created_at` = '2026-10-18 19:30:00')
+    OR (`oi`.`id` = 14 AND `oi`.`product_id` = 9 AND `oi`.`product_name` = '记忆棉护颈枕' AND `oi`.`created_at` = '2026-10-28 08:50:00')
+    OR (`oi`.`id` = 15 AND `oi`.`product_id` = 2 AND `oi`.`product_name` = '机械键盘 K87' AND `oi`.`created_at` = '2026-11-01 08:10:00')
+    OR (`oi`.`id` = 16 AND `oi`.`product_id` = 4 AND `oi`.`product_name` = '65W 氮化镓充电器' AND `oi`.`created_at` = '2026-10-22 17:45:00')
+    OR (`oi`.`id` = 17 AND `oi`.`product_id` = 10 AND `oi`.`product_name` = '香薰加湿器' AND `oi`.`created_at` = '2026-10-16 12:00:00'));
+-- END DEMO PRODUCT IMAGES

@@ -1,0 +1,998 @@
+{
+  "version": 1,
+  "variantsPerItem": 3,
+  "legacyOrderItems": [
+    {
+      "id": 1,
+      "productId": 1,
+      "name": "降噪蓝牙耳机 Pro",
+      "createdAt": "2026-10-10 10:15:00"
+    },
+    {
+      "id": 2,
+      "productId": 4,
+      "name": "65W 氮化镓充电器",
+      "createdAt": "2026-10-10 10:15:00"
+    },
+    {
+      "id": 3,
+      "productId": 8,
+      "name": "316 不锈钢保温杯 500ml",
+      "createdAt": "2026-10-25 20:30:00"
+    },
+    {
+      "id": 4,
+      "productId": 11,
+      "name": "云南小粒咖啡豆 500g",
+      "createdAt": "2026-10-30 09:40:00"
+    },
+    {
+      "id": 5,
+      "productId": 12,
+      "name": "每日坚果 30 袋装",
+      "createdAt": "2026-10-30 09:40:00"
+    },
+    {
+      "id": 6,
+      "productId": 15,
+      "name": "《深入理解计算机系统》",
+      "createdAt": "2026-10-31 22:05:00"
+    },
+    {
+      "id": 7,
+      "productId": 16,
+      "name": "《人工智能：现代方法》",
+      "createdAt": "2026-10-31 22:05:00"
+    },
+    {
+      "id": 8,
+      "productId": 6,
+      "name": "轻薄羽绒服",
+      "createdAt": "2026-10-20 13:00:00"
+    },
+    {
+      "id": 9,
+      "productId": 3,
+      "name": "智能手表 S3",
+      "createdAt": "2026-10-12 11:00:00"
+    },
+    {
+      "id": 10,
+      "productId": 5,
+      "name": "纯棉圆领 T 恤",
+      "createdAt": "2026-10-31 15:20:00"
+    },
+    {
+      "id": 11,
+      "productId": 7,
+      "name": "休闲运动鞋",
+      "createdAt": "2026-10-31 15:20:00"
+    },
+    {
+      "id": 12,
+      "productId": 13,
+      "name": "氨基酸洁面乳",
+      "createdAt": "2026-10-18 19:30:00"
+    },
+    {
+      "id": 13,
+      "productId": 14,
+      "name": "保湿修护面霜",
+      "createdAt": "2026-10-18 19:30:00"
+    },
+    {
+      "id": 14,
+      "productId": 9,
+      "name": "记忆棉护颈枕",
+      "createdAt": "2026-10-28 08:50:00"
+    },
+    {
+      "id": 15,
+      "productId": 2,
+      "name": "机械键盘 K87",
+      "createdAt": "2026-11-01 08:10:00"
+    },
+    {
+      "id": 16,
+      "productId": 4,
+      "name": "65W 氮化镓充电器",
+      "createdAt": "2026-10-22 17:45:00"
+    },
+    {
+      "id": 17,
+      "productId": 10,
+      "name": "香薰加湿器",
+      "createdAt": "2026-10-16 12:00:00"
+    }
+  ],
+  "items": [
+    {
+      "slug": "headphones",
+      "item": "蓝牙耳机",
+      "category": "数码",
+      "price": "499.00",
+      "subtitle": "无线连接，适合通勤与日常影音",
+      "legacy": [
+        {
+          "id": 1,
+          "name": "降噪蓝牙耳机 Pro"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Sony-WH-1000XM3-kabellose-Bluetooth-Noise-Cancelling-Kopfhoerer.5.jpg",
+          "File:Sony-WH-1000XM3-kabellose-Bluetooth-Noise-Cancelling-Kopfhoerer.jpg",
+          "File:Sony-WH-1000XM3-kabellose-Bluetooth-Noise-Cancelling-Kopfhoerer.3.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "keyboard",
+      "item": "机械键盘",
+      "category": "数码",
+      "price": "299.00",
+      "subtitle": "独立按键，适合办公与桌面搭配",
+      "legacy": [
+        {
+          "id": 2,
+          "name": "机械键盘 K87"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Mechanical keyboard example.jpg",
+          "File:Mechanical Keyboard.jpg",
+          "File:Beautiful Mechanical Keyboard.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "smartwatch",
+      "item": "智能手表",
+      "category": "数码",
+      "price": "899.00",
+      "subtitle": "腕上便捷查看，适合日常佩戴",
+      "legacy": [
+        {
+          "id": 3,
+          "name": "智能手表 S3"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Samsung Gear S3.jpg",
+          "File:Black Olio Brown Leather Strap Front.jpg",
+          "File:Huawei Smartwatch Fit 2.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "charger",
+      "item": "快充充电器",
+      "category": "数码",
+      "price": "129.00",
+      "subtitle": "小巧便携，方便日常补充电量",
+      "legacy": [
+        {
+          "id": 4,
+          "name": "65W 氮化镓充电器"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Lazos GaN Charger 30W L-AC-G30.jpg",
+          "File:Lazos GaN Charger 30W L-AC-G30.jpg",
+          "File:Lazos GaN Charger 30W L-AC-G30.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "powerbank",
+      "item": "移动电源",
+      "category": "数码",
+      "price": "159.00",
+      "subtitle": "随身携带，适合出行备用",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:SAMSUNG BATTERY PACK (POWER BANK) EB-PG850.jpg",
+          "File:SAMSUNG BATTERY PACK (POWER BANK) EB-P4520 (3).jpg",
+          "File:SAMSUNG BATTERY PACK (POWER BANK) EB-P4520.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "mouse",
+      "item": "无线鼠标",
+      "category": "数码",
+      "price": "89.00",
+      "subtitle": "简洁桌面，轻松完成日常操作",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:A wireless computer mouse.jpg",
+          "File:A black wireless computer mouse.jpg",
+          "File:ProtoArc Wireless Computer Mouse.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "tablet",
+      "item": "平板电脑",
+      "category": "数码",
+      "price": "1599.00",
+      "subtitle": "便携屏幕，适合阅读与影音",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Tablet computer.jpg",
+          "File:Tablet computer.jpeg",
+          "File:Amazon Fire HD 8 2022 screen in factory settings.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "cable",
+      "item": "数据线",
+      "category": "数码",
+      "price": "29.00",
+      "subtitle": "方便连接，适合桌面与出行",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:USB-C.png",
+          "File:USB cable with twisttie.jpg",
+          "File:IKEA SITTBRUNN USB A TO C CABLE.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "tshirt",
+      "item": "纯棉 T 恤",
+      "category": "服饰",
+      "price": "79.00",
+      "subtitle": "基础款式，适合日常休闲搭配",
+      "legacy": [
+        {
+          "id": 5,
+          "name": "纯棉圆领 T 恤"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:T-shirt mockup.jpg",
+          "File:T-shirt mocup gray.jpg",
+          "File:T-shirt mocup gray.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "hoodie",
+      "item": "连帽卫衣",
+      "category": "服饰",
+      "price": "169.00",
+      "subtitle": "休闲版型，适合换季穿搭",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Hoodie m7agar.jpg",
+          "File:Hoodie with a DIP-8 integrated circuit design.jpg",
+          "File:Kapuzenpullover.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "jacket",
+      "item": "羽绒服",
+      "category": "服饰",
+      "price": "459.00",
+      "subtitle": "轻便外套，适合秋冬通勤",
+      "legacy": [
+        {
+          "id": 6,
+          "name": "轻薄羽绒服"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Polo Ralph Lauren down jacket with Aztec style print.jpg",
+          "File:Adidas Helionic Down Jacket.jpg",
+          "File:Men's black PVC down jacket 01.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "shoes",
+      "item": "运动鞋",
+      "category": "服饰",
+      "price": "329.00",
+      "subtitle": "休闲运动，适合日常出行",
+      "legacy": [
+        {
+          "id": 7,
+          "name": "休闲运动鞋"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Mizuno Wave Ibuki 2.jpg",
+          "File:Asics Gel-Cumulus 22.jpg",
+          "File:Brooks Ghost 14 GTX.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "jeans",
+      "item": "牛仔裤",
+      "category": "服饰",
+      "price": "199.00",
+      "subtitle": "经典牛仔，适合多种搭配",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Jeans 2009.jpg",
+          "File:Jeans MET 1978.175.3 B.jpg",
+          "File:Jeans for men.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "shirt",
+      "item": "衬衫",
+      "category": "服饰",
+      "price": "139.00",
+      "subtitle": "简洁款式，适合通勤与休闲",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Dress shirt MET 2011.46 B.jpg",
+          "File:Dress shirt MET 2011.47 F.jpeg",
+          "File:Dress Shirt Fitting on dummy Front.JPG"
+        ]
+      }
+    },
+    {
+      "slug": "backpack",
+      "item": "双肩包",
+      "category": "服饰",
+      "price": "189.00",
+      "subtitle": "方便收纳，适合通勤与短途出行",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Backpack small.jpg",
+          "File:Wenger backpack.jpg",
+          "File:Plecak Hiker 50 L HiMountain.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "cap",
+      "item": "棒球帽",
+      "category": "服饰",
+      "price": "59.00",
+      "subtitle": "休闲配饰，适合户外穿搭",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Baseball cap.png",
+          "File:Madras plaid baseball cap by Polo Ralph Lauren.jpg",
+          "File:Baseball cap.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "flask",
+      "item": "保温杯",
+      "category": "家居",
+      "price": "129.00",
+      "subtitle": "随手饮水，方便日常携带",
+      "legacy": [
+        {
+          "id": 8,
+          "name": "316 不锈钢保温杯 500ml"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Stainless Steel Water Bottle.jpg",
+          "File:Stainless steel water bottle.jpg",
+          "File:A Tiger Corp. Stainless Steel Bottle.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "neck-pillow",
+      "item": "护颈枕",
+      "category": "家居",
+      "price": "159.00",
+      "subtitle": "舒适承托，适合日常休息",
+      "legacy": [
+        {
+          "id": 9,
+          "name": "记忆棉护颈枕"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Neck pillow on a white background at a school.jpg",
+          "File:목배게2.jpg",
+          "File:Panda shaped neck pillow.JPG"
+        ]
+      }
+    },
+    {
+      "slug": "humidifier",
+      "item": "加湿器",
+      "category": "家居",
+      "price": "189.00",
+      "subtitle": "室内使用，适合居家生活",
+      "legacy": [
+        {
+          "id": 10,
+          "name": "香薰加湿器"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Ultrasonic humidifier.jpg",
+          "File:Humidifier (51260595296).jpg",
+          "File:Humidifier (51260595296).jpg"
+        ]
+      }
+    },
+    {
+      "slug": "storage-box",
+      "item": "收纳箱",
+      "category": "家居",
+      "price": "59.00",
+      "subtitle": "分类整理，让日常收纳更方便",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Orange plastic storage container on top of a stack.jpg",
+          "File:Gratnells Extra Deep Storage Tray.jpg",
+          "File:Gratnells School Storage Jumbo Tray in Purple.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "desk-lamp",
+      "item": "护眼台灯",
+      "category": "家居",
+      "price": "129.00",
+      "subtitle": "桌面照明，适合阅读与办公",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:A desk lamp.jpg",
+          "File:Desktop-lamp-2 hg.jpg",
+          "File:Desktop-lamp-3 hg.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "bedding",
+      "item": "床品四件套",
+      "category": "家居",
+      "price": "239.00",
+      "subtitle": "整洁卧室，适合日常换洗",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Bed in Seattle hotel.jpg",
+          "File:Dormeo bedding FLEUR image 4.jpg",
+          "File:Bed linen presentation in bedroom.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "cushion",
+      "item": "抱枕",
+      "category": "家居",
+      "price": "49.00",
+      "subtitle": "柔软靠垫，适合沙发与居家搭配",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Pillow (Bahto).jpg",
+          "File:Batik Kawung Cushion.jpg",
+          "File:Crochet pillow.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "candle",
+      "item": "香薰蜡烛",
+      "category": "家居",
+      "price": "69.00",
+      "subtitle": "居家摆放，增添生活氛围",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Mahogany teakwood scented candle (cropped).jpg",
+          "File:Scented candle.jpg",
+          "File:Byredo 1996 scented candle.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "coffee",
+      "item": "咖啡豆",
+      "category": "食品",
+      "price": "68.00",
+      "subtitle": "日常冲煮，享受咖啡风味",
+      "legacy": [
+        {
+          "id": 11,
+          "name": "云南小粒咖啡豆 500g"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Roasted coffee beans.jpg",
+          "File:Roasted coffee beans in white bowl.png",
+          "File:Roasted Coffee Beans in Hermetic Jar.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "nuts",
+      "item": "每日坚果",
+      "category": "食品",
+      "price": "99.00",
+      "subtitle": "坚果组合，适合日常分享",
+      "legacy": [
+        {
+          "id": 12,
+          "name": "每日坚果 30 袋装"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Liat Portal for Foodie Disorder - Mixed nuts and dried fruit.jpg",
+          "File:Liat Portal for Foodie Disorder - Mixed nuts assortment.jpg",
+          "File:20130126 Mixed nuts (cropped).jpg"
+        ]
+      }
+    },
+    {
+      "slug": "tea",
+      "item": "绿茶",
+      "category": "食品",
+      "price": "79.00",
+      "subtitle": "日常茶饮，适合慢慢品尝",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Zhu-Ye-Qing-Tea-03.jpg",
+          "File:Green tea 3 appearances.jpg",
+          "File:Dried tea leaves, Longjin.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "jerky",
+      "item": "牛肉干",
+      "category": "食品",
+      "price": "89.00",
+      "subtitle": "方便携带，适合出行与分享",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Beef-jerky.jpg",
+          "File:Beef jerky, 2007.jpg",
+          "File:Beef jerky.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "oats",
+      "item": "燕麦片",
+      "category": "食品",
+      "price": "39.00",
+      "subtitle": "早餐搭配，方便日常食用",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Rolled oats.jpg",
+          "File:Rolled oats 2.jpg",
+          "File:Rolled Oats.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "honey",
+      "item": "蜂蜜",
+      "category": "食品",
+      "price": "69.00",
+      "subtitle": "饮品搭配，享受自然甜味",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Three French monofloral honey jars.jpg",
+          "File:Dipper stick and honey in a jar.jpg",
+          "File:Jar and honey stick.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "cookies",
+      "item": "曲奇饼干",
+      "category": "食品",
+      "price": "49.00",
+      "subtitle": "酥脆小食，适合午后分享",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Koekjestrommel open.jpg",
+          "File:Biscuits perspective.jpg",
+          "File:Cookies de xocolate.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "dried-fruit",
+      "item": "果干",
+      "category": "食品",
+      "price": "59.00",
+      "subtitle": "方便小食，适合出行与分享",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:DriedfruitS.jpg",
+          "File:Natural dried plums, Rind, Armenia.jpg",
+          "File:Dried kiwi fruit slices.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "cleanser",
+      "item": "洁面乳",
+      "category": "美妆",
+      "price": "89.00",
+      "subtitle": "日常洁面，搭配个人护理习惯",
+      "legacy": [
+        {
+          "id": 13,
+          "name": "氨基酸洁面乳"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Fit Me Face Wash review.jpg",
+          "File:Fit Me Face Wash review.jpg",
+          "File:Fit Me Face Wash review.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "face-cream",
+      "item": "保湿面霜",
+      "category": "美妆",
+      "price": "199.00",
+      "subtitle": "日常护理，适合按需搭配",
+      "legacy": [
+        {
+          "id": 14,
+          "name": "保湿修护面霜"
+        }
+      ],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Cream in round container.jpg",
+          "File:Shiseido deLuxe cream.jpg",
+          "File:Crema Calmante para la piel , Nature's Soothing Skin Cream.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "serum",
+      "item": "精华液",
+      "category": "美妆",
+      "price": "229.00",
+      "subtitle": "日常护肤，便于个人护理搭配",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:LE SERUM CONTOUR DES YEUX.jpg",
+          "File:LE SERUM CONTOUR DES YEUX.jpg",
+          "File:LE SERUM CONTOUR DES YEUX.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "sunscreen",
+      "item": "防晒霜",
+      "category": "美妆",
+      "price": "129.00",
+      "subtitle": "户外出行，配合日常防晒习惯",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Suncademy airless bottle sunscreen citronella active ingredients.jpg",
+          "File:LRP sunscreen bottle.jpg",
+          "File:LRP sunscreen bottle.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "lipstick",
+      "item": "口红",
+      "category": "美妆",
+      "price": "99.00",
+      "subtitle": "日常妆容，适合多种搭配",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:DiorLippenstift.jpg",
+          "File:MAC pink lipstick (1).jpg",
+          "File:Lipstick (product).jpg"
+        ]
+      }
+    },
+    {
+      "slug": "face-mask",
+      "item": "面膜",
+      "category": "美妆",
+      "price": "79.00",
+      "subtitle": "个人护理，适合按需使用",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Yiyesenlin Calendula Hudrating and Soothing Facial Mask.jpg",
+          "File:Yiyesenlin Calendula Hudrating and Soothing Facial Mask backside.jpg",
+          "File:Cucumber slices placed beside a green facial mask and a skincare applicator on a light pink background.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "toner",
+      "item": "爽肤水",
+      "category": "美妆",
+      "price": "119.00",
+      "subtitle": "日常护肤，方便护理搭配",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Facial Cleansing toners.jpg",
+          "File:Facial Cleansing toners.jpg",
+          "File:Milky Toner.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "hand-cream",
+      "item": "护手霜",
+      "category": "美妆",
+      "price": "39.00",
+      "subtitle": "随身护理，适合日常携带",
+      "legacy": [],
+      "imageSource": {
+        "type": "commons",
+        "titles": [
+          "File:Eucerin hand cream.jpg",
+          "File:Eucerin hand cream.jpg",
+          "File:Eucerin hand cream.jpg"
+        ]
+      }
+    },
+    {
+      "slug": "java-book",
+      "item": "Java 编程指南",
+      "category": "图书",
+      "price": "89.00",
+      "subtitle": "编程阅读，适合入门与日常查阅",
+      "legacy": [
+        {
+          "id": 15,
+          "name": "《深入理解计算机系统》",
+          "imageSlug": "computer-systems-book"
+        }
+      ],
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "PROGRAMMING / JAVA",
+        "colors": [
+          "#184d68",
+          "#2f5460",
+          "#20364e"
+        ]
+      }
+    },
+    {
+      "slug": "python-book",
+      "item": "Python 数据分析",
+      "category": "图书",
+      "price": "79.00",
+      "subtitle": "学习阅读，适合日常查阅",
+      "legacy": [],
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "PYTHON / DATA ANALYSIS",
+        "colors": [
+          "#28535e",
+          "#385975",
+          "#3d6470"
+        ]
+      }
+    },
+    {
+      "slug": "ml-book",
+      "item": "机器学习实战",
+      "category": "图书",
+      "price": "99.00",
+      "subtitle": "专题学习，适合循序阅读",
+      "legacy": [
+        {
+          "id": 16,
+          "name": "《人工智能：现代方法》",
+          "imageSlug": "ai-modern-book"
+        }
+      ],
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "MACHINE LEARNING",
+        "colors": [
+          "#384968",
+          "#50445f",
+          "#2f5964"
+        ]
+      }
+    },
+    {
+      "slug": "database-book",
+      "item": "数据库系统原理",
+      "category": "图书",
+      "price": "89.00",
+      "subtitle": "基础学习，适合日常查阅",
+      "legacy": [],
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "DATABASE SYSTEMS",
+        "colors": [
+          "#245766",
+          "#355568",
+          "#354461"
+        ]
+      }
+    },
+    {
+      "slug": "novel",
+      "item": "悬疑小说集",
+      "category": "图书",
+      "price": "59.00",
+      "subtitle": "闲暇阅读，享受故事时光",
+      "legacy": [],
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "MYSTERY STORIES",
+        "colors": [
+          "#4a344d",
+          "#35354d",
+          "#6b4541"
+        ]
+      }
+    },
+    {
+      "slug": "history-book",
+      "item": "中国通史",
+      "category": "图书",
+      "price": "79.00",
+      "subtitle": "历史阅读，适合日常收藏与查阅",
+      "legacy": [],
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "CHINESE HISTORY",
+        "colors": [
+          "#684b37",
+          "#694943",
+          "#505342"
+        ]
+      }
+    },
+    {
+      "slug": "dictionary",
+      "item": "英语词汇手册",
+      "category": "图书",
+      "price": "39.00",
+      "subtitle": "语言学习，方便随时查阅",
+      "legacy": [],
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "ENGLISH VOCABULARY",
+        "colors": [
+          "#2e5b59",
+          "#3d5b79",
+          "#67513a"
+        ]
+      }
+    },
+    {
+      "slug": "picture-book",
+      "item": "儿童绘本",
+      "category": "图书",
+      "price": "49.00",
+      "subtitle": "亲子阅读，享受一起翻书的时光",
+      "legacy": [],
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "PICTURE BOOK",
+        "colors": [
+          "#456568",
+          "#6e534d",
+          "#577451"
+        ]
+      }
+    }
+  ],
+  "additionalImageItems": [
+    {
+      "slug": "computer-systems-book",
+      "item": "《深入理解计算机系统》",
+      "category": "??",
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "COMPUTER SYSTEMS",
+        "colors": [
+          "#345770",
+          "#2d4c65",
+          "#435c70"
+        ]
+      }
+    },
+    {
+      "slug": "ai-modern-book",
+      "item": "《人工智能：现代方法》",
+      "category": "??",
+      "imageSource": {
+        "type": "book-cover",
+        "topic": "ARTIFICIAL INTELLIGENCE",
+        "colors": [
+          "#435b55",
+          "#2f5b61",
+          "#4c586d"
+        ]
+      }
+    }
+  ]
+}
