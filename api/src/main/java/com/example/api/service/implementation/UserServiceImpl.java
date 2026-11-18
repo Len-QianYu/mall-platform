@@ -103,6 +103,9 @@ public class UserServiceImpl implements UserService {
                 .set(UserEntity::getGender, profile.gender())
                 .set(UserEntity::getEmail, profile.email())
                 .set(UserEntity::getPhone, profile.phone())
+                .set(UserEntity::getProvince, profile.province())
+                .set(UserEntity::getCity, profile.city())
+                .set(UserEntity::getReceiverAddress, profile.receiverAddress())
                 .set(UserEntity::getAvatarUrl, profile.avatarUrl())
                 .eq(UserEntity::getId, id)
         );

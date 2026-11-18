@@ -17,6 +17,9 @@ public final class ProfileRequests {
         @Pattern(regexp = "[FM]") String gender,
         @Email @Size(max = 128) String email,
         @Pattern(regexp = "1[3-9]\\d{9}") String phone,
+        @Size(max = 50) String province,
+        @Size(max = 50) String city,
+        @Size(max = 255) String receiverAddress,
         @Size(max = 512) String avatarUrl
     ) {}
 

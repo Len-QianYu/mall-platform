@@ -38,6 +38,10 @@ docker compose stop      # 停止
 
 ### 后端（api/）
 
+已有数据库接入个人资料地点功能时，先执行 [`upgrade-user-location.sql`](api/src/main/resources/db/upgrade-user-location.sql)，为 `user` 表新增省份和城市列，再重启后端。新建库的 [`schema.sql`](api/src/main/resources/db/schema.sql) 已包含这两个字段。
+
+收货地址在个人中心保存，下单页直接展示个人资料中的名字、手机号和收货地址，并提供修改入口。已有数据库先执行 [`upgrade-user-receiver-address.sql`](api/src/main/resources/db/upgrade-user-receiver-address.sql)，新增默认收货地址字段，再重启后端；新建库的 `schema.sql` 已包含该字段。
+
 后端依赖 RocketMQ，启动前先执行 `docker compose up -d`；首次使用还要建一次 Topic 和消费组（命令见 [`docker-compose.yml`](docker-compose.yml) 顶部注释）。
 
 ```bash

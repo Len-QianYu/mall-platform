@@ -280,28 +280,31 @@ describe('login view', () => {
     expect(useUserStore().logged).toBe(false)
   })
 
-  it.each(['response', 'network'])('preserves the remembered account after a %s login failure', async (failure) => {
-    saveRememberedAccount('千羽', 'admin')
-    const saved = localStorage.getItem('remembered-account')
-    const wrapper = await mountLogin()
-    vi.setSystemTime(Date.now() + 1000)
+  it.each(['response', 'network'])(
+    'preserves the remembered account after a %s login failure',
+    async (failure) => {
+      saveRememberedAccount('千羽', 'admin')
+      const saved = localStorage.getItem('remembered-account')
+      const wrapper = await mountLogin()
+      vi.setSystemTime(Date.now() + 1000)
 
-    if (failure === 'network') {
-      vi.mocked(request.post).mockRejectedValue(new Error('Network error'))
-    } else {
-      vi.mocked(request.post).mockResolvedValue({
-        data: { status: false, payload: { message: '用户名或密码错误' } },
-      })
-    }
-    const inputs = wrapper.findAll('input')
-    await inputs[0]!.setValue('其他账号')
-    await inputs[1]!.setValue('wrong-password')
-    await wrapper.get('form').trigger('submit')
-    await flushPromises()
+      if (failure === 'network') {
+        vi.mocked(request.post).mockRejectedValue(new Error('Network error'))
+      } else {
+        vi.mocked(request.post).mockResolvedValue({
+          data: { status: false, payload: { message: '用户名或密码错误' } },
+        })
+      }
+      const inputs = wrapper.findAll('input')
+      await inputs[0]!.setValue('其他账号')
+      await inputs[1]!.setValue('wrong-password')
+      await wrapper.get('form').trigger('submit')
+      await flushPromises()
 
-    expect(localStorage.getItem('remembered-account')).toBe(saved)
-    expect(useUserStore().logged).toBe(false)
-  })
+      expect(localStorage.getItem('remembered-account')).toBe(saved)
+      expect(useUserStore().logged).toBe(false)
+    },
+  )
 
   it('completes login when saving the remembered account exceeds the storage quota', async () => {
     const wrapper = await mountLogin()
@@ -318,7 +321,7 @@ describe('login view', () => {
 
     const setItem = Storage.prototype.setItem
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
       if (key === 'remembered-account') {
         throw new DOMException('Storage is full', 'QuotaExceededError')
       }

@@ -112,6 +112,31 @@ public class UserEntity {
     })
     private String phone;
 
+    @Size(
+        max = 50,
+        groups = {
+        UserValidateGroup.Create.class,
+        UserValidateGroup.Update.class
+    })
+    private String province;
+
+    @Size(
+        max = 50,
+        groups = {
+        UserValidateGroup.Create.class,
+        UserValidateGroup.Update.class
+    })
+    private String city;
+
+    // 默认收货地址；收货人和电话使用个人资料中的 name、phone
+    @Size(
+        max = 255,
+        groups = {
+        UserValidateGroup.Create.class,
+        UserValidateGroup.Update.class
+    })
+    private String receiverAddress;
+
     // 数据库列为 avatar_url，MyBatis-Plus 默认驼峰映射即可对应
     private String avatarUrl;
 

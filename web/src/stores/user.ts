@@ -15,6 +15,9 @@ export interface UserInfo {
   role: UserRole
   email?: string | null
   phone?: string | null
+  province?: string | null
+  city?: string | null
+  receiverAddress?: string | null
   avatarUrl?: string | null
   status?: number
   registeredAt?: string

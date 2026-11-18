@@ -23,6 +23,9 @@ export interface User {
   gender: 'F' | 'M' | null
   email: string | null
   phone: string | null
+  province: string | null
+  city: string | null
+  receiverAddress: string | null
   avatarUrl: string | null
   role: UserRole
   status: number // 1 启用 / 0 禁用
@@ -148,7 +151,8 @@ export interface DashboardData {
  *     POST /order/refund            { id }    已支付（未发货）→ 已退款，回补库存、扣回销量
  *     POST /payment/pay             { orderId, method } → { payment }（目前只有模拟支付，直接成功）
  *     GET  /user/profile            → { user }
- *     POST /user/update             { name, gender, email, phone, avatarUrl }
+ *     POST /user/update             { name, gender, email, phone, province, city, receiverAddress,
+ *                                     avatarUrl }
  *     POST /user/password           { oldPassword, newPassword }
  */
 

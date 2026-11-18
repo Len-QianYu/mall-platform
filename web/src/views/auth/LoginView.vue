@@ -6,8 +6,7 @@
         <div class="content">
           <!-- 左上角logo -->
           <div class="logo-box">
-            <img src="/favicon.ico" alt="Logo" />
-            <p class="logo-text">Mall Platform</p>
+            <img src="@/assets/logo/logo.png" alt="Logo" />
           </div>
 
           <!-- svg中心图标 -->
@@ -131,14 +130,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, h, onMounted, onUnmounted, watch, watchEffect } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch, watchEffect } from 'vue'
 import {
   ElForm,
   ElFormItem,
   ElInput,
   ElButton,
   ElMessage,
-  ElNotification,
   type FormInstance,
 } from 'element-plus'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
@@ -280,16 +278,6 @@ const login = () => {
                 clearRememberedAccount()
               }
 
-              ElNotification({
-                title: '登录成功',
-                message: h(
-                  'span',
-                  { style: 'color: #5EDFD6' },
-                  `欢迎回来：${credentials.username}`,
-                ),
-                duration: 3000,
-              })
-
               // 根据角色跳转到不同首页；普通用户若是从需登录的页面被拦过来的，跳回原页面
               if (userStore.isAdmin) {
                 router.replace({ name: 'admin_dashboard' }) // 管理员首页
@@ -364,22 +352,13 @@ onUnmounted(() => {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
 }
 
 .logo-box img {
-  width: 2rem;
-  height: 2rem;
+  width: 10rem;
+  height: auto;
   object-fit: contain;
   transition: transform 0.3s ease; //悬停动画
-}
-
-.logo-text {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: #272e3b;
-  transition: color 0.3s ease;
 }
 
 // 项目名
@@ -791,11 +770,6 @@ onUnmounted(() => {
 
   .logo-box img {
     filter: brightness(0.9) drop-shadow(0 2px 8px rgba(255, 255, 255, 0.1));
-  }
-
-  .logo-text {
-    color: #e0e0e0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .moderation-icon {

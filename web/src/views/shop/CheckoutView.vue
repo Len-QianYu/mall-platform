@@ -5,30 +5,37 @@
     <div v-loading="loading" class="checkout-body">
       <template v-if="items.length">
         <ElCard shadow="never" class="checkout-card">
-          <template #header><span class="card-title">收货信息</span></template>
-          <ElForm
-            ref="formRef"
-            :model="form"
-            :rules="rules"
-            label-width="80px"
-            class="receiver-form"
-          >
-            <ElFormItem label="收货人" prop="receiverName">
-              <ElInput v-model="form.receiverName" maxlength="32" placeholder="收货人姓名" />
-            </ElFormItem>
-            <ElFormItem label="手机号" prop="receiverPhone">
-              <ElInput v-model="form.receiverPhone" maxlength="11" placeholder="11 位手机号" />
-            </ElFormItem>
-            <ElFormItem label="收货地址" prop="receiverAddress" class="full-row">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">收货信息</span>
+              <RouterLink
+                :to="{ name: 'profile', query: { redirect: route.fullPath } }"
+                class="address-link"
+              >
+                管理收货地址
+              </RouterLink>
+            </div>
+          </template>
+          <div v-if="shippingAddress" class="saved-address">
+            <p class="receiver-contact">
+              <strong>{{ shippingAddress.receiverName || '收货人未填写' }}</strong>
+              <span>{{ shippingAddress.receiverPhone || '手机号未填写' }}</span>
+            </p>
+            <p class="receiver-address">
+              {{ shippingAddress.receiverAddress || '尚未设置收货地址' }}
+            </p>
+          </div>
+          <div v-if="addressError" class="address-error" role="alert">
+            <span>{{ addressError }}</span>
+            <ElButton :loading="addressLoading" @click="fetchShippingAddress">重试</ElButton>
+          </div>
+          <p v-else-if="!addressLoading && !hasShippingAddress" class="address-hint">
+            请先在个人中心完善名字、手机号和收货地址。
+          </p>
+          <ElForm label-width="80px" class="remark-form">
+            <ElFormItem label="备注">
               <ElInput
-                v-model="form.receiverAddress"
-                maxlength="255"
-                placeholder="省 / 市 / 区 / 街道 / 门牌号"
-              />
-            </ElFormItem>
-            <ElFormItem label="备注" prop="remark" class="full-row">
-              <ElInput
-                v-model="form.remark"
+                v-model="remark"
                 maxlength="255"
                 show-word-limit
                 placeholder="选填，给商家的留言"
@@ -71,7 +78,13 @@
             共 {{ totalQuantity }} 件，应付：
             <span class="price total-amount">{{ formatMoney(totalAmount) }}</span>
           </span>
-          <ElButton type="primary" size="large" :loading="submitting" @click="submit">
+          <ElButton
+            type="primary"
+            size="large"
+            :loading="submitting"
+            :disabled="loading || addressLoading || !hasShippingAddress"
+            @click="submit"
+          >
             提交订单
           </ElButton>
         </div>
@@ -85,8 +98,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   ElButton,
   ElCard,
@@ -99,11 +112,9 @@ import {
   ElTable,
   ElTableColumn,
   vLoading,
-  type FormInstance,
-  type FormRules,
 } from 'element-plus'
 import request from '@/utils/request'
-import type { ApiResult, CartItem, Order, Product } from '@/types/api'
+import type { ApiResult, CartItem, Order, Product, User } from '@/types/api'
 import { assetUrl, formatMoney } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { isSettleable, useCartStore } from '@/stores/cart'
@@ -128,6 +139,22 @@ const buyNowQuantity = Math.max(Number(route.query.quantity) || 1, 1)
 
 const loading = ref(false)
 const items = ref<CheckoutItem[]>([])
+const shippingAddress = ref<Pick<
+  Order,
+  'receiverName' | 'receiverPhone' | 'receiverAddress'
+> | null>(null)
+const addressLoading = ref(false)
+const addressError = ref('')
+const hasShippingAddress = computed(() => {
+  const address = shippingAddress.value
+  return Boolean(
+    address &&
+    address.receiverName &&
+    /^1[3-9]\d{9}$/.test(address.receiverPhone) &&
+    address.receiverAddress,
+  )
+})
+const remark = ref('')
 
 // 页面上的金额只是预览，订单金额以服务端按当前价格计算的为准
 const totalAmount = computed(() =>
@@ -172,10 +199,43 @@ const fetchCartItems = async () => {
   }))
 }
 
+// 进入下单页时读取最新资料，避免使用登录缓存中的旧地址
+const fetchShippingAddress = async () => {
+  if (addressLoading.value) return
+  addressLoading.value = true
+  addressError.value = ''
+  shippingAddress.value = null
+  try {
+    const { data } = await request.get<ApiResult<{ user: User }>>('/user/profile')
+    if (!data.status) {
+      addressError.value = data.payload.message || '加载收货地址失败，请重试'
+      return
+    }
+    const user = data.payload.user
+    shippingAddress.value = {
+      receiverName: user.name?.trim() ?? '',
+      receiverPhone: user.phone?.trim() ?? '',
+      receiverAddress: user.receiverAddress?.trim() ?? '',
+    }
+    userStore.updateUser({
+      name: user.name,
+      phone: user.phone,
+      receiverAddress: user.receiverAddress,
+    })
+  } catch {
+    addressError.value = '加载收货地址失败，请重试'
+  } finally {
+    addressLoading.value = false
+  }
+}
+
 onMounted(async () => {
   loading.value = true
   try {
-    await (buyNowProductId ? fetchBuyNowItem() : fetchCartItems())
+    await Promise.all([
+      buyNowProductId ? fetchBuyNowItem() : fetchCartItems(),
+      fetchShippingAddress(),
+    ])
   } catch {
     ElMessage.error('加载商品失败')
   } finally {
@@ -183,32 +243,15 @@ onMounted(async () => {
   }
 })
 
-const formRef = ref<FormInstance>()
-
-// 收货人、手机号先用个人资料预填
-const form = reactive({
-  receiverName: userStore.user?.user.name ?? '',
-  receiverPhone: userStore.user?.user.phone ?? '',
-  receiverAddress: '',
-  remark: '',
-})
-
-const rules: FormRules = {
-  receiverName: [{ required: true, whitespace: true, message: '请填写收货人', trigger: 'blur' }],
-  receiverPhone: [
-    { required: true, message: '请填写手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' },
-  ],
-  receiverAddress: [
-    { required: true, whitespace: true, message: '请填写收货地址', trigger: 'blur' },
-  ],
-}
-
 const submitting = ref(false)
 
 const submit = async () => {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
+  if (loading.value || addressLoading.value || submitting.value || !items.value.length) return
+  const receiver = shippingAddress.value
+  if (!receiver || !hasShippingAddress.value) {
+    ElMessage.warning('请先在个人中心完善收货信息')
+    return
+  }
 
   submitting.value = true
   try {
@@ -216,10 +259,10 @@ const submit = async () => {
     const { data } = await request.post<ApiResult<{ order: Order }>>('/order/create', {
       items: items.value.map(({ productId, quantity }) => ({ productId, quantity })),
       fromCart: !buyNowProductId,
-      receiverName: form.receiverName.trim(),
-      receiverPhone: form.receiverPhone,
-      receiverAddress: form.receiverAddress.trim(),
-      remark: form.remark.trim() || null,
+      receiverName: receiver.receiverName,
+      receiverPhone: receiver.receiverPhone,
+      receiverAddress: receiver.receiverAddress,
+      remark: remark.value.trim() || null,
     })
     if (!data.status) {
       ElMessage.error(data.payload.message || '下单失败')
@@ -251,18 +294,56 @@ const submit = async () => {
   font-weight: 600;
 }
 
-// 收货人、手机号并排，地址、备注占整行
-.receiver-form {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  column-gap: 1.5rem;
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
 
-  .full-row {
-    grid-column: 1 / -1;
+.address-link {
+  color: var(--el-color-primary);
+  font-size: 0.875rem;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
   }
+}
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+.receiver-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin: 0;
+}
+
+.receiver-address {
+  margin: 0.5rem 0 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.address-hint {
+  color: var(--el-color-warning);
+  font-size: 0.875rem;
+}
+
+.address-error {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--el-color-danger);
+  font-size: 0.875rem;
+}
+
+.remark-form {
+  margin-top: 1rem;
+
+  :deep(.el-form-item) {
+    margin-bottom: 0;
   }
 }
 

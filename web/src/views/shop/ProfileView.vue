@@ -56,14 +56,60 @@
                 <ElInput
                   v-model="form.phone"
                   maxlength="11"
-                  :placeholder="admin ? '选填' : '选填，下单时自动带入'"
+                  :placeholder="admin ? '选填' : '选填，用于收货联系'"
                 />
+              </ElFormItem>
+              <ElFormItem label="省份" prop="province">
+                <ElSelect
+                  v-model="form.province"
+                  placeholder="请选择省份（选填）"
+                  filterable
+                  clearable
+                  @change="form.city = ''"
+                >
+                  <ElOption
+                    v-for="province in provinceList"
+                    :key="province.value"
+                    :label="province.label"
+                    :value="province.value"
+                  />
+                </ElSelect>
+              </ElFormItem>
+              <ElFormItem label="城市" prop="city">
+                <ElSelect
+                  v-model="form.city"
+                  :placeholder="form.province ? '请选择城市（选填）' : '请先选择省份'"
+                  :disabled="cityList.length === 0"
+                  filterable
+                  clearable
+                >
+                  <ElOption
+                    v-for="city in cityList"
+                    :key="city.value"
+                    :label="city.label"
+                    :value="city.value"
+                  />
+                </ElSelect>
+              </ElFormItem>
+              <ElFormItem label="收货地址" prop="receiverAddress">
+                <ElInput
+                  v-model="form.receiverAddress"
+                  type="textarea"
+                  :rows="3"
+                  maxlength="255"
+                  show-word-limit
+                  placeholder="省 / 市 / 区 / 街道 / 门牌号"
+                  autocomplete="shipping street-address"
+                />
+                <div class="address-note">下单时使用上方的名字、手机号和此地址。</div>
               </ElFormItem>
               <ElFormItem label="头像" prop="avatarUrl">
                 <ImageUploader v-model="form.avatarUrl" type="avatars" :size="88" />
               </ElFormItem>
               <ElFormItem>
-                <ElButton type="primary" :loading="saving" @click="saveProfile">保存</ElButton>
+                <ElButton type="primary" :loading="saving" @click="saveProfile">
+                  {{ returnToCheckout ? '保存并返回下单' : '保存' }}
+                </ElButton>
               </ElFormItem>
             </ElForm>
           </ElTabPane>
@@ -100,8 +146,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ElAvatar,
   ElButton,
@@ -110,8 +156,10 @@ import {
   ElFormItem,
   ElInput,
   ElMessage,
+  ElOption,
   ElRadio,
   ElRadioGroup,
+  ElSelect,
   ElTabPane,
   ElTabs,
   vLoading,
@@ -121,12 +169,20 @@ import {
 import request from '@/utils/request'
 import type { ApiResult, User } from '@/types/api'
 import { assetUrl, formatDateTime } from '@/utils/format'
+import { getCitiesByProvince, getProvinceList } from '@/utils/regions'
 import { useUserStore } from '@/stores/user'
 import ImageUploader from '@/components/ImageUploader.vue'
 
 withDefaults(defineProps<{ admin?: boolean }>(), { admin: false })
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+const returnToCheckout = computed(() => {
+  const redirect = route.query.redirect
+  if (typeof redirect !== 'string' || !redirect.startsWith('/')) return ''
+  return router.resolve(redirect).name === 'checkout' ? redirect : ''
+})
 
 const activeTab = ref('profile')
 const loading = ref(false)
@@ -139,8 +195,14 @@ const form = reactive({
   gender: '' as 'M' | 'F' | '',
   email: '',
   phone: '',
+  province: '',
+  city: '',
+  receiverAddress: '',
   avatarUrl: '',
 })
+
+const provinceList = getProvinceList()
+const cityList = computed(() => getCitiesByProvince(form.province))
 
 const profileFormRef = ref<FormInstance>()
 
@@ -148,6 +210,9 @@ const profileFormRef = ref<FormInstance>()
 const profileRules: FormRules = {
   email: [{ type: 'email', message: '请输入有效的邮箱', trigger: 'blur' }],
   phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' }],
+  province: [{ max: 50, message: '省份最多50个字符', trigger: 'change' }],
+  city: [{ max: 50, message: '城市最多50个字符', trigger: 'change' }],
+  receiverAddress: [{ max: 255, message: '收货地址最多255个字符', trigger: 'blur' }],
 }
 
 // 本地存的是登录时的快照，进页面以服务端为准
@@ -164,6 +229,9 @@ onMounted(async () => {
     form.gender = user.gender ?? ''
     form.email = user.email ?? ''
     form.phone = user.phone ?? ''
+    form.province = user.province ?? ''
+    form.city = user.city ?? ''
+    form.receiverAddress = user.receiverAddress ?? ''
     form.avatarUrl = user.avatarUrl ?? ''
     registeredAt.value = user.registeredAt
     loaded.value = true
@@ -186,6 +254,9 @@ const saveProfile = async () => {
     gender: form.gender || null,
     email: form.email.trim() || null,
     phone: form.phone.trim() || null,
+    province: form.province.trim() || null,
+    city: form.city.trim() || null,
+    receiverAddress: form.receiverAddress.trim() || null,
     avatarUrl: form.avatarUrl || null,
   }
 
@@ -196,9 +267,12 @@ const saveProfile = async () => {
       ElMessage.error(data.payload.message || '保存失败')
       return
     }
-    // 同步本地登录信息：顶栏头像、结算页预填收货人都读这里
+    // 同步本地登录信息，刷新页面后仍能恢复最新资料
     userStore.updateUser(fields)
     ElMessage.success('保存成功')
+    if (returnToCheckout.value) {
+      void router.replace(returnToCheckout.value)
+    }
   } catch {
     ElMessage.error('保存失败')
   } finally {
@@ -323,6 +397,17 @@ const changePassword = async () => {
 .profile-form {
   max-width: 480px;
   padding-top: 0.5rem;
+
+  :deep(.el-select) {
+    width: 100%;
+  }
+}
+
+.address-note {
+  margin-top: 0.375rem;
+  color: var(--el-text-color-secondary);
+  font-size: 0.75rem;
+  line-height: 1.6;
 }
 
 @media (max-width: 768px) {
