@@ -74,9 +74,9 @@ public class SecurityConfiguration {
                 // 放行商城前台的商品浏览（游客可看）：只放行 GET，购物车、下单等仍需登录
                 authorize.requestMatchers(HttpMethod.GET, "/product", "/product/**").permitAll();
                 // 上传商品图片只允许管理员；头像等其余上传登录即可（走下面的 authenticated），普通用户不能把这里当图床
-                authorize.requestMatchers(HttpMethod.POST, "/upload/images").hasRole("admin");
+                authorize.requestMatchers(HttpMethod.POST, "/upload/images").hasAnyRole("admin", "super_admin");
                 // 管理端接口只允许管理员访问：前端路由守卫只是界面拦截，真正的权限在这里收口
-                authorize.requestMatchers("/admin/**").hasRole("admin");
+                authorize.requestMatchers("/admin/**").hasAnyRole("admin", "super_admin");
                 // 其他所有请求都需要JWT认证
                 authorize.anyRequest().authenticated();
             })
@@ -91,7 +91,7 @@ public class SecurityConfiguration {
         return httpSecurity.build();
     }
 
-    // 把 JWT 的 role 声明转成角色权限：role=admin → ROLE_admin，供 hasRole("admin") 判断。
+    // 把 JWT 的 role 声明转成角色权限：admin / super_admin 对应 ROLE_admin / ROLE_super_admin。
     // 默认转换器只读 scope 声明，不配置的话 JWT 里的角色不会生效，任何登录用户都能访问管理端
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {

@@ -3,7 +3,7 @@
  *
  * 约定：
  *   1. 账号密码均为 123456（BCrypt 哈希）；
- *   2. 角色存小写 user / admin：与 UserEntity 校验、JWT 角色声明、登录页账户类型取值一致；
+ *   2. 角色存小写 user / admin / super_admin；S管理员使用管理员入口登录；
  *   3. 显式指定主键，表之间的逻辑外键（user_id / product_id / order_id）直接对应，插入后自增值会自动跳到最大 ID 之后；
  *   4. 订单金额 = 明细单价 × 数量之和；已支付、已发货、已完成的订单都有一条成功的支付流水；
  *   5. 商品主图与 48 件精选演示商品由末尾图片映射初始化；运行 tools/seed-product-images.ps1 导入 RustFS 素材。

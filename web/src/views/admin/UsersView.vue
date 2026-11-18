@@ -24,6 +24,7 @@
         <ElSelect v-model="filter.role" placeholder="全部" clearable style="width: 8rem">
           <ElOption label="用户" value="user" />
           <ElOption label="管理员" value="admin" />
+          <ElOption label="S管理员" value="super_admin" />
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="状态">
@@ -58,11 +59,9 @@
           {{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '-' }}
         </template>
       </ElTableColumn>
-      <ElTableColumn label="角色" width="90">
+      <ElTableColumn label="角色" width="100">
         <template #default="{ row }">
-          <ElTag :type="row.role === 'admin' ? 'warning' : 'info'">
-            {{ row.role === 'admin' ? '管理员' : '用户' }}
-          </ElTag>
+          <UserRoleTag :role="row.role" />
         </template>
       </ElTableColumn>
       <ElTableColumn label="手机号" min-width="130">
@@ -112,6 +111,10 @@
           :key="user.id"
           type="button"
           class="user-card"
+          :class="{
+            'is-admin': user.role === 'admin',
+            'is-super-admin': user.role === 'super_admin',
+          }"
           :title="displayName(user)"
           :aria-label="`编辑用户 ${displayName(user)}`"
           :disabled="loading"
@@ -171,6 +174,7 @@
         <ElSelect v-model="form.role" :disabled="isSelf(form.id)" style="width: 100%">
           <ElOption label="用户" value="user" />
           <ElOption label="管理员" value="admin" />
+          <ElOption label="S管理员" value="super_admin" />
         </ElSelect>
       </ElFormItem>
     </ElForm>
@@ -211,6 +215,7 @@ import request from '@/utils/request'
 import { useUserStore, type UserRole } from '@/stores/user'
 import type { ApiResult, Pagination, User } from '@/types/api'
 import { assetUrl, formatDateTime } from '@/utils/format'
+import UserRoleTag from '@/components/UserRoleTag.vue'
 
 const userStore = useUserStore()
 
@@ -388,6 +393,8 @@ const save = async () => {
 }
 
 .user-card {
+  --user-card-border-color: var(--el-color-success);
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -396,7 +403,7 @@ const save = async () => {
   min-width: 0;
   min-height: 150px;
   padding: 1.25rem 1rem;
-  border: 1px solid var(--el-border-color-light);
+  border: 1px solid var(--user-card-border-color);
   border-radius: 8px;
   background-color: var(--el-bg-color);
   color: var(--el-text-color-primary);
@@ -406,8 +413,15 @@ const save = async () => {
     border-color 0.15s,
     background-color 0.15s;
 
+  &.is-admin {
+    --user-card-border-color: var(--el-color-warning);
+  }
+
+  &.is-super-admin {
+    --user-card-border-color: #a855f7;
+  }
+
   &:hover {
-    border-color: var(--el-color-primary-light-5);
     background-color: var(--el-color-primary-light-9);
   }
 

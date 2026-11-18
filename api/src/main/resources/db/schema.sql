@@ -25,7 +25,7 @@ CREATE TABLE `user` (
   `email`         VARCHAR(128)  NULL                    COMMENT '邮箱',
   `phone`         VARCHAR(20)   NULL                    COMMENT '手机号',
   `avatar_url`    VARCHAR(512)  NULL                    COMMENT '头像访问',
-  `role`          VARCHAR(16)   NOT NULL DEFAULT 'USER' COMMENT '角色【USER:普通用户;ADMIN:管理员】',
+  `role`          VARCHAR(16)   NOT NULL DEFAULT 'user' COMMENT '角色【user:普通用户;admin:管理员;super_admin:S管理员】',
   `status`        TINYINT       NOT NULL DEFAULT 1      COMMENT '状态【1:启用;0:禁用】',
   `registered_at` DATETIME      NOT NULL                COMMENT '注册于',
   `updated_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

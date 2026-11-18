@@ -70,3 +70,7 @@ docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注
 ## 开发优先级
 
 登录权限细节 > 管理端页面＞核心业务与 AI 链路 。
+
+用户角色编码为 `user` / `admin` / `super_admin`，显示为用户 / 管理员 / S管理员。S管理员使用管理员登录入口并拥有管理端权限；前端保存后端返回的真实角色。现有“千羽”账号的角色升级 SQL 为 `api/src/main/resources/db/upgrade-super-admin.sql`。
+
+登录页“记住账号”保存用户名和登录方式，自成功登录起 7 天有效；再次打开登录页时恢复，过期或取消勾选时清除。注册后跳转携带的用户名优先填入，并使用用户登录方式。

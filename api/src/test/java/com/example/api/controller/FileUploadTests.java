@@ -22,6 +22,8 @@ import java.util.Base64;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -70,12 +72,13 @@ class FileUploadTests {
         verify(this.storage, never()).store(any(), any(), any());
     }
 
-    @Test
-    void adminUploadUsesDetectedFormatAndKeepsRelativeUrl() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = { "admin", "super_admin" })
+    void adminUploadUsesDetectedFormatAndKeepsRelativeUrl(String role) throws Exception {
         when(this.storage.store(eq("images"), any(), eq("png"))).thenReturn("/images/" + FILENAME);
 
         this.mvc.perform(multipart("/upload/images").file(png()).with(jwt()
-            .authorities(new SimpleGrantedAuthority("ROLE_admin"))))
+            .authorities(new SimpleGrantedAuthority("ROLE_" + role))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value(true))
             .andExpect(jsonPath("$.payload.url").value("/images/" + FILENAME));

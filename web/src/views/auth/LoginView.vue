@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, h, onMounted, onUnmounted, watchEffect } from 'vue'
+import { ref, reactive, h, onMounted, onUnmounted, watch, watchEffect } from 'vue'
 import {
   ElForm,
   ElFormItem,
@@ -143,8 +143,14 @@ import {
 } from 'element-plus'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import request from '@/utils/request'
-import { useUserStore, type UserRole } from '@/stores/user'
+import { useUserStore, type LoginResult, type LoginRole } from '@/stores/user'
+import type { ApiResult } from '@/types/api'
 import { useTheme } from '@/utils/useTheme'
+import {
+  clearRememberedAccount,
+  loadRememberedAccount,
+  saveRememberedAccount,
+} from '@/utils/rememberAccount'
 import ModerationIcon from '@/assets/svg/moderation-icon.svg?component'
 // npm install bootstrap-icons
 // 引入 Bootstrap Icons
@@ -156,7 +162,12 @@ const form = ref<FormInstance>()
 const router = useRouter()
 const route = useRoute()
 const { isDark, toggleTheme } = useTheme() // 日夜主题全站共用
-const rememberAccount = ref(false)
+const rememberedAccount = loadRememberedAccount()
+const rememberAccount = ref(rememberedAccount !== null)
+
+watch(rememberAccount, (remember) => {
+  if (!remember) clearRememberedAccount()
+})
 const currentYear = new Date().getFullYear()
 const roleSwitchVisible = ref(true)
 let roleSwitchHovered = false
@@ -217,12 +228,12 @@ const redirect =
     : ''
 
 const model = reactive({
-  role: 'user' as UserRole,
-  username: registeredUsername,
+  role: (registeredUsername ? 'user' : (rememberedAccount?.role ?? 'user')) as LoginRole,
+  username: registeredUsername || rememberedAccount?.username || '',
   password: '',
 })
 
-const switchLoginRole = (role: UserRole) => {
+const switchLoginRole = (role: LoginRole) => {
   if (model.role === role) return
 
   model.role = role
@@ -256,20 +267,18 @@ const login = () => {
         // 统一使用 /login 接口，后端会根据角色进行验证
         const credentials = { ...model }
         request
-          .post('/login', credentials)
+          .post<ApiResult<LoginResult>>('/login', credentials)
           .then((response) => {
             if (response.data.status === true) {
               // 保存用户信息和token到store
-              const userData = {
-                ...response.data.payload,
-                user: {
-                  ...response.data.payload.user,
-                  role: credentials.role,
-                },
-              }
-
+              const userData = response.data.payload
               userStore.login(userData)
-              userStore.cache('user', userData)
+
+              if (rememberAccount.value) {
+                saveRememberedAccount(userData.user.username, credentials.role)
+              } else {
+                clearRememberedAccount()
+              }
 
               ElNotification({
                 title: '登录成功',
@@ -282,7 +291,7 @@ const login = () => {
               })
 
               // 根据角色跳转到不同首页；普通用户若是从需登录的页面被拦过来的，跳回原页面
-              if (credentials.role === 'admin') {
+              if (userStore.isAdmin) {
                 router.replace({ name: 'admin_dashboard' }) // 管理员首页
               } else if (redirect) {
                 router.replace(redirect)

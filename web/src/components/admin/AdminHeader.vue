@@ -54,7 +54,7 @@
             {{ userStore.name.charAt(0).toUpperCase() }}
           </ElAvatar>
           <span class="user-name">{{ userStore.name }}</span>
-          <ElTag size="small">管理员</ElTag>
+          <UserRoleTag :role="userStore.role" size="small" />
         </div>
         <template #dropdown>
           <ElDropdownMenu>
@@ -89,12 +89,12 @@ import {
   ElDropdownItem,
   ElDropdownMenu,
   ElMessage,
-  ElTag,
 } from 'element-plus'
 import request from '@/utils/request'
 import { assetUrl } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { useTheme } from '@/utils/useTheme'
+import UserRoleTag from '@/components/UserRoleTag.vue'
 
 defineProps<{ collapsed: boolean }>()
 

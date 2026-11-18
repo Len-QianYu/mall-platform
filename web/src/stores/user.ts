@@ -2,7 +2,9 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 // 用户角色
-export type UserRole = 'user' | 'admin'
+export type UserRole = 'user' | 'admin' | 'super_admin'
+
+export type LoginRole = Exclude<UserRole, 'super_admin'>
 
 // 后端 /login 返回的用户信息（密码为 WRITE_ONLY，不会下发；未填写的资料为 null）
 export interface UserInfo {
@@ -38,8 +40,8 @@ export const useUserStore = defineStore('user', () => {
   // 判断是否为用户
   const isUser = computed(() => role.value === 'user')
 
-  // 判断是否为管理员
-  const isAdmin = computed(() => role.value === 'admin')
+  // 管理员与 S管理员都可进入管理端
+  const isAdmin = computed(() => role.value === 'admin' || role.value === 'super_admin')
 
   // JWT token 的登录状态检查
   const logged = computed(() => {

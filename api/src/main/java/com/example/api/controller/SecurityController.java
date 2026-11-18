@@ -65,7 +65,9 @@ public class SecurityController {
         // 检查角色是否匹配（如果前端提供了角色）
         String requestedRole = fields.getRole(); // 前端获取
         String actualRole = user.getRole();      // 数据库获取
-        if (requestedRole != null && !requestedRole.isEmpty() && !requestedRole.equals(actualRole)) {
+        boolean superAdminLogin = "admin".equals(requestedRole) && "super_admin".equals(actualRole);
+        if (requestedRole != null && !requestedRole.isEmpty()
+            && !requestedRole.equals(actualRole) && !superAdminLogin) {
             result.setStatus(false);
             if ("admin".equals(requestedRole)) {
                 result.putPayload("message", "这是普通用户");
