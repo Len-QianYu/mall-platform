@@ -96,6 +96,13 @@ const router = createRouter({
           meta: { breadcrumbCurrent: '仪表盘' },
         },
         {
+          path: 'profile',
+          name: 'admin_profile',
+          component: () => import('@/views/shop/ProfileView.vue'),
+          props: { admin: true },
+          meta: { breadcrumbCurrent: '个人中心' },
+        },
+        {
           path: 'users',
           name: 'admin_users',
           component: () => import('@/views/admin/UsersView.vue'),

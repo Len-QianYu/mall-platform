@@ -101,7 +101,7 @@
   </ElCard>
 
   <!-- 订单详情抽屉 -->
-  <ElDrawer v-model="detailVisible" title="订单详情" size="640px">
+  <ElDrawer v-model="detailVisible" title="订单详情" size="min(640px, 100vw)">
     <div v-loading="detailLoading" class="detail-body">
       <template v-if="detail">
         <ElDescriptions :column="2" border>

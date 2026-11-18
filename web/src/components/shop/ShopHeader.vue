@@ -1,6 +1,6 @@
 <template>
   <header class="shop-header">
-    <div class="shop-container header-inner">
+    <div class="shop-container header-inner" :class="{ 'is-search-expanded': searchExpanded }">
       <RouterLink class="logo-link" :to="{ name: 'index' }">
         <img src="/favicon.ico" class="logo-img" alt="Mall Platform" />
         <span class="logo-text">Mall Platform</span>
@@ -16,10 +16,34 @@
       </nav>
 
       <!-- 搜索：跳到商品列表并带上关键字；在商品列表页时回显当前关键字 -->
-      <form class="header-search" @submit.prevent="search">
-        <ElInput v-model="keyword" placeholder="搜索商品" clearable>
-          <template #prefix><i class="bi bi-search"></i></template>
-        </ElInput>
+      <form
+        class="header-search"
+        :class="{ 'is-expanded': searchExpanded }"
+        @submit.prevent="search"
+        @keydown.esc.prevent="closeSearch"
+        @focusout="onSearchFocusOut"
+      >
+        <button
+          ref="searchButton"
+          type="button"
+          class="search-toggle"
+          :aria-label="searchExpanded ? '搜索商品' : '展开商品搜索'"
+          :aria-expanded="searchExpanded"
+          aria-controls="shop-header-search-input"
+          @click="onSearchClick"
+        >
+          <i class="bi bi-search" aria-hidden="true"></i>
+        </button>
+        <ElInput
+          v-show="searchExpanded"
+          id="shop-header-search-input"
+          ref="searchInput"
+          v-model="keyword"
+          class="search-input"
+          placeholder="搜索商品"
+          aria-label="搜索商品"
+          clearable
+        />
       </form>
 
       <div class="header-right">
@@ -79,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   ElAvatar,
@@ -90,6 +114,7 @@ import {
   ElDropdownMenu,
   ElInput,
   ElMessage,
+  type InputInstance,
 } from 'element-plus'
 import request from '@/utils/request'
 import { assetUrl } from '@/utils/format'
@@ -120,6 +145,36 @@ watch(
 )
 
 const keyword = ref('')
+const searchExpanded = ref(false)
+const searchInput = ref<InputInstance>()
+const searchButton = ref<HTMLButtonElement>()
+
+const onSearchClick = async () => {
+  if (searchExpanded.value) {
+    search()
+    return
+  }
+
+  searchExpanded.value = true
+  await nextTick()
+  searchInput.value?.focus()
+}
+
+const closeSearch = () => {
+  searchExpanded.value = false
+  searchButton.value?.focus()
+}
+
+const onSearchFocusOut = (event: FocusEvent) => {
+  if (
+    event.currentTarget instanceof HTMLElement &&
+    event.relatedTarget instanceof Node &&
+    event.currentTarget.contains(event.relatedTarget)
+  ) {
+    return
+  }
+  searchExpanded.value = false
+}
 
 // 输入框跟随地址栏：从商品列表页带关键字进来、或在列表页清掉关键字时同步
 watch(
@@ -224,9 +279,65 @@ const logout = () => {
 }
 
 .header-search {
-  flex: 1;
+  position: relative;
+  flex: 0 1 auto;
+  width: 32px;
+  min-width: 32px;
   max-width: 360px;
+  height: 32px;
   margin-left: auto;
+  transition: width 0.25s ease;
+
+  &.is-expanded {
+    width: 360px;
+  }
+}
+
+.search-toggle {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--el-border-radius-base);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    background: var(--el-fill-color-light);
+    color: var(--el-color-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: -2px;
+  }
+}
+
+.search-input {
+  width: 100%;
+  height: 100%;
+
+  :deep(.el-input__wrapper) {
+    padding-left: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-search,
+  .search-toggle {
+    transition: none;
+  }
 }
 
 .header-right {
@@ -287,6 +398,23 @@ const logout = () => {
 @media (max-width: 768px) {
   .header-inner {
     gap: 0.75rem;
+
+    &.is-search-expanded {
+      flex-wrap: wrap;
+      height: auto;
+      padding-top: 0.875rem;
+      padding-bottom: 0.875rem;
+
+      .header-search {
+        order: 1;
+        width: 100%;
+        max-width: none;
+      }
+
+      .header-right {
+        margin-left: auto;
+      }
+    }
   }
 
   .logo-text,

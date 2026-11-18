@@ -18,7 +18,7 @@
         </main>
 
         <footer class="admin-footer">
-          <span>Copyright &copy; {{ currentYear }} Mall Platform.</span>
+          <span>lyqy &copy; {{ currentYear }} Mall Platform.</span>
           <span>管理后台</span>
         </footer>
       </div>

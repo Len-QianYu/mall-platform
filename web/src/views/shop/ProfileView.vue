@@ -1,6 +1,9 @@
 <template>
-  <div class="shop-container">
-    <h1 class="section-title"><i class="bi bi-person"></i>个人中心</h1>
+  <div :class="admin ? 'admin-profile' : 'shop-container'">
+    <div v-if="admin" class="page-heading">
+      <h1 class="page-title">个人中心</h1>
+    </div>
+    <h1 v-else class="section-title"><i class="bi bi-person"></i>个人中心</h1>
 
     <div v-loading="loading" class="profile-body">
       <ElCard shadow="never" class="profile-side">
@@ -12,7 +15,7 @@
         <div v-if="registeredAt" class="text-secondary side-meta">
           注册于 {{ formatDateTime(registeredAt) }}
         </div>
-        <div class="side-links">
+        <div v-if="!admin" class="side-links">
           <ElButton @click="router.push({ name: 'orders' })">
             <i class="bi bi-receipt btn-icon"></i>我的订单
           </ElButton>
@@ -29,6 +32,7 @@
               ref="profileFormRef"
               :model="form"
               :rules="profileRules"
+              :disabled="loading || saving || changingPassword || !loaded"
               label-width="80px"
               class="profile-form"
             >
@@ -49,7 +53,11 @@
                 <ElInput v-model="form.email" maxlength="128" placeholder="选填" />
               </ElFormItem>
               <ElFormItem label="手机号" prop="phone">
-                <ElInput v-model="form.phone" maxlength="11" placeholder="选填，下单时自动带入" />
+                <ElInput
+                  v-model="form.phone"
+                  maxlength="11"
+                  :placeholder="admin ? '选填' : '选填，下单时自动带入'"
+                />
               </ElFormItem>
               <ElFormItem label="头像" prop="avatarUrl">
                 <ImageUploader v-model="form.avatarUrl" type="avatars" :size="88" />
@@ -65,6 +73,7 @@
               ref="passwordFormRef"
               :model="passwordForm"
               :rules="passwordRules"
+              :disabled="loading || saving || changingPassword || !loaded"
               label-width="80px"
               class="profile-form"
             >
@@ -115,11 +124,13 @@ import { assetUrl, formatDateTime } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import ImageUploader from '@/components/ImageUploader.vue'
 
+withDefaults(defineProps<{ admin?: boolean }>(), { admin: false })
 const router = useRouter()
 const userStore = useUserStore()
 
 const activeTab = ref('profile')
 const loading = ref(false)
+const loaded = ref(false)
 const registeredAt = ref<string | null>(null)
 
 // 表单里空值统一用 ''，提交时再转回 null
@@ -155,6 +166,7 @@ onMounted(async () => {
     form.phone = user.phone ?? ''
     form.avatarUrl = user.avatarUrl ?? ''
     registeredAt.value = user.registeredAt
+    loaded.value = true
   } catch {
     ElMessage.error('加载资料失败')
   } finally {
@@ -165,14 +177,15 @@ onMounted(async () => {
 const saving = ref(false)
 
 const saveProfile = async () => {
+  if (!loaded.value || saving.value || changingPassword.value) return
   const valid = await profileFormRef.value?.validate().catch(() => false)
-  if (!valid) return
+  if (!valid || saving.value || changingPassword.value) return
 
   const fields = {
     name: form.name.trim() || null,
     gender: form.gender || null,
     email: form.email.trim() || null,
-    phone: form.phone || null,
+    phone: form.phone.trim() || null,
     avatarUrl: form.avatarUrl || null,
   }
 
@@ -226,8 +239,9 @@ const changingPassword = ref(false)
 
 // 改密成功后退出登录，用新密码重新登录
 const changePassword = async () => {
+  if (!loaded.value || saving.value || changingPassword.value) return
   const valid = await passwordFormRef.value?.validate().catch(() => false)
-  if (!valid) return
+  if (!valid || saving.value || changingPassword.value) return
 
   changingPassword.value = true
   try {
@@ -316,7 +330,8 @@ const changePassword = async () => {
     flex-direction: column;
   }
 
-  .profile-side {
+  .profile-side,
+  .profile-main {
     width: 100%;
   }
 }

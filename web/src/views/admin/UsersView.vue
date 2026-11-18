@@ -1,6 +1,10 @@
 <template>
-  <div class="page-heading">
+  <div class="page-heading users-heading">
     <h1 class="page-title">用户管理</h1>
+    <ElRadioGroup v-model="viewMode" size="small" aria-label="用户展示方式">
+      <ElRadioButton value="list">列表视图</ElRadioButton>
+      <ElRadioButton value="avatar">头像视图</ElRadioButton>
+    </ElRadioGroup>
   </div>
 
   <ElCard shadow="never">
@@ -34,7 +38,7 @@
       </ElFormItem>
     </ElForm>
 
-    <ElTable v-loading="loading" :data="users" border stripe>
+    <ElTable v-if="viewMode === 'list'" v-loading="loading" :data="users" border stripe>
       <ElTableColumn prop="id" label="ID" width="80" />
       <ElTableColumn label="用户" min-width="180">
         <template #default="{ row }">
@@ -101,6 +105,27 @@
       </ElTableColumn>
     </ElTable>
 
+    <div v-else v-loading="loading" class="avatar-view">
+      <div v-if="users.length" class="users-grid">
+        <button
+          v-for="user in users"
+          :key="user.id"
+          type="button"
+          class="user-card"
+          :title="displayName(user)"
+          :aria-label="`编辑用户 ${displayName(user)}`"
+          :disabled="loading"
+          @click="openEdit(user)"
+        >
+          <ElAvatar :size="64" :src="assetUrl(user.avatarUrl)" :alt="displayName(user)">
+            {{ displayName(user).charAt(0).toUpperCase() }}
+          </ElAvatar>
+          <span class="user-card-name">{{ displayName(user) }}</span>
+        </button>
+      </div>
+      <ElEmpty v-else description="暂无用户" :image-size="90" />
+    </div>
+
     <ElPagination
       v-model:current-page="pagination.currentPage"
       v-model:page-size="pagination.pageSize"
@@ -113,7 +138,14 @@
   </ElCard>
 
   <!-- 编辑抽屉 -->
-  <ElDrawer v-model="drawerVisible" title="编辑用户" size="420px">
+  <ElDrawer
+    v-model="drawerVisible"
+    title="编辑用户"
+    size="min(420px, 100vw)"
+    :close-on-click-modal="!saving"
+    :close-on-press-escape="!saving"
+    :show-close="!saving"
+  >
     <ElForm ref="formRef" :model="form" :rules="rules" label-width="70px" :disabled="saving">
       <ElFormItem label="用户名">
         <ElInput :model-value="form.username" disabled />
@@ -143,7 +175,7 @@
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton @click="drawerVisible = false">取消</ElButton>
+      <ElButton :disabled="saving" @click="drawerVisible = false">取消</ElButton>
       <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDrawer>
@@ -156,6 +188,7 @@ import {
   ElButton,
   ElCard,
   ElDrawer,
+  ElEmpty,
   ElForm,
   ElFormItem,
   ElInput,
@@ -164,6 +197,7 @@ import {
   ElPagination,
   ElPopconfirm,
   ElRadio,
+  ElRadioButton,
   ElRadioGroup,
   ElSelect,
   ElTable,
@@ -182,6 +216,8 @@ const userStore = useUserStore()
 
 const loading = ref(false)
 const users = ref<User[]>([])
+const viewMode = ref<'list' | 'avatar'>('list')
+const displayName = (user: User) => user.name?.trim() || user.username
 
 // 下拉框清空后值为 undefined，axios 不会把 undefined 参数拼进查询串
 const filter = reactive({
@@ -330,9 +366,67 @@ const save = async () => {
 </script>
 
 <style lang="scss" scoped>
+.users-heading {
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .user-cell {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.avatar-view {
+  min-height: 240px;
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.user-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 150px;
+  padding: 1.25rem 1rem;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    background-color: var(--el-color-primary-light-9);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: wait;
+  }
+}
+
+.user-card-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

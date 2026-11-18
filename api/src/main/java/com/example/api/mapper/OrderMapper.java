@@ -1,11 +1,16 @@
 package com.example.api.mapper;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.example.api.dto.DashboardTrendPoint;
+import com.example.api.dto.OrderStatusCount;
 import com.example.api.entity.OrderEntity;
 
 @Mapper
@@ -14,5 +19,32 @@ public interface OrderMapper extends BaseMapper<OrderEntity> {
     // 销售额：已支付、已发货、已完成订单的金额合计（待支付、已取消的不算）
     @Select("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status IN ('PAID', 'SHIPPED', 'COMPLETED')")
     BigDecimal sumSalesAmount();
+
+    @Select("""
+        SELECT DATE(created_at) AS date, COUNT(*) AS orderCount, 0 AS salesAmount
+        FROM orders
+        WHERE created_at >= #{start} AND created_at < #{end}
+        GROUP BY DATE(created_at)
+        ORDER BY date
+        """)
+    List<DashboardTrendPoint> fetchDailyOrders(
+        @Param("start") LocalDateTime start, @Param("end") LocalDateTime end
+    );
+
+    // 与累计销售额口径一致：退款后不再计入销售额，未支付订单也不计入。
+    @Select("""
+        SELECT DATE(paid_at) AS date, 0 AS orderCount, SUM(total_amount) AS salesAmount
+        FROM orders
+        WHERE paid_at >= #{start} AND paid_at < #{end}
+          AND status IN ('PAID', 'SHIPPED', 'COMPLETED')
+        GROUP BY DATE(paid_at)
+        ORDER BY date
+        """)
+    List<DashboardTrendPoint> fetchDailySales(
+        @Param("start") LocalDateTime start, @Param("end") LocalDateTime end
+    );
+
+    @Select("SELECT status, COUNT(*) AS count FROM orders GROUP BY status")
+    List<OrderStatusCount> fetchStatusCounts();
 
 }

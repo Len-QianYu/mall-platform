@@ -58,7 +58,15 @@
         </div>
         <template #dropdown>
           <ElDropdownMenu>
-            <ElDropdownItem command="logout">
+            <ElDropdownItem command="profile">
+              <i class="bi bi-person-circle dropdown-icon"></i>
+              <span>个人中心</span>
+            </ElDropdownItem>
+            <ElDropdownItem command="shop">
+              <i class="bi bi-shop dropdown-icon"></i>
+              <span>返回商城</span>
+            </ElDropdownItem>
+            <ElDropdownItem command="logout" divided>
               <i class="bi bi-box-arrow-right dropdown-icon"></i>
               <span>退出登录</span>
             </ElDropdownItem>
@@ -128,7 +136,11 @@ onUnmounted(() => {
 })
 
 const handleCommand = (command: string | number | object) => {
-  if (command === 'logout') {
+  if (command === 'profile') {
+    router.push({ name: 'admin_profile' })
+  } else if (command === 'shop') {
+    router.push({ name: 'index' })
+  } else if (command === 'logout') {
     logout()
   }
 }

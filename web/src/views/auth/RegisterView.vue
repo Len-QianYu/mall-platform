@@ -137,7 +137,7 @@
 
         <!-- 底部信息 -->
         <footer class="register-footer">
-          <div>Copyright &copy; {{ currentYear }} Mall Platform.</div>
+          <div>lyqy &copy; {{ currentYear }} Mall Platform.</div>
         </footer>
       </div>
     </div>

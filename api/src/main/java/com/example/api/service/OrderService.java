@@ -2,9 +2,12 @@ package com.example.api.service;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.api.dto.DashboardTrendPoint;
+import com.example.api.dto.OrderStatusCount;
 import com.example.api.dto.OrderWithItemsView;
 import com.example.api.dto.TradeRequests;
 import com.example.api.entity.OrderEntity;
@@ -39,6 +42,12 @@ public interface OrderService {
 
     // 已支付、已发货、已完成订单的金额合计
     BigDecimal sumSalesAmount();
+
+    // 日期区间左闭右开；没有订单或销售额的日期补零，保证图表时间轴连续。
+    List<DashboardTrendPoint> fetchTrend(LocalDate startDate, LocalDate endDate);
+
+    // 所有订单的当前状态分布，包括数量为零的状态。
+    List<OrderStatusCount> fetchStatusCounts();
 
     // 下单：扣库存，按商品当前售价生成订单和明细，fromCart 时把这些商品移出购物车，返回新订单。
     // 商品下架或库存不足时抛 TradeFailedException，已扣的库存随事务回滚。

@@ -1,9 +1,11 @@
 package com.example.api.controller.admin;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.api.service.OrderService;
@@ -33,8 +35,12 @@ public class AdminDashboardController {
     }
 
     @GetMapping
-    public ResultTemplate index() {
+    public ResultTemplate index(@RequestParam(defaultValue = "30") int days) {
         ResultTemplate result = new ResultTemplate();
+        if (days < 1 || days > 90) {
+            result.setStatus(false);
+            return result.putPayload("message", "统计天数需在 1–90 天之间");
+        }
 
         // 统计卡片：不带筛选条件的 count 就是总数，和各列表页不筛选时的总条数一致
         result.putPayload("stats", Map.of(
@@ -44,6 +50,9 @@ public class AdminDashboardController {
             "salesAmount", this.orderService.sumSalesAmount()
         ));
         result.putPayload("recentOrders", this.orderService.fetchRecent(5));
+        LocalDate today = LocalDate.now();
+        result.putPayload("trend", this.orderService.fetchTrend(today.minusDays(days - 1), today.plusDays(1)));
+        result.putPayload("orderStatuses", this.orderService.fetchStatusCounts());
         return result;
     }
 

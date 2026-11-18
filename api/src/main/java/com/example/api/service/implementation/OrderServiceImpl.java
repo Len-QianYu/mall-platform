@@ -2,8 +2,10 @@ package com.example.api.service.implementation;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,6 +19,8 @@ import org.springframework.util.StringUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.api.dto.DashboardTrendPoint;
+import com.example.api.dto.OrderStatusCount;
 import com.example.api.dto.OrderWithItemsView;
 import com.example.api.dto.TradeRequests;
 import com.example.api.entity.CartEntity;
@@ -144,6 +148,31 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public BigDecimal sumSalesAmount() {
         return this.orderMapper.sumSalesAmount();
+    }
+
+    @Override
+    public List<DashboardTrendPoint> fetchTrend(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.atStartOfDay();
+        Map<LocalDate, Long> orders = this.orderMapper.fetchDailyOrders(start, end).stream()
+            .collect(Collectors.toMap(DashboardTrendPoint::date, DashboardTrendPoint::orderCount));
+        Map<LocalDate, BigDecimal> sales = this.orderMapper.fetchDailySales(start, end).stream()
+            .collect(Collectors.toMap(DashboardTrendPoint::date, DashboardTrendPoint::salesAmount));
+
+        return startDate.datesUntil(endDate)
+            .map(date -> new DashboardTrendPoint(
+                date, orders.getOrDefault(date, 0L), sales.getOrDefault(date, BigDecimal.ZERO)
+            ))
+            .toList();
+    }
+
+    @Override
+    public List<OrderStatusCount> fetchStatusCounts() {
+        Map<OrderStatus, Long> counts = this.orderMapper.fetchStatusCounts().stream()
+            .collect(Collectors.toMap(OrderStatusCount::status, OrderStatusCount::count));
+        return Arrays.stream(OrderStatus.values())
+            .map(status -> new OrderStatusCount(status, counts.getOrDefault(status, 0L)))
+            .toList();
     }
 
     @Override

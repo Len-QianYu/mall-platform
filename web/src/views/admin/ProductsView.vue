@@ -116,7 +116,10 @@
   <ElDrawer
     v-model="drawerVisible"
     :title="form.id === null ? '新增商品' : '编辑商品'"
-    size="520px"
+    size="min(520px, 100vw)"
+    :close-on-click-modal="!saving"
+    :close-on-press-escape="!saving"
+    :show-close="!saving"
   >
     <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px" :disabled="saving">
       <ElFormItem label="商品名" prop="name">
@@ -176,7 +179,7 @@
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton @click="drawerVisible = false">取消</ElButton>
+      <ElButton :disabled="saving" @click="drawerVisible = false">取消</ElButton>
       <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDrawer>

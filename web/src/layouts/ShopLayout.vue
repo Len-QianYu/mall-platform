@@ -9,7 +9,7 @@
 
       <footer class="shop-footer">
         <div class="shop-container footer-inner">
-          <span>Copyright &copy; {{ currentYear }} Mall Platform.</span>
+          <span>lyqy &copy; {{ currentYear }} Mall Platform.</span>
           <span>正品保障 · 极速发货 · 售后无忧</span>
         </div>
       </footer>

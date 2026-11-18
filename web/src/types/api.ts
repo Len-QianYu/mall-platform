@@ -106,6 +106,24 @@ export interface DashboardStats {
   salesAmount: number // 已支付、已发货、已完成订单的金额合计
 }
 
+export interface DashboardTrendPoint {
+  date: string // YYYY-MM-DD
+  orderCount: number // 当日创建的全部订单
+  salesAmount: number // 当日支付且未退款的订单金额
+}
+
+export interface OrderStatusCount {
+  status: OrderStatus
+  count: number
+}
+
+export interface DashboardData {
+  stats: DashboardStats
+  recentOrders: Order[]
+  trend: DashboardTrendPoint[]
+  orderStatuses: OrderStatusCount[]
+}
+
 /*
  * 商城前台（用户侧）接口约定（后端实现见 api/ 的 ProductController、CartController、OrderController、PaymentController、UserController）：
  *

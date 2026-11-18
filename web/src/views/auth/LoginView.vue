@@ -47,17 +47,6 @@
         >
           <h2 class="form-title">欢迎回来🤖</h2>
           <p class="welcome-text">请输入账号信息，登录商城</p>
-          <ElFormItem prop="role" label="账户类型">
-            <ElSelect
-              v-model="model.role"
-              placeholder="请选择账户类型"
-              :teleported="false"
-              popper-class="login-select-dropdown"
-            >
-              <ElOption label="用户" value="user"></ElOption>
-              <ElOption label="管理员" value="admin"></ElOption>
-            </ElSelect>
-          </ElFormItem>
 
           <ElFormItem prop="username" label="用户名">
             <ElInput v-model="model.username" type="text" placeholder="请输入用户名">
@@ -102,29 +91,59 @@
 
         <!-- 底部信息 -->
         <footer class="login-footer">
-          <div>Copyright &copy; {{ currentYear }} Mall Platform.</div>
+          <div>lyqy &copy; {{ currentYear }} Mall Platform.</div>
         </footer>
       </div>
+    </div>
+
+    <div
+      class="login-role-switch"
+      :class="{ 'is-hidden': !roleSwitchVisible }"
+      role="group"
+      aria-label="登录方式"
+      @mouseenter="onRoleSwitchMouseEnter"
+      @mouseleave="onRoleSwitchMouseLeave"
+      @focusin="showRoleSwitch"
+      @focusout="onRoleSwitchFocusOut"
+    >
+      <button
+        type="button"
+        class="role-switch-button"
+        title="用户登录"
+        aria-label="用户登录"
+        :aria-pressed="model.role === 'user'"
+        @click="switchLoginRole('user')"
+      >
+        <span>用户登录</span>
+      </button>
+      <button
+        type="button"
+        class="role-switch-button"
+        title="管理员登录"
+        aria-label="管理员登录"
+        :aria-pressed="model.role === 'admin'"
+        @click="switchLoginRole('admin')"
+      >
+        <span>管理员登录</span>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, h, onUnmounted, watchEffect } from 'vue'
+import { ref, reactive, h, onMounted, onUnmounted, watchEffect } from 'vue'
 import {
   ElForm,
   ElFormItem,
   ElInput,
   ElButton,
   ElMessage,
-  ElSelect,
-  ElOption,
   ElNotification,
   type FormInstance,
 } from 'element-plus'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import request from '@/utils/request'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, type UserRole } from '@/stores/user'
 import { useTheme } from '@/utils/useTheme'
 import ModerationIcon from '@/assets/svg/moderation-icon.svg?component'
 // npm install bootstrap-icons
@@ -139,6 +158,55 @@ const route = useRoute()
 const { isDark, toggleTheme } = useTheme() // 日夜主题全站共用
 const rememberAccount = ref(false)
 const currentYear = new Date().getFullYear()
+const roleSwitchVisible = ref(true)
+let roleSwitchHovered = false
+let roleSwitchHideTimer: ReturnType<typeof setTimeout> | undefined
+
+const clearRoleSwitchHideTimer = () => {
+  if (roleSwitchHideTimer !== undefined) {
+    clearTimeout(roleSwitchHideTimer)
+    roleSwitchHideTimer = undefined
+  }
+}
+
+const showRoleSwitch = () => {
+  clearRoleSwitchHideTimer()
+  roleSwitchVisible.value = true
+}
+
+const scheduleRoleSwitchHide = () => {
+  clearRoleSwitchHideTimer()
+  if (roleSwitchHovered) return
+
+  roleSwitchHideTimer = setTimeout(() => {
+    roleSwitchVisible.value = false
+    roleSwitchHideTimer = undefined
+  }, 1500)
+}
+
+const onRoleSwitchMouseEnter = () => {
+  roleSwitchHovered = true
+  showRoleSwitch()
+}
+
+const onRoleSwitchMouseLeave = () => {
+  roleSwitchHovered = false
+  scheduleRoleSwitchHide()
+}
+
+const onRoleSwitchFocusOut = (event: FocusEvent) => {
+  if (
+    event.currentTarget instanceof HTMLElement &&
+    event.relatedTarget instanceof Node &&
+    event.currentTarget.contains(event.relatedTarget)
+  ) {
+    return
+  }
+  scheduleRoleSwitchHide()
+}
+
+onMounted(scheduleRoleSwitchHide)
+
 const registeredUsername = typeof route.query.username === 'string' ? route.query.username : ''
 // 只接受站内路径（排除 // 开头的协议相对地址），防止 ?redirect= 被拼成外部地址
 const redirect =
@@ -149,13 +217,19 @@ const redirect =
     : ''
 
 const model = reactive({
-  role: registeredUsername ? 'user' : '',
+  role: 'user' as UserRole,
   username: registeredUsername,
   password: '',
 })
 
+const switchLoginRole = (role: UserRole) => {
+  if (model.role === role) return
+
+  model.role = role
+  ElMessage.success(`切换成功，当前为${role === 'admin' ? '管理员' : '用户'}登录`)
+}
+
 const rules = reactive({
-  role: [{ required: true, message: '请选择账户类型。', trigger: ['blur'] }],
   username: [
     { required: true, whitespace: true, message: '请输入用户名', trigger: 'blur' },
     { min: 2, max: 16, message: '用户名需2–16个字符', trigger: 'change' },
@@ -180,12 +254,9 @@ const login = () => {
     .then((result) => {
       if (result === true) {
         // 统一使用 /login 接口，后端会根据角色进行验证
+        const credentials = { ...model }
         request
-          .post('/login', {
-            username: model.username,
-            password: model.password,
-            role: model.role,
-          })
+          .post('/login', credentials)
           .then((response) => {
             if (response.data.status === true) {
               // 保存用户信息和token到store
@@ -193,7 +264,7 @@ const login = () => {
                 ...response.data.payload,
                 user: {
                   ...response.data.payload.user,
-                  role: model.role,
+                  role: credentials.role,
                 },
               }
 
@@ -202,12 +273,16 @@ const login = () => {
 
               ElNotification({
                 title: '登录成功',
-                message: h('span', { style: 'color: #5EDFD6' }, `欢迎回来：${model.username}`),
+                message: h(
+                  'span',
+                  { style: 'color: #5EDFD6' },
+                  `欢迎回来：${credentials.username}`,
+                ),
                 duration: 3000,
               })
 
               // 根据角色跳转到不同首页；普通用户若是从需登录的页面被拦过来的，跳回原页面
-              if (model.role === 'admin') {
+              if (credentials.role === 'admin') {
                 router.replace({ name: 'admin_dashboard' }) // 管理员首页
               } else if (redirect) {
                 router.replace(redirect)
@@ -229,6 +304,7 @@ const login = () => {
 }
 
 onUnmounted(() => {
+  clearRoleSwitchHideTimer()
   document.body.classList.remove('dark-theme')
 })
 </script>
@@ -554,6 +630,97 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 }
 
+.login-role-switch {
+  --role-button-width: 5rem;
+  --role-cut: 0.75rem;
+  --role-background: #fff;
+  --role-text-color: #075c63;
+  --role-border-color: #5edfd6;
+  --role-active-background: #5edfd6;
+
+  position: fixed;
+  right: 2rem;
+  bottom: 1.5rem;
+  z-index: 2;
+  width: calc(var(--role-button-width) * 2);
+  height: 2.75rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--role-border-color) 60%, var(--role-background));
+  border-radius: 999px;
+  background: var(--role-background);
+  box-shadow:
+    0 5px 18px rgb(7 92 99 / 8%),
+    0 1px 3px rgb(7 92 99 / 4%);
+
+  // 只隐藏外观，保留鼠标移入时重新显示的悬停区域。
+  &.is-hidden {
+    opacity: 0;
+  }
+}
+
+.role-switch-button {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: calc(50% + var(--role-cut));
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--role-background);
+  color: var(--role-text-color);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+
+  // 两侧圆弧由外框裁切，中间沿同一条斜线无缝拼接。
+  &:first-child {
+    left: 0;
+    padding-right: var(--role-cut);
+    clip-path: polygon(0 0, 100% 0, calc(100% - var(--role-cut) * 2) 100%, 0 100%);
+  }
+
+  &:last-child {
+    right: 0;
+    padding-left: var(--role-cut);
+    clip-path: polygon(calc(var(--role-cut) * 2) 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  &:not([aria-pressed='true']):hover {
+    color: #07828b;
+  }
+
+  &[aria-pressed='true'] {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--role-active-background) 75%, var(--role-background)),
+      var(--role-active-background)
+    );
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 28%);
+    color: var(--role-text-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .role-switch-button {
+    transition: none;
+  }
+}
+
 // 响应式设计
 @media (max-width: 768px) {
   .login-container {
@@ -590,6 +757,11 @@ onUnmounted(() => {
     margin-top: 2rem;
     padding: 1rem 0;
     border-top: 1px solid #e4e7ed;
+  }
+
+  .login-role-switch {
+    right: 1.5rem;
+    bottom: 1rem;
   }
 
   h2 {
