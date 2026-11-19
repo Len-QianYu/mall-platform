@@ -37,7 +37,7 @@ public final class TradeRequests {
     ) {}
 
     public record Pay(
-        @NotNull Long orderId,
+        @NotNull @Min(1) Long orderId,
         @NotNull PaymentMethod method
     ) {}
 

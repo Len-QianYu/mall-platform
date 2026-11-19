@@ -16,6 +16,13 @@ import com.example.api.entity.OrderEntity;
 @Mapper
 public interface OrderMapper extends BaseMapper<OrderEntity> {
 
+    // 支付、退款和取消统一先锁订单行，再锁流水和商品。
+    @Select("SELECT * FROM orders WHERE id = #{id} FOR UPDATE")
+    OrderEntity selectByIdForUpdate(@Param("id") Long id);
+
+    @Select("SELECT NOW()")
+    LocalDateTime databaseNow();
+
     // 销售额：已支付、已发货、已完成订单的金额合计（待支付、已取消的不算）
     @Select("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status IN ('PAID', 'SHIPPED', 'COMPLETED')")
     BigDecimal sumSalesAmount();

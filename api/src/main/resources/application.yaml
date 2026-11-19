@@ -72,3 +72,23 @@ rocketmq:
 # 下单后多久不支付就自动取消、回补库存（如 15m、30s）；RocketMQ 延时消息最长 3 天
 order:
   pay-timeout: ${ORDER_PAY_TIMEOUT:15m}
+
+# 支付宝默认关闭，填入本机 .env 后启用；测试和部署可分别配置沙箱/正式网关。
+alipay:
+  enabled: ${ALIPAY_ENABLED:false}
+  app-id: ${ALIPAY_APP_ID:}
+  gateway-url: ${ALIPAY_GATEWAY_URL:https://openapi-sandbox.dl.alipaydev.com/gateway.do}
+  app-private-key: ${ALIPAY_APP_PRIVATE_KEY:}
+  alipay-public-key: ${ALIPAY_PUBLIC_KEY:}
+  seller-id: ${ALIPAY_SELLER_ID:}
+  notify-url: ${ALIPAY_NOTIFY_URL:http://localhost:8080/payment/alipay/notify}
+  return-url: ${ALIPAY_RETURN_URL:http://localhost:5173/payment/return}
+
+payment:
+  mock-enabled: ${PAYMENT_MOCK_ENABLED:true}
+  reconcile-enabled: ${PAYMENT_RECONCILE_ENABLED:true}
+
+# 支付宝 SDK 的原始错误日志包含带签名的请求 URL；业务日志由 AlipayGateway 记录错误码。
+logging:
+  level:
+    sdk: "OFF"

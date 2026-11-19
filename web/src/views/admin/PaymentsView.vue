@@ -7,7 +7,12 @@
     <!-- 筛选 -->
     <ElForm :model="filter" inline class="filter-form" @submit.prevent="search">
       <ElFormItem label="流水号">
-        <ElInput v-model="filter.keyword" placeholder="支付流水号" clearable style="width: 14rem">
+        <ElInput
+          v-model="filter.keyword"
+          placeholder="流水号 / 第三方交易号"
+          clearable
+          style="width: 14rem"
+        >
           <template #prefix><i class="bi bi-search"></i></template>
         </ElInput>
       </ElFormItem>
@@ -40,6 +45,9 @@
     <!-- 流水只读：由支付回调写入，管理端不改 -->
     <ElTable v-loading="loading" :data="payments" border stripe>
       <ElTableColumn prop="paymentNo" label="流水号" min-width="200" />
+      <ElTableColumn label="第三方交易号" min-width="220">
+        <template #default="{ row }">{{ row.tradeNo || '—' }}</template>
+      </ElTableColumn>
       <ElTableColumn prop="orderId" label="订单 ID" width="100" />
       <ElTableColumn prop="userId" label="用户 ID" width="100" />
       <ElTableColumn label="金额" width="120">

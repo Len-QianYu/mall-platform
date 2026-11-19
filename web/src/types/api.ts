@@ -91,6 +91,7 @@ export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED'
 export interface Payment {
   id: number
   paymentNo: string
+  tradeNo: string | null
   orderId: number
   userId: number
   amount: number
@@ -99,6 +100,22 @@ export interface Payment {
   paidAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface PaymentStartResult {
+  payment: Payment
+  payUrl: string | null
+}
+
+export interface PaymentQueryResult {
+  order: Order
+  payment: Payment | null
+  paid: boolean
+}
+
+export interface PaymentMethodsResult {
+  methods: PaymentMethod[]
+  alipaySandbox: boolean
 }
 
 // 仪表盘统计
@@ -149,7 +166,11 @@ export interface DashboardData {
  *     POST /order/cancel            { id }    待支付 → 已取消
  *     POST /order/confirm           { id }    已发货 → 已完成
  *     POST /order/refund            { id }    已支付（未发货）→ 已退款，回补库存、扣回销量
- *     POST /payment/pay             { orderId, method } → { payment }（目前只有模拟支付，直接成功）
+ *     GET  /payment/methods         → { methods, alipaySandbox }（按后端配置启用）
+ *     POST /payment/pay             { orderId, method } → { payment, payUrl }
+ *                                   ALIPAY 返回待支付流水和收银台 URL；MOCK 直接成功
+ *     GET  /payment/query           orderId → { order, payment, paid }（查询并同步支付宝状态）
+ *     POST /payment/alipay/notify    支付宝异步通知：此接口免 JWT，RSA2 验签后处理
  *     GET  /user/profile            → { user }
  *     POST /user/update             { name, gender, email, phone, province, city, receiverAddress,
  *                                     avatarUrl }

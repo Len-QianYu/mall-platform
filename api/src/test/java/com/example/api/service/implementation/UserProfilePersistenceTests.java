@@ -17,6 +17,7 @@ import com.example.api.dto.ProfileRequests;
 import com.example.api.entity.UserEntity;
 import com.example.api.service.UserService;
 import com.example.api.task.OrderPayTimeoutScanTask;
+import com.example.api.task.PaymentReconciliationTask;
 
 @SpringBootTest(properties = "rustfs.endpoint=http://127.0.0.1:1")
 @Transactional
@@ -33,6 +34,9 @@ class UserProfilePersistenceTests {
 
     @MockitoBean
     private OrderPayTimeoutScanTask orderPayTimeoutScanTask;
+
+    @MockitoBean
+    private PaymentReconciliationTask paymentReconciliationTask;
 
     @Test
     void savesAndClearsLocationAndAddressWhileKeepingTheAccountIdentityAndCredentials() {

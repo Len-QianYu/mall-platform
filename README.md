@@ -71,6 +71,30 @@ java --class-path $rustfsClasspath tools/MigrateUploads.java D:/mall-platform/up
 数据库连接池监控（Druid）：<http://127.0.0.1:8080/druid/>，只允许本机访问，默认账号 druid / druid123（可在 `api/.env` 里改）。
 打包命令：`./mvnw clean package`。
 
+### 支付宝沙箱支付
+
+已接入支付宝官方 SDK：下单后跳转收银台，付款返回后主动查询确认支付；异步通知通过 RSA2 验签，并校验应用、金额和交易号。查询与回调共用事务，重复通知不会重复累计销量。管理端支付流水可查看和搜索第三方交易号。
+
+已有数据库先执行 [`upgrade-alipay-payment.sql`](api/src/main/resources/db/upgrade-alipay-payment.sql)，增加 `payment.trade_no` 及索引；脚本可重复执行，不改动已有流水。新建库的 `schema.sql` 已包含这些字段。
+
+在被 Git 忽略的 `api/.env` 中填写 `ALIPAY_APP_ID`、`ALIPAY_APP_PRIVATE_KEY`、`ALIPAY_PUBLIC_KEY`，设置 `ALIPAY_ENABLED=true` 后重启后端。配置模板见 [`api/.env.example`](api/.env.example)，网关默认使用支付宝沙箱；可选的 `ALIPAY_SELLER_ID` 用于额外校验回调收款方。
+
+支付宝 SDK 的原始请求日志已关闭，避免记录包含签名的请求 URL；业务日志记录操作与错误码。
+
+| 接口 | 用途 |
+|---|---|
+| `GET /payment/methods` | 查询当前启用的支付方式 |
+| `POST /payment/pay`，JSON `{orderId, method: "ALIPAY"}` | 创建或复用待支付流水，返回 `payment` 和 `payUrl` |
+| `GET /payment/query?orderId=...` | 查询支付宝，同步订单与流水，返回 `order`、`payment`、`paid` |
+| `POST /payment/alipay/notify` | 支付宝异步通知，免 JWT，验签后返回纯文本 `success` / `failure` |
+| `POST /order/refund` / `POST /admin/order/refund` | 支付宝确认原路退款后，更新订单、流水和库存 |
+
+操作：提交订单 → 选择支付宝 → 使用**沙箱买家账号**付款 → 返回商城查看订单；未确认时可点“查询支付结果”。默认返回地址为 `http://localhost:5173/payment/return`，通过 `ALIPAY_RETURN_URL` 修改为实际前端地址，浏览器地址和配置应使用同一域名。
+
+`localhost` 无法接收支付宝服务器的异步通知。本机开发通过返回页主动查询和每分钟定时对账同步结果；对账按流水 ID 分页轮询，每轮最多 100 条，查询失败的流水在下一次循环重试，后续流水仍会继续处理。同一订单的旧流水也按其支付流水号查询，重复收款会自动退款。需要验证异步通知时，把 `ALIPAY_NOTIFY_URL` 配置为公网可达的 `/payment/alipay/notify` 地址。取消和超时处理先查询、关闭未付款交易；取消后才打开旧支付链接并完成的付款会自动原路退款。退款失败不会修改本地订单和库存，重试使用同一退款请求号。
+
+支付宝默认关闭，模拟支付默认保留。正式收款时配置正式应用、密钥和 `ALIPAY_GATEWAY_URL=https://openapi.alipay.com/gateway.do`，并设置 `PAYMENT_MOCK_ENABLED=false`。定时对账可通过 `PAYMENT_RECONCILE_ENABLED=false` 关闭；后端应用上下文和支付数据库测试会禁用真实消息消费、定时对账，并回滚测试数据。
+
 ### 前端（web/）
 
 ```bash

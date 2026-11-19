@@ -2,8 +2,7 @@
   <header class="shop-header">
     <div class="shop-container header-inner" :class="{ 'is-search-expanded': searchExpanded }">
       <RouterLink class="logo-link" :to="{ name: 'index' }">
-        <img src="/favicon.ico" class="logo-img" alt="Mall Platform" />
-        <span class="logo-text">Mall Platform</span>
+        <img src="@/assets/logo/logo.png" class="logo-img" alt="Mall Platform" />
       </RouterLink>
 
       <nav class="header-nav">
@@ -241,19 +240,16 @@ const logout = () => {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 0.5rem;
   text-decoration: none;
 }
 
 .logo-img {
-  width: 28px;
-  height: 28px;
-}
-
-.logo-text {
-  color: var(--el-color-primary);
-  font-size: 1.125rem;
-  font-weight: 700;
+  display: block;
+  width: 10rem;
+  height: auto;
+  max-height: 50px;
+  object-fit: contain;
+  object-position: left;
 }
 
 .header-nav {
@@ -417,7 +413,12 @@ const logout = () => {
     }
   }
 
-  .logo-text,
+  .logo-img {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+  }
+
   .header-nav,
   .user-name {
     display: none;

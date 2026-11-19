@@ -113,6 +113,13 @@
 			<version>5.2.2</version>
 		</dependency>
 
+		<!-- 支付宝：收银台、支付查询、回调验签、关闭交易与原路退款 -->
+		<dependency>
+			<groupId>com.alipay.sdk</groupId>
+			<artifactId>alipay-sdk-java</artifactId>
+			<version>4.40.890.ALL</version>
+		</dependency>
+
 		<!-- 缓存：Spring Cache 注解（@Cacheable）+ Redis（Lettuce 客户端，连 docker-compose 里的 127.0.0.1:6379），配置见 CacheConfiguration -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

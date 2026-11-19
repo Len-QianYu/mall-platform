@@ -35,6 +35,7 @@ import com.example.api.mapper.OrderMapper;
 import com.example.api.mapper.ProductMapper;
 import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.OrderService;
+import com.example.api.service.PaymentService;
 import com.example.api.service.ProductService;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.TradeNo;
@@ -54,13 +55,16 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderPayTimeoutProducer payTimeoutProducer;
 
+    private final PaymentService paymentService;
+
     public OrderServiceImpl(
         OrderMapper orderMapper,
         OrderItemMapper orderItemMapper,
         ProductMapper productMapper,
         ProductService productService,
         CartMapper cartMapper,
-        OrderPayTimeoutProducer payTimeoutProducer
+        OrderPayTimeoutProducer payTimeoutProducer,
+        PaymentService paymentService
     ) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
@@ -68,6 +72,7 @@ public class OrderServiceImpl implements OrderService {
         this.productService = productService;
         this.cartMapper = cartMapper;
         this.payTimeoutProducer = payTimeoutProducer;
+        this.paymentService = paymentService;
     }
 
     @Override
@@ -269,6 +274,11 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public boolean cancel(Long id) {
+        OrderEntity order = this.orderMapper.selectByIdForUpdate(id);
+        if (order == null || order.getStatus() != OrderStatus.PENDING_PAYMENT) return false;
+        // 收款可能成功但回调还没到；先查询/关闭支付宝交易，再取消和回补库存。
+        if (!this.paymentService.closePending(order)) return false;
+
         boolean cancelled = this.orderMapper.update(
             Wrappers.<OrderEntity>lambdaUpdate()
                 .set(OrderEntity::getStatus, OrderStatus.CANCELLED)

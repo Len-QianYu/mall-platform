@@ -24,6 +24,9 @@ public class PaymentEntity {
     // 支付流水号（对外展示）
     private String paymentNo;
 
+    // 第三方交易号：支付宝确认成功后保存，模拟支付为空。
+    private String tradeNo;
+
     private Long orderId;
 
     private Integer userId;

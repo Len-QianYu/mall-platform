@@ -73,6 +73,8 @@ public class SecurityConfiguration {
 				authorize.requestMatchers("/user/create").permitAll();
                 // 放行商城前台的商品浏览（游客可看）：只放行 GET，购物车、下单等仍需登录
                 authorize.requestMatchers(HttpMethod.GET, "/product", "/product/**").permitAll();
+                // 支付宝异步通知由 RSA2 验签认证；其余支付接口仍需 JWT。
+                authorize.requestMatchers(HttpMethod.POST, "/payment/alipay/notify").permitAll();
                 // 上传商品图片只允许管理员；头像等其余上传登录即可（走下面的 authenticated），普通用户不能把这里当图床
                 authorize.requestMatchers(HttpMethod.POST, "/upload/images").hasAnyRole("admin", "super_admin");
                 // 管理端接口只允许管理员访问：前端路由守卫只是界面拦截，真正的权限在这里收口

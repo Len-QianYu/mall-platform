@@ -64,6 +64,13 @@ const router = createRouter({
           component: () => import('@/views/shop/ProfileView.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          // 支付宝同步返回只用于打开页面，支付状态仍由后端主动查询确认。
+          path: 'payment/return',
+          name: 'order_pay_return',
+          component: () => import('@/views/shop/PaymentView.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
     {

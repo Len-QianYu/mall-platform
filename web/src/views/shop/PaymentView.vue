@@ -22,34 +22,69 @@
           </div>
 
           <h3 class="method-title">选择支付方式</h3>
-          <ElRadioGroup v-model="method" class="method-list">
+          <ElRadioGroup v-model="method" class="method-list" :disabled="paying || querying">
             <ElRadio
               v-for="option in METHOD_OPTIONS"
               :key="option.value"
               :value="option.value"
-              :disabled="option.disabled"
+              :disabled="methodDisabled(option.value)"
               border
               class="method-item"
             >
               <i :class="option.icon" class="method-icon"></i>
-              {{ PAYMENT_METHOD[option.value] }}
-              <span v-if="option.disabled" class="text-secondary">（暂未接入）</span>
+              {{
+                option.value === 'ALIPAY' && alipaySandbox
+                  ? '支付宝（沙箱）'
+                  : PAYMENT_METHOD[option.value]
+              }}
+              <span v-if="methodDisabled(option.value)" class="text-secondary">
+                {{ option.value === 'WECHAT' ? '（暂未接入）' : '（暂不可用）' }}
+              </span>
             </ElRadio>
           </ElRadioGroup>
+          <p v-if="method === 'ALIPAY' && alipaySandbox" class="payment-hint text-secondary">
+            请使用支付宝沙箱买家账号付款。
+          </p>
+          <ElAlert
+            v-if="pendingAlipay"
+            class="payment-notice"
+            type="info"
+            title="已发起支付宝支付。完成付款后可查询支付结果，或继续前往收银台。"
+            :closable="false"
+            show-icon
+          />
+          <p v-if="!enabledMethods.length" class="payment-hint">暂无可用支付方式，请稍后重试。</p>
 
           <div class="pay-actions">
             <ElButton size="large" @click="router.push({ name: 'orders' })">稍后支付</ElButton>
-            <ElButton type="primary" size="large" :loading="paying" @click="pay">
-              确认支付 {{ formatMoney(order.totalAmount) }}
+            <ElButton
+              v-if="pendingAlipay"
+              class="query-payment"
+              size="large"
+              :loading="querying"
+              :disabled="paying"
+              @click="queryPayment"
+            >
+              查询支付结果
+            </ElButton>
+            <ElButton
+              class="confirm-payment"
+              type="primary"
+              size="large"
+              :loading="paying"
+              :disabled="querying || methodDisabled(method)"
+              @click="pay"
+            >
+              {{ method === 'ALIPAY' ? '前往支付宝支付' : '确认支付' }}
+              {{ formatMoney(order.totalAmount) }}
             </ElButton>
           </div>
         </ElCard>
 
-        <!-- 已支付、已取消等状态的订单不能再付款（如支付页被收藏或从历史记录打开） -->
         <ElResult
           v-else
-          icon="info"
-          :title="`订单${ORDER_STATUS[order.status]?.label ?? order.status}`"
+          :icon="isPaid ? 'success' : 'info'"
+          :title="'订单' + (ORDER_STATUS[order.status]?.label ?? order.status)"
           sub-title="该订单当前无需支付"
         >
           <template #extra>
@@ -63,8 +98,9 @@
         </ElResult>
       </template>
 
-      <ElResult v-else-if="!loading" icon="warning" title="订单不存在">
+      <ElResult v-else-if="!loading" icon="warning" :title="loadError || '订单不存在'">
         <template #extra>
+          <ElButton v-if="orderId" class="load-retry" @click="load">重试</ElButton>
           <ElButton type="primary" @click="router.push({ name: 'orders' })">我的订单</ElButton>
         </template>
       </ElResult>
@@ -73,9 +109,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  ElAlert,
   ElButton,
   ElCard,
   ElMessage,
@@ -85,56 +122,151 @@ import {
   vLoading,
 } from 'element-plus'
 import request from '@/utils/request'
-import type { ApiResult, Order, PaymentMethod } from '@/types/api'
+import type {
+  ApiResult,
+  Order,
+  Payment,
+  PaymentMethod,
+  PaymentMethodsResult,
+  PaymentQueryResult,
+  PaymentStartResult,
+} from '@/types/api'
 import { ORDER_STATUS, PAYMENT_METHOD, formatMoney } from '@/utils/format'
 
-// 目前只有模拟支付可用；支付宝、微信先展示出来，接入后去掉 disabled
-const METHOD_OPTIONS: { value: PaymentMethod; icon: string; disabled: boolean }[] = [
-  { value: 'MOCK', icon: 'bi bi-lightning-charge', disabled: false },
-  { value: 'ALIPAY', icon: 'bi bi-alipay', disabled: true },
-  { value: 'WECHAT', icon: 'bi bi-wechat', disabled: true },
+const METHOD_OPTIONS: { value: PaymentMethod; icon: string }[] = [
+  { value: 'ALIPAY', icon: 'bi bi-alipay' },
+  { value: 'MOCK', icon: 'bi bi-lightning-charge' },
+  { value: 'WECHAT', icon: 'bi bi-wechat' },
 ]
 
 const route = useRoute()
 const router = useRouter()
-
-const loading = ref(false)
-const order = ref<Order | null>(null)
-const method = ref<PaymentMethod>('MOCK')
-
-onMounted(async () => {
-  loading.value = true
-  try {
-    const { data } = await request.get<ApiResult<{ order: Order }>>(`/order/${route.params.id}`)
-    if (data.status) {
-      order.value = data.payload.order
-    }
-  } catch {
-    ElMessage.error('加载订单失败')
-  } finally {
-    loading.value = false
-  }
+const orderId = computed(() => {
+  const id = route.params.id || route.query.orderId
+  return typeof id === 'string' && /^[1-9]\d*$/.test(id) ? id : ''
 })
 
+const loading = ref(false)
+const loadError = ref('')
+const order = ref<Order | null>(null)
+const payment = ref<Payment | null>(null)
+const enabledMethods = ref<PaymentMethod[]>([])
+const alipaySandbox = ref(false)
+const method = ref<PaymentMethod>('ALIPAY')
 const paying = ref(false)
+const querying = ref(false)
+const pendingAlipay = computed(
+  () => payment.value?.method === 'ALIPAY' && payment.value.status === 'PENDING',
+)
+const isPaid = computed(() =>
+  Boolean(order.value && ['PAID', 'SHIPPED', 'COMPLETED'].includes(order.value.status)),
+)
+const methodDisabled = (value: PaymentMethod) =>
+  !enabledMethods.value.includes(value) || (pendingAlipay.value && value !== 'ALIPAY')
+
+const showOrder = () => {
+  if (order.value) {
+    router.replace({ name: 'order_detail', params: { id: order.value.id } })
+  }
+}
+
+const load = async () => {
+  const id = orderId.value
+  order.value = null
+  payment.value = null
+  loadError.value = ''
+  if (!id) return
+
+  loading.value = true
+  try {
+    const [methodsResponse, queryResponse] = await Promise.all([
+      request.get<ApiResult<PaymentMethodsResult>>('/payment/methods'),
+      request.get<ApiResult<PaymentQueryResult>>('/payment/query', { params: { orderId: id } }),
+    ])
+    // 路由变化时丢弃上一个订单的请求结果。
+    if (id !== orderId.value) return
+    if (!methodsResponse.data.status) {
+      loadError.value = methodsResponse.data.payload.message || '加载支付方式失败'
+      return
+    }
+    if (!queryResponse.data.status) {
+      loadError.value = queryResponse.data.payload.message || '加载订单失败'
+      return
+    }
+
+    enabledMethods.value = methodsResponse.data.payload.methods
+    alipaySandbox.value = methodsResponse.data.payload.alipaySandbox
+    order.value = queryResponse.data.payload.order
+    payment.value = queryResponse.data.payload.payment
+    method.value = pendingAlipay.value ? 'ALIPAY' : (enabledMethods.value[0] ?? 'ALIPAY')
+    // 同步返回的 URL 参数不代表支付成功，只有后端查询确认后才展示成功。
+    if (route.name === 'order_pay_return' && queryResponse.data.payload.paid) {
+      ElMessage.success('支付成功')
+      showOrder()
+    }
+  } catch {
+    if (id === orderId.value) loadError.value = '加载订单或支付方式失败，请重试'
+  } finally {
+    if (id === orderId.value) loading.value = false
+  }
+}
+
+watch(orderId, load, { immediate: true })
+
+const queryPayment = async () => {
+  if (!order.value || paying.value || querying.value) return
+  const id = order.value.id
+  querying.value = true
+  try {
+    const { data } = await request.get<ApiResult<PaymentQueryResult>>('/payment/query', {
+      params: { orderId: id },
+    })
+    if (order.value?.id !== id) return
+    if (!data.status) {
+      ElMessage.error(data.payload.message || '查询支付结果失败')
+      return
+    }
+    order.value = data.payload.order
+    payment.value = data.payload.payment
+    if (data.payload.paid) {
+      ElMessage.success('支付成功')
+      showOrder()
+    } else if (order.value.status === 'PENDING_PAYMENT') {
+      ElMessage.warning('尚未查询到支付成功，请完成付款后重试')
+    }
+  } catch {
+    ElMessage.error('查询支付结果失败，请稍后重试')
+  } finally {
+    querying.value = false
+  }
+}
 
 const pay = async () => {
-  if (!order.value) return
-
+  if (!order.value || paying.value || querying.value || methodDisabled(method.value)) return
+  const id = order.value.id
   paying.value = true
   try {
-    const { data } = await request.post<ApiResult>('/payment/pay', {
-      orderId: order.value.id,
+    const { data } = await request.post<ApiResult<PaymentStartResult>>('/payment/pay', {
+      orderId: id,
       method: method.value,
     })
+    if (order.value?.id !== id) return
     if (!data.status) {
       ElMessage.error(data.payload.message || '支付失败')
       return
     }
-    ElMessage.success('支付成功')
-    router.replace({ name: 'order_detail', params: { id: order.value.id } })
+    payment.value = data.payload.payment
+    if (payment.value.status === 'SUCCESS') {
+      ElMessage.success('支付成功')
+      showOrder()
+    } else if (payment.value.method === 'ALIPAY' && data.payload.payUrl) {
+      // 同一标签页打开，付款后由 return-url 回到当前商城；不依赖弹窗权限。
+      window.open(data.payload.payUrl, '_self')
+    } else {
+      ElMessage.error('获取支付链接失败，请重试')
+    }
   } catch {
-    ElMessage.error('支付失败')
+    ElMessage.error('发起支付失败，请稍后重试')
   } finally {
     paying.value = false
   }
@@ -197,7 +329,6 @@ const pay = async () => {
   flex-wrap: wrap;
   gap: 0.75rem;
 
-  // margin 抵消 .el-radio 的右外边距，间距统一由 gap 控制
   .method-item {
     margin: 0;
   }
@@ -207,14 +338,30 @@ const pay = async () => {
   margin-right: 0.25rem;
 }
 
+.payment-hint,
+.payment-notice {
+  margin-top: 1rem;
+}
+
 .pay-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 2rem;
 
   .el-button {
     margin: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .pay-summary {
+    flex-wrap: wrap;
+  }
+
+  .summary-amount {
+    width: 100%;
   }
 }
 </style>

@@ -113,6 +113,7 @@ CREATE TABLE `cart` (
 CREATE TABLE `payment` (
   `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `payment_no` VARCHAR(32)     NOT NULL                COMMENT '支付流水号（对外展示）',
+  `trade_no`   VARCHAR(64)     NULL                    COMMENT '第三方交易号（模拟支付为空）',
   `order_id`   BIGINT UNSIGNED NOT NULL                COMMENT '订单 ID（逻辑外键 orders.id，一单可多条流水：失败重试）',
   `user_id`    INT UNSIGNED    NOT NULL                COMMENT '用户 ID（逻辑外键 user.id）',
   `amount`     DECIMAL(10, 2)  NOT NULL                COMMENT '支付金额（元）',
@@ -123,6 +124,8 @@ CREATE TABLE `payment` (
   `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_payment_no` (`payment_no`),
+  UNIQUE KEY `uk_trade_no` (`trade_no`),
+  KEY `idx_method_status_id` (`method`, `status`, `id`),
   KEY `idx_order_id` (`order_id`),
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '支付流水表';

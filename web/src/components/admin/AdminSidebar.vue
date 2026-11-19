@@ -2,8 +2,7 @@
   <aside class="admin-sidebar" :class="{ 'is-collapsed': collapsed }">
     <!-- 左上角 Logo -->
     <RouterLink class="logo-link" :to="{ name: 'admin_dashboard' }">
-      <img src="/favicon.ico" class="logo-img" alt="Mall Platform" />
-      <span v-show="!collapsed" class="logo-text">Mall Platform</span>
+      <img src="@/assets/logo/logo.png" class="logo-img" alt="Mall Platform" />
     </RouterLink>
 
     <!-- 菜单：index 即路由路径，router 模式下点击直接跳转 -->
@@ -70,6 +69,12 @@ const route = useRoute()
 
   &.is-collapsed {
     width: 64px;
+
+    .logo-img {
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+    }
   }
 }
 
@@ -78,7 +83,6 @@ const route = useRoute()
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 0.5rem;
   height: 50px;
   padding: 0 1rem;
   border-bottom: 1px solid var(--el-border-color-lighter);
@@ -86,18 +90,13 @@ const route = useRoute()
 }
 
 .logo-img {
+  display: block;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 10rem;
+  height: auto;
+  max-height: 50px;
   object-fit: contain;
-}
-
-.logo-text {
-  overflow: hidden;
-  color: var(--el-text-color-primary);
-  font-size: 1.125rem;
-  font-weight: 600;
-  white-space: nowrap;
+  object-position: left;
 }
 
 .sidebar-menu {

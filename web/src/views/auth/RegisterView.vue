@@ -6,8 +6,7 @@
         <div class="content">
           <!-- 左上角logo -->
           <div class="logo-box">
-            <img src="/favicon.ico" alt="Logo" />
-            <p class="logo-text">Mall Platform</p>
+            <img src="@/assets/logo/logo.png" alt="Logo" />
           </div>
 
           <!-- svg中心图标 -->
@@ -336,15 +335,13 @@ const register = async () => {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
 }
 
-.logo-text {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: #272e3b;
-  transition: color 0.3s ease;
+.logo-box img {
+  width: 10rem;
+  height: auto;
+  object-fit: contain;
+  transition: transform 0.3s ease; //悬停动画
 }
 
 // 项目名
@@ -670,11 +667,6 @@ const register = async () => {
 
   .logo-box img {
     filter: brightness(0.9) drop-shadow(0 2px 8px rgba(255, 255, 255, 0.1));
-  }
-
-  .logo-text {
-    color: #e0e0e0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .moderation-icon {
