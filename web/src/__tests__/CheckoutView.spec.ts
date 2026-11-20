@@ -135,6 +135,7 @@ const mountCheckout = async (
 describe('checkout shipping information', () => {
   beforeEach(() => {
     localStorage.removeItem('user')
+    sessionStorage.clear()
     vi.stubEnv('APP_BASE_URL', 'http://localhost:8080')
     getCheckout.mockReset()
     postCheckout.mockReset()
@@ -144,6 +145,7 @@ describe('checkout shipping information', () => {
 
   afterEach(() => {
     localStorage.removeItem('user')
+    sessionStorage.clear()
     vi.unstubAllEnvs()
   })
 
@@ -167,6 +169,7 @@ describe('checkout shipping information', () => {
     await flushPromises()
 
     expect(postCheckout).toHaveBeenCalledWith('/order/create', {
+      requestId: expect.stringMatching(/^[A-Za-z0-9_-]{16,64}$/),
       items: [{ productId: 11, quantity: 2 }],
       fromCart: false,
       receiverName: '张三',
@@ -185,6 +188,7 @@ describe('checkout shipping information', () => {
     await flushPromises()
 
     expect(postCheckout).toHaveBeenCalledWith('/order/create', {
+      requestId: expect.stringMatching(/^[A-Za-z0-9_-]{16,64}$/),
       items: [{ productId: 11, quantity: 2 }],
       fromCart: true,
       receiverName: '张三',
@@ -194,6 +198,74 @@ describe('checkout shipping information', () => {
     })
     expect(getCheckout.mock.calls.filter(([url]) => url === '/cart')).toHaveLength(2)
     expect(cart.count).toBe(cartItems.length)
+  })
+
+  it('reuses the request ID after a lost response and ignores clicks while submitting', async () => {
+    let failRequest: (error: Error) => void = () => undefined
+    postCheckout.mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          failRequest = reject
+        }),
+    )
+    const { wrapper, router } = await mountCheckout()
+    const button = wrapper.get('.submit-bar button')
+    await button.trigger('click')
+    await button.trigger('click')
+    expect(postCheckout).toHaveBeenCalledTimes(1)
+    const requestId = postCheckout.mock.calls[0]?.[1].requestId
+
+    failRequest(new Error('response lost'))
+    await flushPromises()
+    await button.trigger('click')
+    await flushPromises()
+
+    expect(postCheckout).toHaveBeenCalledTimes(2)
+    expect(postCheckout.mock.calls[1]?.[1].requestId).toBe(requestId)
+    expect(router.currentRoute.value.name).toBe('order_pay')
+  })
+
+  it('restores an unresolved request after reloading the same checkout', async () => {
+    postCheckout.mockRejectedValueOnce(new Error('response lost'))
+    const first = await mountCheckout()
+    await first.wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+    const requestId = postCheckout.mock.calls[0]?.[1].requestId
+    first.wrapper.unmount()
+
+    const second = await mountCheckout()
+    await second.wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+
+    expect(postCheckout.mock.calls[1]?.[1].requestId).toBe(requestId)
+  })
+
+  it('uses a new request ID when order content changes after a failed attempt', async () => {
+    postCheckout.mockRejectedValueOnce(new Error('offline'))
+    const { wrapper } = await mountCheckout()
+    await wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+    const requestId = postCheckout.mock.calls[0]?.[1].requestId
+
+    await wrapper.get('.remark-form input').setValue('新的送货备注')
+    await wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+
+    expect(postCheckout.mock.calls[1]?.[1].requestId).not.toBe(requestId)
+  })
+
+  it('uses a new request ID for another purchase after the previous order succeeded', async () => {
+    const first = await mountCheckout()
+    await first.wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+    const requestId = postCheckout.mock.calls[0]?.[1].requestId
+    first.wrapper.unmount()
+
+    const second = await mountCheckout()
+    await second.wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+
+    expect(postCheckout.mock.calls[1]?.[1].requestId).not.toBe(requestId)
   })
 
   it.each([

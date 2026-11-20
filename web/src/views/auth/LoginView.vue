@@ -14,8 +14,8 @@
 
           <!-- 文字描述 -->
           <div class="description-text">
-            <div class="title-text">电商商城</div>
-            <div class="introduce-text">发现好物，开启你的购物旅程</div>
+            <div class="title-text">AI 伙伴商城</div>
+            <div class="introduce-text">把想象抱进怀里，让陪伴触手可及</div>
           </div>
         </div>
       </div>

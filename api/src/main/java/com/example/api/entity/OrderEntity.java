@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.example.api.enums.OrderStatus;
 import com.example.api.validator.OrderValidateGroup;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -27,6 +28,15 @@ public class OrderEntity {
     private String orderNo;
 
     private Integer userId;
+
+    // 请求幂等信息只供服务端使用，旧订单为 null；随订单事务持久化。
+    @JsonIgnore
+    @TableField(updateStrategy = FieldStrategy.NEVER)
+    private String requestId;
+
+    @JsonIgnore
+    @TableField(updateStrategy = FieldStrategy.NEVER)
+    private String requestHash;
 
     // 订单总额（元）
     private BigDecimal totalAmount;

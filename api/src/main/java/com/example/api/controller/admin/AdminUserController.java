@@ -95,7 +95,7 @@ public class AdminUserController {
             throw new ValidateFailedException("用户信息不符合要求");
         }
 
-        // 不能改自己的角色；以数据库中的身份为准，S管理员也能保存自己的资料。
+        // 不能改自己的角色；以数据库中的身份为准，super管理员也能保存自己的资料。
         if (fields.getId().equals(this.currentUserId(jwt)) && this.userService.fetchById(fields.getId())
             .filter(user -> !fields.getRole().equals(user.getRole())).isPresent()) {
             result.setStatus(false);

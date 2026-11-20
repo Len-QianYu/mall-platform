@@ -245,6 +245,37 @@ onMounted(async () => {
 
 const submitting = ref(false)
 
+// 同一结算内容的失败重试、刷新后重试复用请求号；成功跳转后清除，下次购买生成新号。
+const submissionStorageKey = `mall:checkout:${userStore.user?.user.id ?? userStore.name}:${route.fullPath}`
+let pendingSubmission: { content: string; requestId: string } | null = null
+
+const requestIdFor = (content: string) => {
+  if (pendingSubmission?.content === content) return pendingSubmission.requestId
+  try {
+    const stored = sessionStorage.getItem(submissionStorageKey)
+    const saved = stored
+      ? (JSON.parse(stored) as Partial<NonNullable<typeof pendingSubmission>>)
+      : null
+    if (
+      saved?.content === content &&
+      typeof saved.requestId === 'string' &&
+      /^[A-Za-z0-9_-]{16,64}$/.test(saved.requestId)
+    ) {
+      pendingSubmission = { content, requestId: saved.requestId }
+      return saved.requestId
+    }
+  } catch {
+    // 浏览器禁用存储时仍在当前页面复用请求号。
+  }
+  pendingSubmission = { content, requestId: crypto.randomUUID() }
+  try {
+    sessionStorage.setItem(submissionStorageKey, JSON.stringify(pendingSubmission))
+  } catch {
+    // 当前页面的内存状态仍可保护失败重试。
+  }
+  return pendingSubmission.requestId
+}
+
 const submit = async () => {
   if (loading.value || addressLoading.value || submitting.value || !items.value.length) return
   const receiver = shippingAddress.value
@@ -256,13 +287,17 @@ const submit = async () => {
   submitting.value = true
   try {
     // 只提交商品 ID 和数量，价格由服务端查库计算
-    const { data } = await request.post<ApiResult<{ order: Order }>>('/order/create', {
+    const fields = {
       items: items.value.map(({ productId, quantity }) => ({ productId, quantity })),
       fromCart: !buyNowProductId,
       receiverName: receiver.receiverName,
       receiverPhone: receiver.receiverPhone,
       receiverAddress: receiver.receiverAddress,
       remark: remark.value.trim() || null,
+    }
+    const { data } = await request.post<ApiResult<{ order: Order }>>('/order/create', {
+      requestId: requestIdFor(JSON.stringify(fields)),
+      ...fields,
     })
     if (!data.status) {
       ElMessage.error(data.payload.message || '下单失败')
@@ -272,7 +307,14 @@ const submit = async () => {
       cartStore.refresh()
     }
     // replace：支付页后退不再回到结算页，避免重复下单
-    router.replace({ name: 'order_pay', params: { id: data.payload.order.id } })
+    await router.replace({ name: 'order_pay', params: { id: data.payload.order.id } })
+    if (router.currentRoute.value.name === 'order_pay') {
+      try {
+        sessionStorage.removeItem(submissionStorageKey)
+      } catch {
+        // 页面内仍保留已完成请求号，避免导航重试时重新下单。
+      }
+    }
   } catch {
     ElMessage.error('下单失败')
   } finally {

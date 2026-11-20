@@ -51,6 +51,12 @@ cd api
 
 下单后 15 分钟未支付的订单会自动取消并回补库存（RocketMQ 延时消息 + 定时扫描兜底），时长可用 `ORDER_PAY_TIMEOUT` 调整。
 
+下单接口 `POST /order/create` 必须携带 `requestId`（16～64 位字母、数字、下划线或连字符）。前端为每次结算生成请求号，网络失败和刷新后的重试复用原请求号，成功后再次购买生成新号。同一用户、同一请求号和相同内容会返回已有订单；同号不同内容会被拒绝。后端按「查库幂等 → Redisson 分布式锁 → 锁内再次查库 → 独立事务下单 → 提交后解锁」处理，数据库唯一索引兜底，库存、订单、明细和购物车操作一起提交或回滚。
+
+已有数据库先执行 [`upgrade-order-idempotency.sql`](api/src/main/resources/db/upgrade-order-idempotency.sql)，增加 `orders.request_id`、`request_hash` 和 `(user_id, request_id)` 唯一索引，再重启后端；脚本可重复执行，旧订单保持为空，新建库的 `schema.sql` 已包含这些字段。Redis 不可用时新下单返回可重试的业务错误，已完成请求仍能按请求号查库返回；等锁时间可用 `ORDER_CREATE_LOCK_WAIT` 调整，默认 3 秒，持锁期间由 Redisson watchdog 自动续期。
+
+下单的真实 Redis / MySQL 并发验证可在 PowerShell 中设置 `$env:ORDER_IDEMPOTENCY_INTEGRATION_TESTS = 'true'` 后运行后端测试。测试使用随机请求号和临时商品，结束后清理自己创建的订单和商品；真实消息消费、超时扫描及支付对账均禁用。
+
 前台商品列表、详情、分类缓存在 Redis（`127.0.0.1:6379`，可用 `REDIS_HOST` / `REDIS_PORT` 修改）；Redis 没启动时后端照常运行，只是每次都查库。
 
 头像、商品图片上传到 RustFS（AWS SDK for Java 2.x，S3 path-style 访问），默认使用 `mall-uploads` 私有桶，首次上传会自动创建。上传接口保持 `POST /upload/avatars`（需登录）和 `POST /upload/images`（仅管理员），支持 JPG / PNG / GIF / WEBP，单个文件不超过 5MB；扩展名和 Content-Type 按文件内容识别。返回的 `/avatars/...`、`/images/...` 由后端从 RustFS 读取，前端和数据库仍保存这些稳定路径。连接信息可在 `api/.env` 里通过 `RUSTFS_*` 修改（见 [`api/.env.example`](api/.env.example)）；RustFS 暂未启动时后端仍可启动，上传或读取文件返回 503。

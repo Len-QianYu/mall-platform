@@ -43,7 +43,7 @@ export const useUserStore = defineStore('user', () => {
   // 判断是否为用户
   const isUser = computed(() => role.value === 'user')
 
-  // 管理员与 S管理员都可进入管理端
+  // 管理员与 super管理员都可进入管理端
   const isAdmin = computed(() => role.value === 'admin' || role.value === 'super_admin')
 
   // JWT token 的登录状态检查

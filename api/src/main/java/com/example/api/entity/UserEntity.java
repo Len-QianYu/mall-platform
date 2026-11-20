@@ -69,7 +69,7 @@ public class UserEntity {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
-    // 角色：user 普通用户 / admin 管理员 / super_admin S管理员
+    // 角色：user 普通用户 / admin 管理员 / super_admin super管理员
     @NotBlank(
         groups = {
         UserValidateGroup.Update.class,

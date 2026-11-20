@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
@@ -15,6 +16,11 @@ import com.example.api.entity.OrderEntity;
 
 @Mapper
 public interface OrderMapper extends BaseMapper<OrderEntity> {
+
+    // 两次幂等检查都实际查库，不复用 MyBatis 的空结果；只读查询不锁不存在记录的索引间隙。
+    @Select("SELECT * FROM orders WHERE user_id = #{userId} AND request_id = #{requestId}")
+    @Options(useCache = false, flushCache = Options.FlushCachePolicy.TRUE)
+    OrderEntity selectByRequest(@Param("userId") Integer userId, @Param("requestId") String requestId);
 
     // 支付、退款和取消统一先锁订单行，再锁流水和商品。
     @Select("SELECT * FROM orders WHERE id = #{id} FOR UPDATE")

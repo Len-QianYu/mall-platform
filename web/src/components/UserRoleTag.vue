@@ -18,7 +18,7 @@ defineProps<{ role: UserRole; size?: 'large' | 'default' | 'small' }>()
 const labels: Record<UserRole, string> = {
   user: '用户',
   admin: '管理员',
-  super_admin: 'S管理员',
+  super_admin: 'super管理员',
 }
 </script>
 

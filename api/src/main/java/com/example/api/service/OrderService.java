@@ -49,7 +49,9 @@ public interface OrderService {
     // 所有订单的当前状态分布，包括数量为零的状态。
     List<OrderStatusCount> fetchStatusCounts();
 
-    // 下单：扣库存，按商品当前售价生成订单和明细，fromCart 时把这些商品移出购物车，返回新订单。
+    // 下单：同一用户、同一 requestId 和请求内容返回已有订单；新请求扣库存并生成订单和明细。
+    // 首次幂等检查 → Redisson 锁 → 锁内再次检查 → 独立事务下单 → 提交后解锁。
+    // fromCart 时把这些商品移出购物车；请求号与订单一起落库，唯一索引防止重复下单。
     // 商品下架或库存不足时抛 TradeFailedException，已扣的库存随事务回滚。
     // 事务提交后发一条支付超时延时消息，到期仍未支付就自动取消（时长见 order.pay-timeout）
     OrderEntity create(Integer userId, TradeRequests.OrderCreate request);

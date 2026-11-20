@@ -62,6 +62,7 @@ docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注
 - 文件存储已接入 RustFS（AWS S3 SDK 2.x + path-style），配置为 `rustfs.*` / `api/.env` 的 `RUSTFS_*`；首次上传自动创建私有桶，头像和商品图片仍使用 `/avatars/**`、`/images/**`，由 Java 后端流式读取。上传权限和 5MB 图片校验保持不变，文件服务不可用时返回 503。
 - 支付已接入支付宝官方 SDK（默认沙箱），仍使用单体的订单与支付流水：收银台跳转、RSA2 回调验签、主动查询、每分钟按流水 ID 分页轮询对账、关闭交易和原路退款。对账逐笔处理被扫描的流水，查询失败也推进游标，轮询完再重试，避免旧流水阻塞后续支付。配置为 `alipay.*` / `api/.env` 的 `ALIPAY_*`，默认关闭；正式收款须关闭 `PAYMENT_MOCK_ENABLED`。只有 `POST /payment/alipay/notify` 免 JWT，其余支付接口校验订单归属。支付、取消、退款统一先锁订单行，再锁流水和商品；成功只累加一次销量，取消后的晚到收款自动退款。已有库升级脚本为 `api/src/main/resources/db/upgrade-alipay-payment.sql`，密钥只保存在被忽略的 `.env`。数据库测试禁用真实消息和对账任务并回滚写入。
 - 智能体（规划）：Python · FastAPI · LangGraph · Milvus。
+- 下单幂等：`POST /order/create` 必须携带 16～64 位 ASCII 请求号 `requestId`，同一用户同号同内容返回已有订单，同号不同内容拒绝。先查库，再获取 Redisson 锁，锁内重查后开启独立事务；提交或回滚完成后解锁，watchdog 自动续期。`orders.request_id` / `request_hash` 和 `(user_id, request_id)` 唯一索引随订单一起落库，已有库执行 `api/src/main/resources/db/upgrade-order-idempotency.sql`。Redisson 沿用 `spring.data.redis` 配置，Redis 不可用时新下单失败、已完成请求仍可查库返回；`ORDER_CREATE_LOCK_WAIT` 默认 3 秒。前端失败和刷新重试复用请求号，成功后再次购买生成新号。下单独立事务创建的测试订单、商品须在测试结束后清理；真实 Redis / MySQL 并发测试通过 `ORDER_IDEMPOTENCY_INTEGRATION_TESTS=true` 显式开启。
 
 ## 数据模型（规划）
 
@@ -72,6 +73,6 @@ docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注
 
 登录权限细节 > 管理端页面＞核心业务与 AI 链路 。
 
-用户角色编码为 `user` / `admin` / `super_admin`，显示为用户 / 管理员 / S管理员。S管理员使用管理员登录入口并拥有管理端权限；前端保存后端返回的真实角色。现有“千羽”账号的角色升级 SQL 为 `api/src/main/resources/db/upgrade-super-admin.sql`。
+用户角色编码为 `user` / `admin` / `super_admin`，显示为用户 / 管理员 / super管理员。super管理员使用管理员登录入口并拥有管理端权限；前端保存后端返回的真实角色。现有“千羽”账号的角色升级 SQL 为 `api/src/main/resources/db/upgrade-super-admin.sql`。
 
 登录页“记住账号”保存用户名和登录方式，自成功登录起 7 天有效；再次打开登录页时恢复，过期或取消勾选时清除。注册后跳转携带的用户名优先填入，并使用用户登录方式。

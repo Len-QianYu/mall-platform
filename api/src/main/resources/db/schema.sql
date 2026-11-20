@@ -28,7 +28,7 @@ CREATE TABLE `user` (
   `city`          VARCHAR(50)   NULL                    COMMENT '城市',
   `receiver_address` VARCHAR(255) NULL                  COMMENT '默认收货地址',
   `avatar_url`    VARCHAR(512)  NULL                    COMMENT '头像访问',
-  `role`          VARCHAR(16)   NOT NULL DEFAULT 'user' COMMENT '角色【user:普通用户;admin:管理员;super_admin:S管理员】',
+  `role`          VARCHAR(16)   NOT NULL DEFAULT 'user' COMMENT '角色【user:普通用户;admin:管理员;super_admin:super管理员】',
   `status`        TINYINT       NOT NULL DEFAULT 1      COMMENT '状态【1:启用;0:禁用】',
   `registered_at` DATETIME      NOT NULL                COMMENT '注册于',
   `updated_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -63,6 +63,8 @@ CREATE TABLE `orders` (
   `id`               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `order_no`         VARCHAR(32)     NOT NULL                COMMENT '订单号（对外展示）',
   `user_id`          INT UNSIGNED    NOT NULL                COMMENT '用户 ID（逻辑外键 user.id）',
+  `request_id`       VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT '下单幂等请求号（旧订单为空）',
+  `request_hash`     CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT '下单请求内容 SHA-256',
   `total_amount`     DECIMAL(10, 2)  NOT NULL                COMMENT '订单总额（元）',
   `status`           VARCHAR(16)     NOT NULL DEFAULT 'PENDING_PAYMENT' COMMENT '状态【PENDING_PAYMENT:待支付;PAID:已支付;SHIPPED:已发货;COMPLETED:已完成;CANCELLED:已取消;REFUNDED:已退款】',
   `receiver_name`    VARCHAR(32)     NOT NULL                COMMENT '收货人（下单时快照）',
@@ -77,6 +79,7 @@ CREATE TABLE `orders` (
   `updated_at`       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_no` (`order_no`),
+  UNIQUE KEY `uk_user_request` (`user_id`, `request_id`),
   KEY `idx_user_created` (`user_id`, `created_at`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '订单主表';

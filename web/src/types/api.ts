@@ -158,9 +158,10 @@ export interface DashboardData {
  *     POST /cart/update             { id, quantity?, checked? }
  *     POST /cart/check-all          { checked }
  *     POST /cart/delete             { ids }
- *     POST /order/create            { items: [{ productId, quantity }], fromCart, receiverName,
+ *     POST /order/create            { requestId, items: [{ productId, quantity }], fromCart, receiverName,
  *                                     receiverPhone, receiverAddress, remark } → { order }
  *                                   价格以服务端查库为准；fromCart=true 时下单成功后从购物车移除这些商品
+ *                                   新结算生成 requestId；失败重试复用，同一用户同号同内容返回已有订单
  *     GET  /order                   page, pageSize, status → { orders: OrderWithItems[], pagination }
  *     GET  /order/{id}              → { order, items }
  *     POST /order/cancel            { id }    待支付 → 已取消

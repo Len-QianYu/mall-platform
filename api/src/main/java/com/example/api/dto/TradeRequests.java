@@ -21,6 +21,8 @@ public final class TradeRequests {
 
     // 下单：只收商品 ID 和数量，价格以服务端查库为准
     public record OrderCreate(
+        // 每次新结算生成一个请求号；超时、网络失败后的重试必须复用。
+        @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{16,64}") String requestId,
         @NotEmpty @Size(max = 50) List<@NotNull @Valid OrderCreateItem> items,
         // true 表示从购物车结算，下单成功后从购物车移除这些商品；不传按 false 处理
         // （用包装类型：Jackson 3 默认不允许基本类型缺省，缺了这个字段会直接 400）

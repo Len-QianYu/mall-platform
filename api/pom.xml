@@ -129,6 +129,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-cache</artifactId>
 		</dependency>
+		<!-- 下单分布式锁：独立客户端，沿用 spring.data.redis，避免额外 starter 自动配置 -->
+		<dependency>
+			<groupId>org.redisson</groupId>
+			<artifactId>redisson</artifactId>
+			<version>4.8.0</version>
+		</dependency>
 
 		<!-- RustFS：通过 S3 API 存取文件，使用 path-style；同步客户端只需 URLConnection HTTP 实现 -->
 		<dependency>

@@ -38,12 +38,16 @@ spring:
         exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*,/avatars/*,/images/*"
         session-stat-enable: false
 
-  # Redis（docker-compose 启动的，本地不设密码）：目前只用来缓存商品数据。
-  # Redis 连不上或超时，读写缓存失败只记日志、改为直接查库，后端照常启动、接口照常返回（见 CacheConfiguration）
+  # Redis（docker-compose 启动的，本地不设密码）：商品缓存 + Redisson 下单锁。
+  # 不可用时商品读接口回退查库；新下单返回可重试的业务错误，已完成请求仍可按请求号查库返回。
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      connect-timeout: 1s
       # 单条命令的超时：默认 60 秒，Redis 卡住时每个请求都要干等；缓存命令正常 1 毫秒内就返回
       timeout: 500ms
 
@@ -72,6 +76,7 @@ rocketmq:
 # 下单后多久不支付就自动取消、回补库存（如 15m、30s）；RocketMQ 延时消息最长 3 天
 order:
   pay-timeout: ${ORDER_PAY_TIMEOUT:15m}
+  create-lock-wait: ${ORDER_CREATE_LOCK_WAIT:3s}
 
 # 支付宝默认关闭，填入本机 .env 后启用；测试和部署可分别配置沙箱/正式网关。
 alipay:

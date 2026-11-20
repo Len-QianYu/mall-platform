@@ -24,7 +24,7 @@
         <ElSelect v-model="filter.role" placeholder="全部" clearable style="width: 8rem">
           <ElOption label="用户" value="user" />
           <ElOption label="管理员" value="admin" />
-          <ElOption label="S管理员" value="super_admin" />
+          <ElOption label="super管理员" value="super_admin" />
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="状态">
@@ -59,7 +59,7 @@
           {{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '-' }}
         </template>
       </ElTableColumn>
-      <ElTableColumn label="角色" width="100">
+      <ElTableColumn label="角色" width="130">
         <template #default="{ row }">
           <UserRoleTag :role="row.role" />
         </template>
@@ -174,7 +174,7 @@
         <ElSelect v-model="form.role" :disabled="isSelf(form.id)" style="width: 100%">
           <ElOption label="用户" value="user" />
           <ElOption label="管理员" value="admin" />
-          <ElOption label="S管理员" value="super_admin" />
+          <ElOption label="super管理员" value="super_admin" />
         </ElSelect>
       </ElFormItem>
     </ElForm>

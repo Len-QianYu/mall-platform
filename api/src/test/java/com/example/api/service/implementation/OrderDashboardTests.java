@@ -7,12 +7,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RedissonClient;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import com.example.api.dto.DashboardTrendPoint;
 import com.example.api.dto.OrderStatusCount;
@@ -36,7 +39,8 @@ class OrderDashboardTests {
         this.service = new OrderServiceImpl(
             this.mapper, mock(OrderItemMapper.class), mock(ProductMapper.class),
             mock(ProductService.class), mock(CartMapper.class), mock(OrderPayTimeoutProducer.class),
-            mock(PaymentService.class)
+            mock(PaymentService.class), mock(RedissonClient.class),
+            mock(PlatformTransactionManager.class), Duration.ofSeconds(3)
         );
         when(this.mapper.fetchDailyOrders(any(), any())).thenReturn(List.of());
         when(this.mapper.fetchDailySales(any(), any())).thenReturn(List.of());
