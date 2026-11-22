@@ -30,8 +30,15 @@ public final class TradeRequests {
         @NotBlank @Size(max = 32) String receiverName,
         @NotBlank @Pattern(regexp = "1[3-9]\\d{9}") String receiverPhone,
         @NotBlank @Size(max = 255) String receiverAddress,
-        @Size(max = 255) String remark
-    ) {}
+        @Size(max = 255) String remark,
+        // 秒杀结算只允许一个活动商品；活动价格、库存和额度由服务端校验。
+        @Min(1) Long seckillActivityId
+    ) {
+        public OrderCreate(String requestId, List<OrderCreateItem> items, Boolean fromCart,
+            String receiverName, String receiverPhone, String receiverAddress, String remark) {
+            this(requestId, items, fromCart, receiverName, receiverPhone, receiverAddress, remark, null);
+        }
+    }
 
     public record OrderCreateItem(
         @NotNull Integer productId,

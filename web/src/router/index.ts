@@ -27,6 +27,11 @@ const router = createRouter({
           component: () => import('@/views/shop/ProductDetailView.vue'),
         },
         {
+          path: 'seckill',
+          name: 'seckill',
+          component: () => import('@/views/shop/SeckillView.vue'),
+        },
+        {
           path: 'cart',
           name: 'cart',
           component: () => import('@/views/shop/CartView.vue'),
@@ -126,6 +131,12 @@ const router = createRouter({
           name: 'admin_orders',
           component: () => import('@/views/admin/OrdersView.vue'),
           meta: { breadcrumbParent: '交易管理', breadcrumbCurrent: '订单管理' },
+        },
+        {
+          path: 'seckill',
+          name: 'admin_seckill',
+          component: () => import('@/views/admin/SeckillView.vue'),
+          meta: { breadcrumbCurrent: '秒杀活动' },
         },
         {
           path: 'payments',

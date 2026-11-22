@@ -80,10 +80,11 @@
       <ElTableColumn label="更新时间" width="170">
         <template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="操作" width="130" fixed="right">
+      <ElTableColumn label="操作" width="180" fixed="right">
         <!-- 表格行是 Element Plus 的 DefaultRow（字段为 any），传给按 Product 声明的函数前先断言 -->
         <template #default="{ row }">
           <ElButton link type="primary" @click="openDrawer(row as Product)">编辑</ElButton>
+          <ElButton link type="primary" @click="openStockDialog(row as Product)">库存</ElButton>
           <ElPopconfirm
             :title="
               row.status === 1 ? '下架后用户将看不到该商品，确定下架吗？' : '确定上架该商品吗？'
@@ -156,7 +157,7 @@
         />
         <span class="form-unit">元</span>
       </ElFormItem>
-      <ElFormItem label="库存" prop="stock">
+      <ElFormItem v-if="form.id === null" label="初始库存" prop="stock">
         <ElInputNumber
           v-model="form.stock"
           :min="0"
@@ -164,6 +165,9 @@
           controls-position="right"
           style="width: 12rem"
         />
+      </ElFormItem>
+      <ElFormItem v-else label="库存">
+        <span class="text-secondary">请通过商品列表中的“库存”操作补货或减少库存。</span>
       </ElFormItem>
       <ElFormItem label="主图" prop="mainImage">
         <ImageUploader v-model="form.mainImage" type="images" />
@@ -183,6 +187,33 @@
       <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDrawer>
+
+  <ElDialog
+    v-model="stockDialogVisible"
+    title="调整库存"
+    width="min(440px, 94vw)"
+    :close-on-click-modal="!stockSaving"
+    :close-on-press-escape="!stockSaving"
+    :show-close="!stockSaving"
+  >
+    <p>{{ stockProduct?.name }}</p>
+    <p class="text-secondary">当前可用库存：{{ stockProduct?.stock }}。库存变化以提交时为准。</p>
+    <ElForm label-width="80px" :disabled="stockSaving">
+      <ElFormItem label="操作">
+        <ElRadioGroup v-model="stockChange.direction">
+          <ElRadio :value="1">补货</ElRadio>
+          <ElRadio :value="-1">减少</ElRadio>
+        </ElRadioGroup>
+      </ElFormItem>
+      <ElFormItem label="数量">
+        <ElInputNumber v-model="stockChange.quantity" :min="1" :max="1000000" step-strictly />
+      </ElFormItem>
+    </ElForm>
+    <template #footer>
+      <ElButton :disabled="stockSaving" @click="stockDialogVisible = false">取消</ElButton>
+      <ElButton type="primary" :loading="stockSaving" @click="saveStock">确认调整</ElButton>
+    </template>
+  </ElDialog>
 </template>
 
 <script setup lang="ts">
@@ -191,6 +222,7 @@ import {
   ElButton,
   ElCard,
   ElDrawer,
+  ElDialog,
   ElForm,
   ElFormItem,
   ElImage,
@@ -313,6 +345,44 @@ const toggleStatus = async (row: Product) => {
   }
 }
 
+const stockDialogVisible = ref(false)
+const stockSaving = ref(false)
+const stockProduct = ref<Product>()
+const stockChange = reactive({ direction: 1, quantity: 1 as number | undefined })
+
+const openStockDialog = (product: Product) => {
+  stockProduct.value = product
+  stockChange.direction = 1
+  stockChange.quantity = 1
+  stockDialogVisible.value = true
+}
+
+const saveStock = async () => {
+  if (stockSaving.value || !stockProduct.value) return
+  if (!stockChange.quantity || !Number.isInteger(stockChange.quantity)) {
+    ElMessage.error('请输入有效的库存调整数量')
+    return
+  }
+  stockSaving.value = true
+  try {
+    const { data } = await request.post<ApiResult>('/admin/product/stock', {
+      id: stockProduct.value.id,
+      delta: stockChange.direction * stockChange.quantity,
+    })
+    if (!data.status) {
+      ElMessage.error(data.payload.message || '库存调整失败')
+      return
+    }
+    ElMessage.success('库存已调整')
+    stockDialogVisible.value = false
+    await fetchProducts()
+  } catch {
+    ElMessage.error('库存调整失败，请刷新列表确认库存后再操作')
+  } finally {
+    stockSaving.value = false
+  }
+}
+
 // 新增 / 编辑抽屉
 const drawerVisible = ref(false)
 const saving = ref(false)
@@ -376,7 +446,7 @@ const save = async () => {
         subtitle: form.subtitle.trim() || null,
         category: form.category.trim(),
         price: form.price,
-        stock: form.stock,
+        ...(creating ? { stock: form.stock } : {}),
         mainImage: form.mainImage || null,
         description: form.description.trim() || null,
         status: form.status,

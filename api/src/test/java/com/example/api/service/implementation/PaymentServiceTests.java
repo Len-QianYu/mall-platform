@@ -49,6 +49,7 @@ import com.example.api.service.AlipayGateway.Trade;
 import com.example.api.service.PaymentService.PaymentQuery;
 import com.example.api.service.PaymentService.PaymentStart;
 import com.example.api.service.ProductService;
+import com.example.api.service.SeckillService;
 
 class PaymentServiceTests {
 
@@ -78,7 +79,7 @@ class PaymentServiceTests {
         this.alipay = mock(AlipayGateway.class);
         OrderItemMapper items = mock(OrderItemMapper.class);
         this.service = new PaymentServiceImpl(this.payments, this.orders, items, this.products,
-            this.alipay, Duration.ofMinutes(15), true);
+            mock(SeckillService.class), this.alipay, Duration.ofMinutes(15), true);
         this.order = new OrderEntity();
         this.order.setId(42L);
         this.order.setOrderNo("TEST-ORDER-42");

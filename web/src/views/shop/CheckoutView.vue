@@ -45,7 +45,13 @@
         </ElCard>
 
         <ElCard shadow="never" class="checkout-card">
-          <template #header><span class="card-title">商品清单</span></template>
+          <template #header>
+            <span class="card-title">{{ seckillActivity ? '秒杀商品清单' : '商品清单' }}</span>
+          </template>
+          <p v-if="seckillActivity" class="seckill-checkout-hint">
+            {{ seckillActivity.title }} · 本次按秒杀价结算，每人限购
+            {{ seckillActivity.limitPerUser }} 件。
+          </p>
           <ElTable :data="items">
             <ElTableColumn label="商品" min-width="280">
               <template #default="{ row }">
@@ -91,7 +97,12 @@
       </template>
 
       <ElEmpty v-else-if="!loading" description="没有可结算的商品">
-        <ElButton type="primary" @click="router.push({ name: 'cart' })">返回购物车</ElButton>
+        <ElButton
+          type="primary"
+          @click="router.push({ name: seckillActivityId ? 'seckill' : 'cart' })"
+        >
+          {{ seckillActivityId ? '返回秒杀活动' : '返回购物车' }}
+        </ElButton>
       </ElEmpty>
     </div>
   </div>
@@ -114,7 +125,7 @@ import {
   vLoading,
 } from 'element-plus'
 import request from '@/utils/request'
-import type { ApiResult, CartItem, Order, Product, User } from '@/types/api'
+import type { ApiResult, CartItem, Order, Product, SeckillActivity, User } from '@/types/api'
 import { assetUrl, formatMoney } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { isSettleable, useCartStore } from '@/stores/cart'
@@ -135,7 +146,10 @@ const cartStore = useCartStore()
 
 // 地址栏带 productId 是立即购买，否则结算购物车里勾选的商品
 const buyNowProductId = typeof route.query.productId === 'string' ? route.query.productId : ''
+const seckillActivityId =
+  typeof route.query.seckillActivityId === 'string' ? route.query.seckillActivityId : ''
 const buyNowQuantity = Math.max(Number(route.query.quantity) || 1, 1)
+const seckillActivity = ref<SeckillActivity>()
 
 const loading = ref(false)
 const items = ref<CheckoutItem[]>([])
@@ -179,6 +193,40 @@ const fetchBuyNowItem = async () => {
       name: product.name,
       image: product.mainImage,
       price: product.price,
+      quantity: buyNowQuantity,
+    },
+  ]
+}
+
+const fetchSeckillItem = async () => {
+  if (
+    !/^[1-9]\d*$/.test(seckillActivityId) ||
+    !Number.isSafeInteger(Number(seckillActivityId)) ||
+    !Number.isInteger(buyNowQuantity)
+  ) {
+    ElMessage.error('秒杀活动或购买数量不正确')
+    return
+  }
+  const { data } = await request.get<ApiResult<{ activity: SeckillActivity }>>(
+    '/seckill/' + seckillActivityId,
+  )
+  if (!data.status) {
+    ElMessage.error(data.payload.message || '秒杀活动不存在')
+    return
+  }
+  const activity = data.payload.activity
+  if (buyNowQuantity > activity.limitPerUser) {
+    ElMessage.error('超过本场活动的限购数量')
+    return
+  }
+  // 即使配额刚好售罄，也允许携带原请求号确认丢失响应的订单；新下单由服务端校验。
+  seckillActivity.value = activity
+  items.value = [
+    {
+      productId: activity.productId,
+      name: activity.productName,
+      image: activity.productImage,
+      price: activity.seckillPrice,
       quantity: buyNowQuantity,
     },
   ]
@@ -233,7 +281,11 @@ onMounted(async () => {
   loading.value = true
   try {
     await Promise.all([
-      buyNowProductId ? fetchBuyNowItem() : fetchCartItems(),
+      seckillActivityId
+        ? fetchSeckillItem()
+        : buyNowProductId
+          ? fetchBuyNowItem()
+          : fetchCartItems(),
       fetchShippingAddress(),
     ])
   } catch {
@@ -289,7 +341,8 @@ const submit = async () => {
     // 只提交商品 ID 和数量，价格由服务端查库计算
     const fields = {
       items: items.value.map(({ productId, quantity }) => ({ productId, quantity })),
-      fromCart: !buyNowProductId,
+      fromCart: !buyNowProductId && !seckillActivityId,
+      ...(seckillActivityId ? { seckillActivityId: Number(seckillActivityId) } : {}),
       receiverName: receiver.receiverName,
       receiverPhone: receiver.receiverPhone,
       receiverAddress: receiver.receiverAddress,
@@ -303,7 +356,7 @@ const submit = async () => {
       ElMessage.error(data.payload.message || '下单失败')
       return
     }
-    if (!buyNowProductId) {
+    if (!buyNowProductId && !seckillActivityId) {
       cartStore.refresh()
     }
     // replace：支付页后退不再回到结算页，避免重复下单
@@ -330,6 +383,11 @@ const submit = async () => {
 
 .checkout-card {
   margin-bottom: 1rem;
+}
+
+.seckill-checkout-hint {
+  color: var(--el-color-danger);
+  font-size: 0.875rem;
 }
 
 .card-title {

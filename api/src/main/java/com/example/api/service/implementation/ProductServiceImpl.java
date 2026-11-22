@@ -118,7 +118,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Integer update(ProductEntity product) {
         // 逐列 set 而不用 updateById：updateById 会跳过 null 字段，选填项清空后存不回 NULL；
-        // 销量由下单流程累加，不在可改的列里
+        // 库存由独立的增减接口调整，销量由支付流程累加，编辑旧表单不能覆盖它们。
         Integer rows = this.productMapper.update(
             Wrappers.<ProductEntity>lambdaUpdate()
                 .set(ProductEntity::getName, product.getName())
@@ -126,13 +126,20 @@ public class ProductServiceImpl implements ProductService {
                 .set(ProductEntity::getDescription, product.getDescription())
                 .set(ProductEntity::getCategory, product.getCategory())
                 .set(ProductEntity::getPrice, product.getPrice())
-                .set(ProductEntity::getStock, product.getStock())
                 .set(ProductEntity::getMainImage, product.getMainImage())
                 .set(ProductEntity::getStatus, product.getStatus())
                 .eq(ProductEntity::getId, product.getId())
         );
         this.evictCatalog(product.getId());
         return rows;
+    }
+
+    @Override
+    public boolean adjustStock(Integer id, Integer delta) {
+        if (delta == null || delta == 0) return false;
+        boolean adjusted = this.productMapper.adjustStock(id, delta) > 0;
+        if (adjusted) this.evictDetail(id);
+        return adjusted;
     }
 
     @Override
@@ -148,6 +155,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public boolean deductStock(Integer id, Integer quantity) {
+        if (quantity == null || quantity < 1) return false;
         boolean deducted = this.productMapper.deductStock(id, quantity) > 0;
         if (deducted) {
             this.evictDetail(id);

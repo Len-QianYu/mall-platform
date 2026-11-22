@@ -50,8 +50,10 @@ public class ProductEntity {
     @Digits(integer = 8, fraction = 2, groups = { ProductValidateGroup.Create.class, ProductValidateGroup.Update.class })
     private BigDecimal price;
 
-    @NotNull(groups = { ProductValidateGroup.Create.class, ProductValidateGroup.Update.class })
-    @Min(value = 0, groups = { ProductValidateGroup.Create.class, ProductValidateGroup.Update.class })
+    // 初始库存只在新增时填写；后续通过条件增减 SQL 调整。
+    @TableField(updateStrategy = FieldStrategy.NEVER)
+    @NotNull(groups = ProductValidateGroup.Create.class)
+    @Min(value = 0, groups = ProductValidateGroup.Create.class)
     private Integer stock;
 
     // 销量由下单流程累加，管理端不能改

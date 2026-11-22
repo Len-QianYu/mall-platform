@@ -32,6 +32,7 @@ import com.example.api.service.AlipayGateway;
 import com.example.api.service.AlipayGateway.Trade;
 import com.example.api.service.PaymentService;
 import com.example.api.service.ProductService;
+import com.example.api.service.SeckillService;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.TradeNo;
 
@@ -42,6 +43,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final ProductService productService;
+    private final SeckillService seckillService;
     private final AlipayGateway alipay;
     private final Duration payTimeout;
     private final boolean mockEnabled;
@@ -51,6 +53,7 @@ public class PaymentServiceImpl implements PaymentService {
         OrderMapper orderMapper,
         OrderItemMapper orderItemMapper,
         ProductService productService,
+        SeckillService seckillService,
         AlipayGateway alipay,
         @Value("${order.pay-timeout:15m}") Duration payTimeout,
         @Value("${payment.mock-enabled:true}") boolean mockEnabled
@@ -59,6 +62,7 @@ public class PaymentServiceImpl implements PaymentService {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productService = productService;
+        this.seckillService = seckillService;
         this.alipay = alipay;
         this.payTimeout = payTimeout;
         this.mockEnabled = mockEnabled;
@@ -244,7 +248,11 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setStatus(PaymentStatus.REFUNDED);
         this.paymentMapper.updateById(payment);
         for (OrderItemEntity item : this.items(orderId)) {
-            this.productService.restoreStock(item.getProductId(), item.getQuantity());
+            if (item.getSeckillActivityId() == null) {
+                this.productService.restoreStock(item.getProductId(), item.getQuantity());
+            } else {
+                this.seckillService.restore(order, item);
+            }
             this.productService.subtractSales(item.getProductId(), item.getQuantity());
         }
         return true;

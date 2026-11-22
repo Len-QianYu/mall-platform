@@ -23,6 +23,9 @@ public class OrderItemEntity {
 
     private Integer productId;
 
+    // 非空表示使用秒杀配额；取消和退款据此决定库存回补位置。
+    private Long seckillActivityId;
+
     private String productName;
 
     private String productImage;

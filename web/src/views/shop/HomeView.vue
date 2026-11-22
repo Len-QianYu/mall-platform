@@ -8,6 +8,9 @@
         <ElButton type="primary" size="large" @click="router.push({ name: 'products' })">
           去逛逛 <i class="bi bi-arrow-right hero-btn-icon"></i>
         </ElButton>
+        <ElButton type="danger" plain size="large" @click="router.push({ name: 'seckill' })">
+          <i class="bi bi-lightning-charge hero-btn-icon"></i>限时秒杀
+        </ElButton>
       </div>
       <i class="bi bi-bag-heart hero-icon"></i>
     </section>

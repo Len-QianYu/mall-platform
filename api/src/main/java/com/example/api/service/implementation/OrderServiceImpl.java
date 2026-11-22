@@ -1,6 +1,7 @@
 package com.example.api.service.implementation;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -53,6 +54,7 @@ import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.OrderService;
 import com.example.api.service.PaymentService;
 import com.example.api.service.ProductService;
+import com.example.api.service.SeckillService;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.TradeNo;
 
@@ -73,6 +75,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final ProductService productService;
 
+    private final SeckillService seckillService;
+
     private final CartMapper cartMapper;
 
     private final OrderPayTimeoutProducer payTimeoutProducer;
@@ -90,6 +94,7 @@ public class OrderServiceImpl implements OrderService {
         OrderItemMapper orderItemMapper,
         ProductMapper productMapper,
         ProductService productService,
+        SeckillService seckillService,
         CartMapper cartMapper,
         OrderPayTimeoutProducer payTimeoutProducer,
         PaymentService paymentService,
@@ -101,6 +106,7 @@ public class OrderServiceImpl implements OrderService {
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
         this.productService = productService;
+        this.seckillService = seckillService;
         this.cartMapper = cartMapper;
         this.payTimeoutProducer = payTimeoutProducer;
         this.paymentService = paymentService;
@@ -226,6 +232,11 @@ public class OrderServiceImpl implements OrderService {
             quantities.merge(item.productId(), item.quantity(), Integer::sum);
         }
 
+        if (request.seckillActivityId() != null
+            && (quantities.size() != 1 || Boolean.TRUE.equals(request.fromCart()))) {
+            throw new TradeFailedException("秒杀商品请单独结算，不能与购物车商品混合下单");
+        }
+
         String requestHash = this.requestHash(request, quantities);
         OrderEntity existing = this.orderMapper.selectByRequest(userId, request.requestId());
         if (existing != null) return this.reuseOrder(existing, requestHash);
@@ -288,8 +299,12 @@ public class OrderServiceImpl implements OrderService {
             Boolean.TRUE.equals(request.fromCart()), request.receiverName(), request.receiverPhone(),
             request.receiverAddress(), request.remark() == null ? "" : request.remark());
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                .digest(REQUEST_MAPPER.writeValueAsBytes(content)));
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            // 普通订单保持原哈希格式，已存在的请求号在升级后仍能重试。
+            if (request.seckillActivityId() != null) {
+                digest.update(("seckill:" + request.seckillActivityId() + ":").getBytes(StandardCharsets.UTF_8));
+            }
+            return HexFormat.of().formatHex(digest.digest(REQUEST_MAPPER.writeValueAsBytes(content)));
         } catch (NoSuchAlgorithmException impossible) {
             throw new IllegalStateException("SHA-256 unavailable", impossible);
         }
@@ -307,21 +322,30 @@ public class OrderServiceImpl implements OrderService {
             Integer productId = entry.getKey();
             Integer quantity = entry.getValue();
 
-            if (!this.productService.deductStock(productId, quantity)) {
-                throw this.deductFailure(productId);
+            ProductEntity product;
+            BigDecimal unitPrice;
+            if (request.seckillActivityId() == null) {
+                if (!this.productService.deductStock(productId, quantity)) throw this.deductFailure(productId);
+                // 本事务持有商品行锁，普通订单价格与明细快照一致。
+                product = this.productMapper.selectById(productId);
+                unitPrice = product.getPrice();
+            } else {
+                SeckillService.ReservedProduct reserved = this.seckillService.reserve(request.seckillActivityId(),
+                    userId, request.requestId(), productId, quantity);
+                product = reserved.product();
+                unitPrice = reserved.price();
             }
-            // 扣减成功后本事务持有这行商品的锁，这时读到的售价在提交前不会被改，订单金额和明细单价一致
-            ProductEntity product = this.productMapper.selectById(productId);
 
             OrderItemEntity item = new OrderItemEntity();
             item.setProductId(productId);
+            item.setSeckillActivityId(request.seckillActivityId());
             item.setProductName(product.getName());
             item.setProductImage(product.getMainImage());
-            item.setUnitPrice(product.getPrice());
+            item.setUnitPrice(unitPrice);
             item.setQuantity(quantity);
             items.add(item);
 
-            totalAmount = totalAmount.add(product.getPrice().multiply(BigDecimal.valueOf(quantity)));
+            totalAmount = totalAmount.add(unitPrice.multiply(BigDecimal.valueOf(quantity)));
         }
 
         OrderEntity order = new OrderEntity();
@@ -409,7 +433,11 @@ public class OrderServiceImpl implements OrderService {
                     .orderByAsc(OrderItemEntity::getProductId)
             );
             for (OrderItemEntity item : items) {
-                this.productService.restoreStock(item.getProductId(), item.getQuantity());
+                if (item.getSeckillActivityId() == null) {
+                    this.productService.restoreStock(item.getProductId(), item.getQuantity());
+                } else {
+                    this.seckillService.restore(order, item);
+                }
             }
         }
         return cancelled;

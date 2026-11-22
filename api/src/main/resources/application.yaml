@@ -93,6 +93,9 @@ payment:
   mock-enabled: ${PAYMENT_MOCK_ENABLED:true}
   reconcile-enabled: ${PAYMENT_RECONCILE_ENABLED:true}
 
+seckill:
+  expiry-enabled: ${SECKILL_EXPIRY_ENABLED:true}
+
 # 支付宝 SDK 的原始错误日志包含带签名的请求 URL；业务日志由 AlipayGateway 记录错误码。
 logging:
   level:

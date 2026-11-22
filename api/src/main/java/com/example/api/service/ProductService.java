@@ -34,8 +34,11 @@ public interface ProductService {
     // 创建商品，返回受影响行数
     Integer create(ProductEntity product);
 
-    // 修改商品，返回受影响行数（0 表示商品不存在）
+    // 修改商品信息，不修改库存、销量；返回受影响行数（0 表示商品不存在）。
     Integer update(ProductEntity product);
+
+    // 管理员增减当前库存，库存不足或超出范围时不修改。
+    boolean adjustStock(Integer id, Integer delta);
 
     // 上架 / 下架，返回受影响行数（0 表示商品不存在）
     Integer updateStatus(Integer id, Integer status);

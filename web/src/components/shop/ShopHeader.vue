@@ -12,6 +12,9 @@
         <RouterLink :to="{ name: 'products' }" class="nav-link" active-class="is-active">
           全部商品
         </RouterLink>
+        <RouterLink :to="{ name: 'seckill' }" class="nav-link" active-class="is-active">
+          限时秒杀
+        </RouterLink>
       </nav>
 
       <!-- 搜索：跳到商品列表并带上关键字；在商品列表页时回显当前关键字 -->
@@ -46,6 +49,9 @@
       </form>
 
       <div class="header-right">
+        <RouterLink :to="{ name: 'seckill' }" class="seckill-mobile-link" aria-label="限时秒杀">
+          <i class="bi bi-lightning-charge"></i>
+        </RouterLink>
         <!-- 亮色 / 暗色切换：图标表示点击后切换到的模式 -->
         <ElButton
           class="header-btn"
@@ -355,6 +361,13 @@ const logout = () => {
   }
 }
 
+.seckill-mobile-link {
+  display: none;
+  color: var(--el-color-danger);
+  font-size: 1.25rem;
+  text-decoration: none;
+}
+
 .cart-link {
   display: flex;
   padding: 0 0.25rem;
@@ -392,6 +405,9 @@ const logout = () => {
 
 // 窄屏：隐藏导航文字和用户名，给搜索框留位置
 @media (max-width: 768px) {
+  .seckill-mobile-link {
+    display: flex;
+  }
   .header-inner {
     gap: 0.75rem;
 

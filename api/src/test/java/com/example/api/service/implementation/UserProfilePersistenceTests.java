@@ -19,7 +19,7 @@ import com.example.api.service.UserService;
 import com.example.api.task.OrderPayTimeoutScanTask;
 import com.example.api.task.PaymentReconciliationTask;
 
-@SpringBootTest(properties = "rustfs.endpoint=http://127.0.0.1:1")
+@SpringBootTest(properties = { "rustfs.endpoint=http://127.0.0.1:1", "seckill.expiry-enabled=false" })
 @Transactional
 class UserProfilePersistenceTests {
 

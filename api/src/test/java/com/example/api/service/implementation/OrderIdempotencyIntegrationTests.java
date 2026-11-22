@@ -66,7 +66,7 @@ import com.example.api.task.PaymentReconciliationTask;
 // 显式开启后验证真实 Redis / MySQL；只清理本测试创建的随机请求和商品。
 @EnabledIfEnvironmentVariable(named = "ORDER_IDEMPOTENCY_INTEGRATION_TESTS", matches = "true")
 @SpringBootTest(properties = { "rustfs.endpoint=http://127.0.0.1:1", "alipay.enabled=false",
-    "order.create-lock-wait=10s" })
+    "order.create-lock-wait=10s", "seckill.expiry-enabled=false" })
 class OrderIdempotencyIntegrationTests {
 
     @Autowired private OrderService orders;
@@ -166,7 +166,7 @@ class OrderIdempotencyIntegrationTests {
 
     private OrderService service(OrderMapper mapper, RedissonClient client) {
         return new OrderServiceImpl(mapper, this.itemMapper, this.productMapper, this.productService,
-            this.cartMapper, this.timeoutMessages, this.paymentService, client,
+            mock(com.example.api.service.SeckillService.class), this.cartMapper, this.timeoutMessages, this.paymentService, client,
             this.transactionManager, Duration.ofSeconds(10));
     }
 

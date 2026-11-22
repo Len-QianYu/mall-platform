@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.api.dto.ProductRequests;
 import com.example.api.entity.ProductEntity;
 import com.example.api.exception.ValidateFailedException;
 import com.example.api.service.ProductService;
@@ -106,6 +107,22 @@ public class AdminProductController {
 
         result.putPayload("message", "保存成功");
         return result;
+    }
+
+    @PostMapping("/stock")
+    public ResultTemplate adjustStock(
+        @RequestBody @Validated ProductRequests.StockAdjust fields,
+        BindingResult bindingResult
+    ) {
+        if (bindingResult.hasErrors() || fields.delta() == null || fields.delta() == 0) {
+            throw new ValidateFailedException("请填写有效的商品 ID 和非零库存增减数量");
+        }
+        ResultTemplate result = new ResultTemplate();
+        if (!this.productService.adjustStock(fields.id(), fields.delta())) {
+            result.setStatus(false);
+            return result.putPayload("message", "商品不存在、可用库存不足或调整后库存超出范围");
+        }
+        return result.putPayload("message", "库存已调整");
     }
 
     // 上架 / 下架

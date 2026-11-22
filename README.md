@@ -59,6 +59,18 @@ cd api
 
 前台商品列表、详情、分类缓存在 Redis（`127.0.0.1:6379`，可用 `REDIS_HOST` / `REDIS_PORT` 修改）；Redis 没启动时后端照常运行，只是每次都查库。
 
+### 库存调整与秒杀
+
+后台“商品管理”的编辑表单只修改商品信息；补货、减少库存通过列表里的“库存”操作完成。`POST /admin/product/stock` 接收 `{id, delta}`，按提交时的当前库存原子增减，拒绝零增量、负库存和整数溢出。旧客户端即使在商品编辑请求里发送 `stock`，也不会覆盖下单已扣减的库存。
+
+商城 `/seckill` 提供秒杀活动筛选、倒计时、秒杀价、剩余配额和每人限购提示；首页和顶栏均有入口。管理员在 `/admin/seckill` 选择上架商品，配置活动价、配额、限购数量和起止时间。创建时把配额从普通库存划拨到独立的秒杀库存，活动价必须低于当前售价；关闭或到期后自动归还未售配额，默认每 30 秒扫描。
+
+秒杀结算复用收货地址、订单和支付流程：`POST /order/create` 额外携带 `seckillActivityId`，只允许单独结算一个活动商品。价格由服务端确定，活动 ID 参与请求内容哈希；同号同内容的失败重试、刷新和响应丢失仍返回已有订单。取消和退款释放限购额度；活动开放时归还秒杀配额，关闭或结束后归还普通库存。
+
+Redis Lua 把库存检查、每人额度检查、请求预占和扣减合并执行，数据库用活动库存条件更新、用户额度条件更新和订单唯一索引作最终校验。Redis 预扣缓存固定 10 秒过期，数据库失败显式补偿，进程崩溃或缓存重建不会绕过数据库防超卖与限购；Redis 预扣与数据库不构成跨系统事务。Redis 不可用时新秒杀订单返回可重试的错误。
+
+已有数据库先执行 [`upgrade-seckill.sql`](api/src/main/resources/db/upgrade-seckill.sql)，增加 `seckill_activity`、`seckill_purchase`、订单明细活动字段和索引，脚本可重复执行；新建库直接使用 `schema.sql`。在 `api/` 的 PowerShell 中设置 `$env:SECKILL_INTEGRATION_TESTS = 'true'` 后运行 `.\mvnw.cmd test`，可执行真实 Redis / MySQL 并发验证，覆盖抢完库存、不同请求号限购、数据库兜底、失败补偿、取消、退款和到期回补。测试禁用真实消息和定时任务，只清理自己创建的随机数据。
+
 头像、商品图片上传到 RustFS（AWS SDK for Java 2.x，S3 path-style 访问），默认使用 `mall-uploads` 私有桶，首次上传会自动创建。上传接口保持 `POST /upload/avatars`（需登录）和 `POST /upload/images`（仅管理员），支持 JPG / PNG / GIF / WEBP，单个文件不超过 5MB；扩展名和 Content-Type 按文件内容识别。返回的 `/avatars/...`、`/images/...` 由后端从 RustFS 读取，前端和数据库仍保存这些稳定路径。连接信息可在 `api/.env` 里通过 `RUSTFS_*` 修改（见 [`api/.env.example`](api/.env.example)）；RustFS 暂未启动时后端仍可启动，上传或读取文件返回 503。
 
 已有本地上传文件时，先迁移到 RustFS 再重启后端。以下命令在 `api/` 下的 PowerShell 中执行，最后的目录替换成原来的 `UPLOAD_ROOT`（原默认目录为 `$env:USERPROFILE/mall-platform/uploads`）：

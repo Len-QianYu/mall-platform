@@ -54,7 +54,7 @@ import com.example.api.task.PaymentReconciliationTask;
 
 // 支付写入随测试事务回滚；下单使用独立事务，随机商品和订单在测试事务结束后清理。
 // 不请求支付宝、Redis 或消费真实消息。
-@SpringBootTest(properties = { "rustfs.endpoint=http://127.0.0.1:1", "alipay.enabled=false" })
+@SpringBootTest(properties = { "rustfs.endpoint=http://127.0.0.1:1", "alipay.enabled=false", "seckill.expiry-enabled=false" })
 @Transactional
 class PaymentPersistenceTests {
 

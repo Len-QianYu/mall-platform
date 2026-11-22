@@ -8,9 +8,12 @@ import org.springframework.http.HttpStatus;
 import com.example.api.controller.OrderController;
 import com.example.api.controller.PaymentController;
 import com.example.api.controller.admin.AdminOrderController;
+import com.example.api.controller.admin.AdminProductController;
+import com.example.api.controller.admin.AdminSeckillController;
 import com.example.api.utils.ResultTemplate;
 
-@RestControllerAdvice(assignableTypes = { OrderController.class, PaymentController.class, AdminOrderController.class })
+@RestControllerAdvice(assignableTypes = { OrderController.class, PaymentController.class,
+    AdminOrderController.class, AdminProductController.class, AdminSeckillController.class })
 public class TradeExceptionHandler {
 
     @ExceptionHandler(ValidateFailedException.class)

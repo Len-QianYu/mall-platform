@@ -29,6 +29,11 @@
         <template #title>商品管理</template>
       </ElMenuItem>
 
+      <ElMenuItem index="/admin/seckill">
+        <i class="bi bi-lightning-charge menu-icon"></i>
+        <template #title>秒杀活动</template>
+      </ElMenuItem>
+
       <ElSubMenu index="trade">
         <template #title>
           <i class="bi bi-wallet2 menu-icon"></i>

@@ -10,7 +10,7 @@ import com.example.api.task.OrderPayTimeoutScanTask;
 import com.example.api.task.PaymentReconciliationTask;
 
 // RustFS 未启动时也能加载应用；测试不消费真实订单消息或执行超时取消。
-@SpringBootTest(properties = "rustfs.endpoint=http://127.0.0.1:1")
+@SpringBootTest(properties = { "rustfs.endpoint=http://127.0.0.1:1", "seckill.expiry-enabled=false" })
 class ApiApplicationTests {
 
 	@MockitoBean

@@ -66,7 +66,9 @@ docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注
 
 ## 数据模型（规划）
 
-- 业务库 6 表：用户 / 商品 / 订单主表 + 订单明细 / 购物车 / 支付流水。
+库存与秒杀约定：商品编辑接口不修改库存，库存使用 `POST /admin/product/stock` 按 `delta` 条件增减。商城 `/seckill` 和管理端 `/admin/seckill` 提供完整活动流程；创建时从普通库存划拨独立配额，价格冻结，每人额度持久化。秒杀下单仍走 `/order/create`，活动 ID 参与幂等哈希；Redis Lua 预扣固定 10 秒过期，数据库条件库存与额度更新最终兜底。取消、退款和到期归还正确的库存池，到期每 30 秒扫描（`SECKILL_EXPIRY_ENABLED`）；数据库测试禁用扫描。已有库执行 `api/src/main/resources/db/upgrade-seckill.sql`；真实 Redis / MySQL 测试通过 `SECKILL_INTEGRATION_TESTS=true` 显式开启，并清理本测试随机数据。
+
+- 业务库 8 表：用户 / 商品 / 订单主表 + 订单明细 / 购物车 / 支付流水 / 秒杀活动 / 秒杀用户额度。
 - AI 域独立库 `mall_ai`：会话消息 / 知识库 / 反馈与 QA 对 / 售后工单 / 问数审计、权限、指标字典。
 
 ## 开发优先级

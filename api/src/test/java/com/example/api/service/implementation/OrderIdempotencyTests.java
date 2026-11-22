@@ -54,6 +54,7 @@ import com.example.api.mapper.ProductMapper;
 import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.PaymentService;
 import com.example.api.service.ProductService;
+import com.example.api.service.SeckillService;
 
 class OrderIdempotencyTests {
 
@@ -91,7 +92,7 @@ class OrderIdempotencyTests {
         this.lock = mock(RLock.class);
         this.transactions = mock(PlatformTransactionManager.class);
         this.service = new OrderServiceImpl(this.orders, this.items, this.products, this.stock,
-            this.cart, this.messages, mock(PaymentService.class), this.redisson,
+            mock(SeckillService.class), this.cart, this.messages, mock(PaymentService.class), this.redisson,
             this.transactions, Duration.ofSeconds(3));
 
         when(this.redisson.getLock(anyString())).thenReturn(this.lock);

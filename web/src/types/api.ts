@@ -49,6 +49,31 @@ export interface Product {
   updatedAt: string
 }
 
+export type SeckillPhase = 'UPCOMING' | 'LIVE' | 'SOLD_OUT' | 'ENDED' | 'CLOSED'
+
+export interface SeckillActivity {
+  id: number
+  productId: number
+  title: string
+  productName: string
+  productSubtitle: string | null
+  productImage: string | null
+  productStatus: number
+  originalPrice: number
+  seckillPrice: number
+  totalStock: number
+  stock: number
+  returnedStock: number
+  limitPerUser: number
+  startsAt: string
+  endsAt: string
+  startsAtEpochMs: number
+  endsAtEpochMs: number
+  serverTime: number
+  status: number
+  phase: SeckillPhase
+}
+
 export type OrderStatus =
   'PENDING_PAYMENT' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
 
@@ -76,6 +101,7 @@ export interface OrderItem {
   id: number
   orderId: number
   productId: number
+  seckillActivityId?: number | null
   productName: string
   productImage: string | null
   unitPrice: number

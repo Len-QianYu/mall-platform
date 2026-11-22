@@ -1,6 +1,6 @@
 /*
  * Mall Platform 业务库建表
- * 库：mall_platform —— 6 张表：user / product / orders / order_item / cart / payment
+ * 库：mall_platform —— 8 张表：user / product / orders / order_item / cart / payment / seckill_activity / seckill_purchase
  *
  * 约定：
  *   1. 不建物理外键：关联关系由应用层维护（便于逻辑删除与后续），高频关联列均建索引；
@@ -89,6 +89,7 @@ CREATE TABLE `order_item` (
   `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `order_id`      BIGINT UNSIGNED NOT NULL                COMMENT '订单 ID（逻辑外键 orders.id）',
   `product_id`    INT UNSIGNED    NOT NULL                COMMENT '商品 ID（逻辑外键 product.id）',
+  `seckill_activity_id` BIGINT UNSIGNED NULL              COMMENT '秒杀活动 ID（普通订单为空）',
   `product_name`  VARCHAR(128)    NOT NULL                COMMENT '商品名（下单时快照）',
   `product_image` VARCHAR(512)    NULL                    COMMENT '主图（下单时快照）',
   `unit_price`    DECIMAL(10, 2)  NOT NULL                COMMENT '成交单价（下单时快照）',
@@ -96,6 +97,7 @@ CREATE TABLE `order_item` (
   `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   KEY `idx_order_id` (`order_id`),
+  KEY `idx_seckill_activity` (`seckill_activity_id`),
   KEY `idx_product_id` (`product_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '订单明细表';
 
@@ -132,3 +134,32 @@ CREATE TABLE `payment` (
   KEY `idx_order_id` (`order_id`),
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '支付流水表';
+
+/* ---------- 7 / 8. 秒杀活动与用户限购额度 ---------- */
+CREATE TABLE IF NOT EXISTS seckill_activity (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '活动 ID',
+  product_id INT UNSIGNED NOT NULL COMMENT '商品 ID',
+  title VARCHAR(128) NOT NULL COMMENT '活动标题',
+  original_price DECIMAL(10,2) NOT NULL COMMENT '划拨时原价',
+  seckill_price DECIMAL(10,2) NOT NULL COMMENT '秒杀成交价',
+  total_stock INT UNSIGNED NOT NULL COMMENT '从普通库存划拨的总配额',
+  stock INT UNSIGNED NOT NULL COMMENT '剩余秒杀配额',
+  returned_stock INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '已归还普通库存的配额',
+  limit_per_user INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '每人同时占用或购买的上限',
+  starts_at DATETIME NOT NULL COMMENT '开始时间',
+  ends_at DATETIME NOT NULL COMMENT '结束时间',
+  status TINYINT NOT NULL DEFAULT 1 COMMENT '1:开放;0:手动关闭;2:已结束',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_product_id (product_id),
+  KEY idx_status_ends (status, ends_at),
+  KEY idx_starts_at (starts_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '秒杀活动与独立库存配额';
+
+CREATE TABLE IF NOT EXISTS seckill_purchase (
+  activity_id BIGINT UNSIGNED NOT NULL COMMENT '秒杀活动 ID',
+  user_id INT UNSIGNED NOT NULL COMMENT '用户 ID',
+  quantity INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '待支付及有效购买数量，取消和退款释放',
+  PRIMARY KEY (activity_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '秒杀用户持久化限购额度';

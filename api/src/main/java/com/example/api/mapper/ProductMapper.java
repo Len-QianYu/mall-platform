@@ -13,6 +13,9 @@ import com.example.api.entity.ProductEntity;
 @Mapper
 public interface ProductMapper extends BaseMapper<ProductEntity> {
 
+    @Select("SELECT * FROM product WHERE id = #{id} FOR UPDATE")
+    ProductEntity selectByIdForUpdate(@Param("id") Integer id);
+
     // 已用过的全部分类（去重）
     @Select("SELECT DISTINCT category FROM product ORDER BY category")
     List<String> selectCategories();
@@ -28,6 +31,11 @@ public interface ProductMapper extends BaseMapper<ProductEntity> {
     // 取消订单回补库存
     @Update("UPDATE product SET stock = stock + #{quantity} WHERE id = #{id}")
     int restoreStock(@Param("id") Integer id, @Param("quantity") Integer quantity);
+
+    // CAST 避免无符号库存与负增量运算时下溢；校验与修改在同一条 SQL 中执行。
+    @Update("UPDATE product SET stock = CAST(stock AS SIGNED) + #{delta} "
+        + "WHERE id = #{id} AND CAST(stock AS SIGNED) + #{delta} BETWEEN 0 AND 2147483647")
+    int adjustStock(@Param("id") Integer id, @Param("delta") Integer delta);
 
     // 支付成功后累加销量：只算付了款的
     @Update("UPDATE product SET sales = sales + #{quantity} WHERE id = #{id}")

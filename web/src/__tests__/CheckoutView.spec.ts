@@ -2,12 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import type { ApiResult, CartItem, Order, Product, User } from '@/types/api'
+import type { ApiResult, CartItem, Order, Product, SeckillActivity, User } from '@/types/api'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
 import CheckoutView from '@/views/shop/CheckoutView.vue'
 
-type CheckoutPayload = { user: User } | { product: Product } | { items: CartItem[] }
+type CheckoutPayload =
+  { user: User } | { product: Product } | { items: CartItem[] } | { activity: SeckillActivity }
 
 const { getCheckout, postCheckout } = vi.hoisted(() => ({
   getCheckout: vi.fn<(url: string) => Promise<{ data: ApiResult<CheckoutPayload> }>>(),
@@ -113,6 +114,7 @@ const mountCheckout = async (
       { path: '/checkout', name: 'checkout', component: CheckoutView },
       { path: '/profile', name: 'profile', component: { template: '<p>profile</p>' } },
       { path: '/cart', name: 'cart', component: { template: '<p>cart</p>' } },
+      { path: '/seckill', name: 'seckill', component: { template: '<p>seckill</p>' } },
       { path: '/orders/:id/pay', name: 'order_pay', component: { template: '<p>payment</p>' } },
     ],
   })
@@ -133,6 +135,28 @@ const mountCheckout = async (
 }
 
 describe('checkout shipping information', () => {
+  const seckillActivity: SeckillActivity = {
+    id: 3,
+    productId: 11,
+    title: '限时秒杀',
+    productName: product.name,
+    productSubtitle: null,
+    productImage: null,
+    productStatus: 1,
+    originalPrice: product.price,
+    seckillPrice: 4.5,
+    totalStock: 10,
+    stock: 5,
+    returnedStock: 0,
+    limitPerUser: 2,
+    status: 1,
+    phase: 'LIVE',
+    startsAt: '2026-11-22T11:00:00',
+    endsAt: '2026-11-22T13:00:00',
+    startsAtEpochMs: 1795316400000,
+    endsAtEpochMs: 1795323600000,
+    serverTime: 1795320000000,
+  }
   beforeEach(() => {
     localStorage.removeItem('user')
     sessionStorage.clear()
@@ -341,5 +365,60 @@ describe('checkout shipping information', () => {
     expect(wrapper.find('.address-error').exists()).toBe(false)
     expect(wrapper.get('.receiver-address').text()).toBe(user.receiverAddress)
     expect(wrapper.get('.submit-bar button').attributes('disabled')).toBeUndefined()
+  })
+
+  it('previews the campaign price and submits the activity ID through the existing order endpoint', async () => {
+    getCheckout.mockImplementation((url) =>
+      url === '/seckill/3'
+        ? Promise.resolve(response({ activity: seckillActivity }))
+        : defaultGet(url),
+    )
+    const { wrapper } = await mountCheckout({ seckillActivityId: '3', quantity: '2' })
+    expect(wrapper.get('.seckill-checkout-hint').text()).toContain('每人限购 2 件')
+    expect(wrapper.get('.total-amount').text()).toBe('¥9.00')
+    await wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+    expect(postCheckout).toHaveBeenCalledWith(
+      '/order/create',
+      expect.objectContaining({
+        seckillActivityId: 3,
+        fromCart: false,
+        items: [{ productId: 11, quantity: 2 }],
+      }),
+    )
+    expect(getCheckout).not.toHaveBeenCalledWith('/product/11')
+    expect(getCheckout).not.toHaveBeenCalledWith('/cart')
+  })
+
+  it('can confirm an unresolved campaign order after reloading even when the quota is sold out', async () => {
+    let currentActivity = seckillActivity
+    getCheckout.mockImplementation((url) =>
+      url === '/seckill/3'
+        ? Promise.resolve(response({ activity: currentActivity }))
+        : defaultGet(url),
+    )
+    postCheckout.mockRejectedValueOnce(new Error('response lost'))
+    const first = await mountCheckout({ seckillActivityId: '3', quantity: '1' })
+    await first.wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+    const requestId = postCheckout.mock.calls[0]?.[1].requestId
+    first.wrapper.unmount()
+    currentActivity = { ...seckillActivity, stock: 0, phase: 'SOLD_OUT' }
+    const second = await mountCheckout({ seckillActivityId: '3', quantity: '1' })
+    await second.wrapper.get('.submit-bar button').trigger('click')
+    await flushPromises()
+    expect(postCheckout.mock.calls[1]?.[1].requestId).toBe(requestId)
+    expect(second.router.currentRoute.value.name).toBe('order_pay')
+  })
+
+  it('rejects quantities above the campaign limit before allowing checkout', async () => {
+    getCheckout.mockImplementation((url) =>
+      url === '/seckill/3'
+        ? Promise.resolve(response({ activity: seckillActivity }))
+        : defaultGet(url),
+    )
+    const { wrapper } = await mountCheckout({ seckillActivityId: '3', quantity: '3' })
+    expect(wrapper.find('.submit-bar').exists()).toBe(false)
+    expect(postCheckout).not.toHaveBeenCalled()
   })
 })
