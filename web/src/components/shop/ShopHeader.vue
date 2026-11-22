@@ -62,6 +62,16 @@
           <i :class="isDark ? 'bi bi-sun' : 'bi bi-moon-stars'"></i>
         </ElButton>
 
+        <RouterLink :to="{ name: 'notifications' }" class="notification-link" aria-label="消息通知">
+          <ElBadge
+            :value="notificationsStore.unreadCount"
+            :hidden="notificationsStore.unreadCount === 0"
+            :max="99"
+          >
+            <i class="bi bi-bell" aria-hidden="true"></i>
+          </ElBadge>
+        </RouterLink>
+
         <!-- 购物车：未登录时点击会被路由守卫带去登录页 -->
         <RouterLink :to="{ name: 'cart' }" class="cart-link" aria-label="购物车">
           <ElBadge :value="cartStore.count" :hidden="cartStore.count === 0" :max="99">
@@ -78,6 +88,10 @@
           </div>
           <template #dropdown>
             <ElDropdownMenu>
+              <ElDropdownItem command="favorites">
+                <i class="bi bi-heart dropdown-icon"></i>
+                <span>我的收藏</span>
+              </ElDropdownItem>
               <ElDropdownItem command="orders">
                 <i class="bi bi-receipt dropdown-icon"></i>
                 <span>我的订单</span>
@@ -125,12 +139,14 @@ import request from '@/utils/request'
 import { assetUrl } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
+import { useNotificationsStore } from '@/stores/notifications'
 import { useTheme } from '@/utils/useTheme'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+const notificationsStore = useNotificationsStore()
 const { isDark, toggleTheme } = useTheme()
 
 // 没有头像时为 undefined，交给 ElAvatar 显示用户名首字母
@@ -201,7 +217,7 @@ const toLogin = () => {
 }
 
 const handleCommand = (command: string | number | object) => {
-  if (command === 'orders' || command === 'profile') {
+  if (command === 'orders' || command === 'profile' || command === 'favorites') {
     router.push({ name: command })
   } else if (command === 'admin') {
     router.push({ name: 'admin_dashboard' })
@@ -368,7 +384,8 @@ const logout = () => {
   text-decoration: none;
 }
 
-.cart-link {
+.cart-link,
+.notification-link {
   display: flex;
   padding: 0 0.25rem;
   color: var(--el-text-color-regular);
@@ -438,6 +455,30 @@ const logout = () => {
   .header-nav,
   .user-name {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-inner {
+    gap: 0.5rem;
+  }
+
+  .header-right {
+    gap: 0.25rem;
+
+    .el-button {
+      padding-right: 0.5rem;
+      padding-left: 0.5rem;
+    }
+
+    .header-btn {
+      padding: 0;
+    }
+  }
+
+  .cart-link,
+  .notification-link {
+    padding: 0 0.125rem;
   }
 }
 </style>

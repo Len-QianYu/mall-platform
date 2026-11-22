@@ -73,6 +73,12 @@ rustfs:
 rocketmq:
   endpoints: ${ROCKETMQ_ENDPOINTS:127.0.0.1:8081}
 
+# 收藏商品通知：RocketMQ 消费后持久化，通过 WebSocket 推送给在线用户。
+product-notification:
+  delivery-enabled: ${PRODUCT_NOTIFICATION_DELIVERY_ENABLED:true}
+  dispatch-interval: 2000
+  allowed-origins: ${NOTIFICATION_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+
 # 下单后多久不支付就自动取消、回补库存（如 15m、30s）；RocketMQ 延时消息最长 3 天
 order:
   pay-timeout: ${ORDER_PAY_TIMEOUT:15m}

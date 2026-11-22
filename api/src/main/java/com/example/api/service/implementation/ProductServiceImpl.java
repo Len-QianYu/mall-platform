@@ -10,6 +10,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
@@ -21,6 +22,7 @@ import com.example.api.configuration.CacheConfiguration;
 import com.example.api.entity.ProductEntity;
 import com.example.api.mapper.ProductMapper;
 import com.example.api.service.ProductService;
+import com.example.api.service.ProductNotificationEventRecorder;
 import com.example.api.utils.Pagination;
 
 // 前台读接口（countOnSale / fetchOnSale / fetchOnSaleById / fetchOnSaleCategories）走 Redis 缓存，
@@ -34,9 +36,13 @@ public class ProductServiceImpl implements ProductService {
 
     private final CacheManager cacheManager;
 
-    public ProductServiceImpl(ProductMapper productMapper, CacheManager cacheManager) {
+    private final ProductNotificationEventRecorder notificationEvents;
+
+    public ProductServiceImpl(ProductMapper productMapper, CacheManager cacheManager,
+        ProductNotificationEventRecorder notificationEvents) {
         this.productMapper = productMapper;
         this.cacheManager = cacheManager;
+        this.notificationEvents = notificationEvents;
     }
 
     @Override
@@ -116,7 +122,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     public Integer update(ProductEntity product) {
+        ProductEntity before = this.productMapper.selectByIdForUpdate(product.getId());
+        if (before == null) return 0;
         // 逐列 set 而不用 updateById：updateById 会跳过 null 字段，选填项清空后存不回 NULL；
         // 库存由独立的增减接口调整，销量由支付流程累加，编辑旧表单不能覆盖它们。
         Integer rows = this.productMapper.update(
@@ -130,6 +139,7 @@ public class ProductServiceImpl implements ProductService {
                 .set(ProductEntity::getStatus, product.getStatus())
                 .eq(ProductEntity::getId, product.getId())
         );
+        if (rows > 0) this.notificationEvents.recordChanges(before, product);
         this.evictCatalog(product.getId());
         return rows;
     }
@@ -143,12 +153,19 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     public Integer updateStatus(Integer id, Integer status) {
+        ProductEntity before = this.productMapper.selectByIdForUpdate(id);
+        if (before == null) return 0;
         Integer rows = this.productMapper.update(
             Wrappers.<ProductEntity>lambdaUpdate()
                 .set(ProductEntity::getStatus, status)
                 .eq(ProductEntity::getId, id)
         );
+        if (rows > 0) {
+            ProductEntity after = this.productMapper.selectById(id);
+            this.notificationEvents.recordChanges(before, after);
+        }
         this.evictCatalog(id);
         return rows;
     }

@@ -49,6 +49,31 @@ export interface Product {
   updatedAt: string
 }
 
+export interface ProductFavorite {
+  productId: number
+  productName: string
+  productImage: string | null
+  category: string
+  price: number
+  stock: number
+  productStatus: number
+  favoritedAt: string
+}
+
+export type ProductNotificationType = 'LISTED' | 'PRICE_DROP' | 'PRICE_RISE'
+
+export interface ProductNotification {
+  id: number
+  productId: number
+  type: ProductNotificationType
+  productName: string
+  productImage: string | null
+  oldPrice: number
+  newPrice: number
+  readAt: string | null
+  createdAt: string
+}
+
 export type SeckillPhase = 'UPCOMING' | 'LIVE' | 'SOLD_OUT' | 'ENDED' | 'CLOSED'
 
 export interface SeckillActivity {
@@ -179,6 +204,15 @@ export interface DashboardData {
  *     GET  /product/{id}            → { product }（不存在或已下架时 status=false）
  *
  *   需登录（只能操作自己的数据，用户 ID 取自 JWT，不信任请求体）：
+ *     GET  /favorite/ids            → { productIds }
+ *     GET  /favorite                page, pageSize → { favorites, pagination }（包含已下架商品）
+ *     POST /favorite                { productId, favorite } → 幂等设置收藏及通知订阅
+ *     GET  /notification            page, pageSize, unreadOnly → { notifications, pagination, unreadCount }
+ *     GET  /notification/unread-count → { unreadCount }
+ *     POST /notification/read       { id } → 仅标记自己的通知
+ *     POST /notification/read-all   → 仅标记自己的全部通知
+ *     POST /notification/socket-ticket → { ticket }（30 秒内一次有效）
+ *     WS   /ws/notifications?ticket=... → 收藏商品的上架、降价、涨价实时提醒
  *     GET  /cart                    → { items: CartItem[] }
  *     POST /cart/create             { productId, quantity }      已在购物车则累加数量
  *     POST /cart/update             { id, quantity?, checked? }

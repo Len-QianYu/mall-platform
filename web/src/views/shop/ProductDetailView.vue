@@ -65,6 +65,11 @@
                 >
                   立即购买
                 </ElButton>
+                <FavoriteButton
+                  class="detail-favorite"
+                  :product-id="product.id"
+                  :product-name="product.name"
+                />
               </div>
             </div>
           </div>
@@ -112,6 +117,7 @@ import type { ApiResult, Product } from '@/types/api'
 import { assetUrl, formatMoney } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
+import FavoriteButton from '@/components/shop/FavoriteButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -272,12 +278,25 @@ const buyNow = () => {
 
 .detail-actions {
   display: flex;
+  align-items: center;
   gap: 0.75rem;
   margin-top: auto;
 
   .el-button {
-    min-width: 140px;
+    flex: 0 1 140px;
+    min-width: 0;
     margin: 0;
+
+    &:first-child {
+      flex-basis: 160px;
+    }
+  }
+
+  .detail-favorite {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.125rem;
   }
 }
 
@@ -298,6 +317,18 @@ const buyNow = () => {
   color: var(--el-text-color-regular);
   line-height: 1.8;
   white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .detail-actions {
+    gap: 0.5rem;
+
+    .el-button {
+      padding-right: 0.5rem;
+      padding-left: 0.5rem;
+      font-size: 0.8125rem;
+    }
+  }
 }
 
 @media (max-width: 768px) {

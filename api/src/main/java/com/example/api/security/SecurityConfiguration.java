@@ -67,7 +67,7 @@ public class SecurityConfiguration {
                 ).permitAll();
                 // 放行 Druid 监控页：浏览器打开时不带 JWT，访问控制交给它自带的本机白名单和登录（见 application.yaml）
                 authorize.requestMatchers("/druid/**").permitAll();
-                // 放行WebSocket端点
+                // WebSocket 握手由一次性短票鉴权；短票接口仍必须使用 JWT。
                 authorize.requestMatchers("/ws/**").permitAll();
                 // 放行用户匿名注册接口
 				authorize.requestMatchers("/user/create").permitAll();

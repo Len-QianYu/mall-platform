@@ -59,6 +59,27 @@ cd api
 
 前台商品列表、详情、分类缓存在 Redis（`127.0.0.1:6379`，可用 `REDIS_HOST` / `REDIS_PORT` 修改）；Redis 没启动时后端照常运行，只是每次都查库。
 
+### 商品收藏与通知
+
+商城顶栏的通知铃铛位于主题切换和购物车之间，显示未读数量，点击进入 `/notifications`。商品详情页的爱心收藏按钮与“加入购物车”“立即购买”位于同一行，用户菜单的“我的收藏”进入 `/favorites`，可在收藏列表中取消收藏；下架商品保留在收藏列表中，重新上架后提醒。收藏关系按账号持久化，游客点击详情页的爱心先登录。
+
+管理员编辑商品价格或把商品从下架改为上架时，后端按实际变化生成 `LISTED`、`PRICE_DROP`、`PRICE_RISE` 事件。价格数值不变、重复上架、改名或库存增减不发通知；一次修改同时上架和变价会分别提醒。商品修改与事件在同一数据库事务中提交，发件箱默认每 2 秒经 RocketMQ 发送，失败重试；消费者将通知落库后通过 WebSocket 推送在线用户。事件处理标记和 `(event_id, user_id)` 唯一索引防止重复消费，通知保留商品名、图片及变价前后的价格快照。
+
+只提醒事件发生之前已收藏且消费时仍在收藏的用户，取消后重新收藏不会补发旧事件。通知中心支持全部/未读筛选、单条已读、全部已读和查看商品；离线消息在登录或重连后查询恢复，断线自动重连，退出登录关闭连接并清空角标。单条和全部已读只操作 JWT 对应账号，也同步该账号的其他在线页面。
+
+已有数据库先执行 [`upgrade-product-notifications.sql`](api/src/main/resources/db/upgrade-product-notifications.sql)，新增 `product_favorite`、`product_notification_event`、`product_notification` 三张表，再重启后端；脚本可重复执行，新建库的 `schema.sql` 已包含这些表。首次使用还需要创建普通消息 Topic 和消费组：
+
+```bash
+docker compose exec rmqbroker sh mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t product-notification -a +message.type=NORMAL
+docker compose exec rmqbroker sh mqadmin updateSubGroup -n rmqnamesrv:9876 -c DefaultCluster -g product-notification-consumer
+```
+
+WebSocket 使用 `POST /notification/socket-ticket` 将 JWT 换成 30 秒内有效的一次性短票，再连接 `/ws/notifications?ticket=...`，连接 URL 不携带 JWT 或客户端指定的用户 ID，JWT 到期后关闭连接。允许的前端 Origin 默认是 `http://localhost:5173` 和 `http://127.0.0.1:5173`，部署或修改前端端口时通过 `NOTIFICATION_ALLOWED_ORIGINS` 配置（多个地址逗号分隔）。HTTPS 前端使用 WSS，反向代理须转发 WebSocket Upgrade。
+
+当前实时连接在单个后端进程中管理，适用于本项目的单实例部署；多个实例共享消费组时通知记录仍会保存，但实时推送需要另加跨实例广播。数据库测试默认关闭真实商品通知消息及发件箱扫描，以免消费开发环境消息。
+
+真实 RocketMQ / WebSocket 链路测试使用独立 Topic `product-notification-test` 和消费组 `product-notification-test-consumer`，须先按上面的命令替换名称创建。然后在 `api/` 的 PowerShell 中设置 `$env:PRODUCT_NOTIFICATION_INTEGRATION_TESTS = 'true'`，运行 `mvn.cmd -Dtest=ProductNotificationMqIntegrationTests test`。测试使用随机商品和账号标识，验证三类实时提醒、短票重放拒绝、离线通知与已读隔离，结束后清理自身数据；不扫描或消费开发环境队列。
+
 ### 库存调整与秒杀
 
 后台“商品管理”的编辑表单只修改商品信息；补货、减少库存通过列表里的“库存”操作完成。`POST /admin/product/stock` 接收 `{id, delta}`，按提交时的当前库存原子增减，拒绝零增量、负库存和整数溢出。旧客户端即使在商品编辑请求里发送 `stock`，也不会覆盖下单已扣减的库存。

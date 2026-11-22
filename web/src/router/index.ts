@@ -38,6 +38,18 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'favorites',
+          name: 'favorites',
+          component: () => import('@/views/shop/FavoritesView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'notifications',
+          name: 'notifications',
+          component: () => import('@/views/shop/NotificationsView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           // 从购物车结算不带参数；立即购买带 productId、quantity
           path: 'checkout',
           name: 'checkout',

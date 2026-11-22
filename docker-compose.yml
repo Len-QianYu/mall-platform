@@ -22,6 +22,9 @@
 #   订单支付超时（延时消息，Topic 类型必须是 DELAY）
 #   docker compose exec rmqbroker sh mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t order-pay-timeout -a +message.type=DELAY
 #   docker compose exec rmqbroker sh mqadmin updateSubGroup -n rmqnamesrv:9876 -c DefaultCluster -g order-pay-timeout-consumer
+#   收藏商品通知（普通消息，Topic 类型为 NORMAL）
+#   docker compose exec rmqbroker sh mqadmin updateTopic -n rmqnamesrv:9876 -c DefaultCluster -t product-notification -a +message.type=NORMAL
+#   docker compose exec rmqbroker sh mqadmin updateSubGroup -n rmqnamesrv:9876 -c DefaultCluster -g product-notification-consumer
 #
 # RustFS 控制台：http://127.0.0.1:9001/rustfs/console/ （账号密码见下面 rustfs 的 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY）
 #

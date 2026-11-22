@@ -11,8 +11,10 @@ import org.apache.rocketmq.client.apis.producer.Producer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import com.example.api.mq.OrderPayTimeoutListener;
+import com.example.api.mq.ProductNotificationListener;
 
 // RocketMQ 客户端：走 gRPC 连 Proxy（docker-compose 里的 127.0.0.1:8081）。
 // 启动时就连上 Proxy，RocketMQ 没开的话后端会直接启动失败（和 MySQL 一样）。
@@ -25,6 +27,10 @@ public class RocketMQConfiguration {
 
     public static final String ORDER_PAY_TIMEOUT_CONSUMER_GROUP = "order-pay-timeout-consumer";
 
+    public static final String PRODUCT_NOTIFICATION_TOPIC = "product-notification";
+
+    public static final String PRODUCT_NOTIFICATION_CONSUMER_GROUP = "product-notification-consumer";
+
     @Bean
     public ClientConfiguration rocketMQClientConfiguration(@Value("${rocketmq.endpoints}") String endpoints) {
         return ClientConfiguration.newBuilder().setEndpoints(endpoints).build();
@@ -32,11 +38,24 @@ public class RocketMQConfiguration {
 
     // 生产者是线程安全的，全应用共用一个；setTopics 让启动时就预取路由，Topic 不存在时启动即报错
     @Bean(destroyMethod = "close")
-    public Producer rocketMQProducer(ClientConfiguration configuration) throws ClientException {
+    public Producer rocketMQProducer(ClientConfiguration configuration,
+        @Value("${product-notification.delivery-enabled:true}") boolean notificationsEnabled) throws ClientException {
         return ClientServiceProvider.loadService().newProducerBuilder()
             .setClientConfiguration(configuration)
-            .setTopics(ORDER_PAY_TIMEOUT_TOPIC)
+            .setTopics(notificationsEnabled ? new String[] { ORDER_PAY_TIMEOUT_TOPIC, PRODUCT_NOTIFICATION_TOPIC }
+                : new String[] { ORDER_PAY_TIMEOUT_TOPIC })
             .build();
+    }
+
+    @Bean(destroyMethod = "close")
+    @ConditionalOnProperty(prefix = "product-notification", name = "delivery-enabled", havingValue = "true", matchIfMissing = true)
+    public PushConsumer productNotificationConsumer(ClientConfiguration configuration,
+        ProductNotificationListener listener) throws ClientException {
+        return ClientServiceProvider.loadService().newPushConsumerBuilder()
+            .setClientConfiguration(configuration)
+            .setConsumerGroup(PRODUCT_NOTIFICATION_CONSUMER_GROUP)
+            .setSubscriptionExpressions(Map.of(PRODUCT_NOTIFICATION_TOPIC, FilterExpression.SUB_ALL))
+            .setMessageListener(listener).build();
     }
 
     // build() 之后就开始拉消息、交给监听器处理；监听器返回 FAILURE 或抛异常时，消息稍后重投（消费组默认最多重试 16 次）

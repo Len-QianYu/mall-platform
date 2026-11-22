@@ -18,15 +18,54 @@
 </template>
 
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
-import { ElConfigProvider } from 'element-plus'
+import { onBeforeUnmount, watch } from 'vue'
+import { RouterView, useRouter } from 'vue-router'
+import { ElConfigProvider, ElNotification } from 'element-plus'
 // Element Plus 默认英文，分页、空状态等文案切换为中文
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import ShopHeader from '@/components/shop/ShopHeader.vue'
+import { useUserStore } from '@/stores/user'
+import { useNotificationsStore } from '@/stores/notifications'
+import { notificationDescription, PRODUCT_NOTIFICATION_LABELS } from '@/utils/productNotifications'
 // 引入 Bootstrap Icons（顶栏和各商城页面共用）
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
 const currentYear = new Date().getFullYear()
+const userStore = useUserStore()
+const notifications = useNotificationsStore()
+const router = useRouter()
+
+watch(
+  () => userStore.user?.token,
+  () => {
+    if (userStore.logged) notifications.start()
+    else notifications.stop()
+  },
+  { immediate: true, flush: 'sync' },
+)
+
+watch(
+  () => notifications.latestNotification,
+  (notification) => {
+    if (!notification) return
+    ElNotification({
+      title: PRODUCT_NOTIFICATION_LABELS[notification.type],
+      message: notificationDescription(notification),
+      type:
+        notification.type === 'PRICE_DROP'
+          ? 'success'
+          : notification.type === 'PRICE_RISE'
+            ? 'warning'
+            : 'info',
+      duration: 6000,
+      onClick: () => {
+        void router.push({ name: 'notifications' })
+      },
+    })
+  },
+)
+
+onBeforeUnmount(() => notifications.stop())
 </script>
 
 <style lang="scss" scoped>
