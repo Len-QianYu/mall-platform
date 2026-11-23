@@ -1,6 +1,11 @@
 <template>
   <div class="shop-container">
-    <h1 class="section-title"><i class="bi bi-bag-check"></i>确认订单</h1>
+    <div class="checkout-heading">
+      <h1 class="section-title"><i class="bi bi-bag-check"></i>确认订单</h1>
+      <ElButton class="checkout-back" :disabled="submitting" @click="returnToSource">
+        <i class="bi bi-arrow-left back-icon" aria-hidden="true"></i>返回商品详情页面
+      </ElButton>
+    </div>
 
     <div v-loading="loading" class="checkout-body">
       <template v-if="items.length">
@@ -85,6 +90,7 @@
             <span class="price total-amount">{{ formatMoney(totalAmount) }}</span>
           </span>
           <ElButton
+            class="submit-button"
             type="primary"
             size="large"
             :loading="submitting"
@@ -150,6 +156,20 @@ const seckillActivityId =
   typeof route.query.seckillActivityId === 'string' ? route.query.seckillActivityId : ''
 const buyNowQuantity = Math.max(Number(route.query.quantity) || 1, 1)
 const seckillActivity = ref<SeckillActivity>()
+
+const returnToSource = () => {
+  const destination = seckillActivityId
+    ? { name: 'seckill' }
+    : buyNowProductId
+      ? { name: 'product_detail', params: { id: buyNowProductId } }
+      : { name: 'cart' }
+  const previous = router.options.history.state.back
+  if (typeof previous === 'string' && router.resolve(previous).name === destination.name) {
+    router.back()
+    return
+  }
+  void router.push(destination)
+}
 
 const loading = ref(false)
 const items = ref<CheckoutItem[]>([])
@@ -377,6 +397,27 @@ const submit = async () => {
 </script>
 
 <style lang="scss" scoped>
+.checkout-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+
+  .section-title {
+    margin-bottom: 0;
+  }
+}
+
+.checkout-back {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.back-icon {
+  margin-right: 0.25rem;
+}
+
 .checkout-body {
   min-height: 300px;
 }

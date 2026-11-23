@@ -182,14 +182,14 @@ describe('checkout shipping information', () => {
     expect(wrapper.get('.receiver-address').text()).toBe(user.receiverAddress)
     expect(wrapper.findAll('input')).toHaveLength(1)
     expect(wrapper.get('.remark-form input').attributes('placeholder')).toBe('选填，给商家的留言')
-    expect(wrapper.get('.submit-bar button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeUndefined()
     expect(store.user?.user.receiverAddress).toBe(user.receiverAddress)
   })
 
   it('submits a buy-now order with the displayed address and optional remark', async () => {
     const { wrapper, router } = await mountCheckout()
     await wrapper.get('.remark-form input').setValue(' 请下午送达 ')
-    await wrapper.get('.submit-bar button').trigger('click')
+    await wrapper.get('.submit-button').trigger('click')
     await flushPromises()
 
     expect(postCheckout).toHaveBeenCalledWith('/order/create', {
@@ -208,7 +208,7 @@ describe('checkout shipping information', () => {
 
   it('uses the saved address when checking out selected available cart items', async () => {
     const { wrapper, cart } = await mountCheckout({})
-    await wrapper.get('.submit-bar button').trigger('click')
+    await wrapper.get('.submit-button').trigger('click')
     await flushPromises()
 
     expect(postCheckout).toHaveBeenCalledWith('/order/create', {
@@ -233,7 +233,7 @@ describe('checkout shipping information', () => {
         }),
     )
     const { wrapper, router } = await mountCheckout()
-    const button = wrapper.get('.submit-bar button')
+    const button = wrapper.get('.submit-button')
     await button.trigger('click')
     await button.trigger('click')
     expect(postCheckout).toHaveBeenCalledTimes(1)
@@ -252,13 +252,13 @@ describe('checkout shipping information', () => {
   it('restores an unresolved request after reloading the same checkout', async () => {
     postCheckout.mockRejectedValueOnce(new Error('response lost'))
     const first = await mountCheckout()
-    await first.wrapper.get('.submit-bar button').trigger('click')
+    await first.wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     const requestId = postCheckout.mock.calls[0]?.[1].requestId
     first.wrapper.unmount()
 
     const second = await mountCheckout()
-    await second.wrapper.get('.submit-bar button').trigger('click')
+    await second.wrapper.get('.submit-button').trigger('click')
     await flushPromises()
 
     expect(postCheckout.mock.calls[1]?.[1].requestId).toBe(requestId)
@@ -267,12 +267,12 @@ describe('checkout shipping information', () => {
   it('uses a new request ID when order content changes after a failed attempt', async () => {
     postCheckout.mockRejectedValueOnce(new Error('offline'))
     const { wrapper } = await mountCheckout()
-    await wrapper.get('.submit-bar button').trigger('click')
+    await wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     const requestId = postCheckout.mock.calls[0]?.[1].requestId
 
     await wrapper.get('.remark-form input').setValue('新的送货备注')
-    await wrapper.get('.submit-bar button').trigger('click')
+    await wrapper.get('.submit-button').trigger('click')
     await flushPromises()
 
     expect(postCheckout.mock.calls[1]?.[1].requestId).not.toBe(requestId)
@@ -280,13 +280,13 @@ describe('checkout shipping information', () => {
 
   it('uses a new request ID for another purchase after the previous order succeeded', async () => {
     const first = await mountCheckout()
-    await first.wrapper.get('.submit-bar button').trigger('click')
+    await first.wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     const requestId = postCheckout.mock.calls[0]?.[1].requestId
     first.wrapper.unmount()
 
     const second = await mountCheckout()
-    await second.wrapper.get('.submit-bar button').trigger('click')
+    await second.wrapper.get('.submit-button').trigger('click')
     await flushPromises()
 
     expect(postCheckout.mock.calls[1]?.[1].requestId).not.toBe(requestId)
@@ -307,8 +307,8 @@ describe('checkout shipping information', () => {
     const { wrapper } = await mountCheckout()
 
     expect(wrapper.get('.address-hint').text()).toContain('个人中心')
-    expect(wrapper.get('.submit-bar button').attributes('disabled')).toBeDefined()
-    await wrapper.get('.submit-bar button').trigger('click')
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeDefined()
+    await wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     expect(postCheckout).not.toHaveBeenCalled()
   })
@@ -334,15 +334,15 @@ describe('checkout shipping information', () => {
     )
     const { wrapper } = await mountCheckout()
 
-    expect(wrapper.get('.submit-bar button').attributes('disabled')).toBeDefined()
-    await wrapper.get('.submit-bar button').trigger('click')
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeDefined()
+    await wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     expect(postCheckout).not.toHaveBeenCalled()
 
     completeProfile(response({ user }))
     await flushPromises()
     expect(wrapper.get('.receiver-address').text()).toBe(user.receiverAddress)
-    expect(wrapper.get('.submit-bar button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeUndefined()
   })
 
   it('allows retrying a failed address load and does not submit the cached old address', async () => {
@@ -355,8 +355,8 @@ describe('checkout shipping information', () => {
 
     expect(wrapper.get('.address-error').text()).toContain('加载收货地址失败')
     expect(wrapper.find('.saved-address').exists()).toBe(false)
-    expect(wrapper.get('.submit-bar button').attributes('disabled')).toBeDefined()
-    await wrapper.get('.submit-bar button').trigger('click')
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeDefined()
+    await wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     expect(postCheckout).not.toHaveBeenCalled()
 
@@ -364,7 +364,7 @@ describe('checkout shipping information', () => {
     await flushPromises()
     expect(wrapper.find('.address-error').exists()).toBe(false)
     expect(wrapper.get('.receiver-address').text()).toBe(user.receiverAddress)
-    expect(wrapper.get('.submit-bar button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeUndefined()
   })
 
   it('previews the campaign price and submits the activity ID through the existing order endpoint', async () => {
@@ -376,7 +376,7 @@ describe('checkout shipping information', () => {
     const { wrapper } = await mountCheckout({ seckillActivityId: '3', quantity: '2' })
     expect(wrapper.get('.seckill-checkout-hint').text()).toContain('每人限购 2 件')
     expect(wrapper.get('.total-amount').text()).toBe('¥9.00')
-    await wrapper.get('.submit-bar button').trigger('click')
+    await wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     expect(postCheckout).toHaveBeenCalledWith(
       '/order/create',
@@ -399,13 +399,13 @@ describe('checkout shipping information', () => {
     )
     postCheckout.mockRejectedValueOnce(new Error('response lost'))
     const first = await mountCheckout({ seckillActivityId: '3', quantity: '1' })
-    await first.wrapper.get('.submit-bar button').trigger('click')
+    await first.wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     const requestId = postCheckout.mock.calls[0]?.[1].requestId
     first.wrapper.unmount()
     currentActivity = { ...seckillActivity, stock: 0, phase: 'SOLD_OUT' }
     const second = await mountCheckout({ seckillActivityId: '3', quantity: '1' })
-    await second.wrapper.get('.submit-bar button').trigger('click')
+    await second.wrapper.get('.submit-button').trigger('click')
     await flushPromises()
     expect(postCheckout.mock.calls[1]?.[1].requestId).toBe(requestId)
     expect(second.router.currentRoute.value.name).toBe('order_pay')

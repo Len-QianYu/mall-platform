@@ -120,7 +120,12 @@
           :disabled="loading"
           @click="openEdit(user)"
         >
-          <ElAvatar :size="64" :src="assetUrl(user.avatarUrl)" :alt="displayName(user)">
+          <ElAvatar
+            class="user-card-avatar"
+            :size="64"
+            :src="assetUrl(user.avatarUrl)"
+            :alt="displayName(user)"
+          >
             {{ displayName(user).charAt(0).toUpperCase() }}
           </ElAvatar>
           <span class="user-card-name">{{ displayName(user) }}</span>
@@ -403,15 +408,11 @@ const save = async () => {
   min-width: 0;
   min-height: 150px;
   padding: 1.25rem 1rem;
-  border: 1px solid var(--user-card-border-color);
-  border-radius: 8px;
-  background-color: var(--el-bg-color);
+  border: 0;
+  background: transparent;
   color: var(--el-text-color-primary);
   font: inherit;
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background-color 0.15s;
 
   &.is-admin {
     --user-card-border-color: var(--el-color-warning);
@@ -421,18 +422,30 @@ const save = async () => {
     --user-card-border-color: #a855f7;
   }
 
-  &:hover {
-    background-color: var(--el-color-primary-light-9);
+  &:hover .user-card-avatar {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--user-card-border-color) 16%, transparent);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--el-color-primary);
-    outline-offset: 3px;
+    outline: none;
+
+    .user-card-avatar {
+      outline: 2px solid var(--user-card-border-color);
+      outline-offset: 3px;
+    }
   }
 
   &:disabled {
     cursor: wait;
   }
+}
+
+.user-card-avatar {
+  box-sizing: content-box;
+  flex-shrink: 0;
+  border: 3px solid var(--user-card-border-color);
+  border-radius: 50%;
+  transition: box-shadow 0.15s;
 }
 
 .user-card-name {

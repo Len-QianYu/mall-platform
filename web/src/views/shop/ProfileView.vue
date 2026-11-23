@@ -30,7 +30,7 @@
             </div>
           </template>
         </ImageUploader>
-        <div class="avatar-tip text-secondary">点击头像更换，上传后自动保存</div>
+        <div class="avatar-tip text-secondary">点击头像更换</div>
         <div class="side-name">{{ form.name || userStore.name }}</div>
         <div class="text-secondary">@{{ userStore.name }}</div>
         <div v-if="registeredAt" class="text-secondary side-meta">

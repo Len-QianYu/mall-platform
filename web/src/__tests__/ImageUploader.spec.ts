@@ -84,6 +84,31 @@ describe('image uploads', () => {
     expect(wrapper.emitted('update:modelValue')).toEqual([['/images/retry.png']])
   })
 
+  it.each([
+    [401, '登录已失效，请重新登录后上传'],
+    [403, '当前账号没有上传权限'],
+  ] as const)('explains HTTP %s errors without a response message', async (status, message) => {
+    post.mockRejectedValueOnce(
+      new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, {
+        status,
+        statusText: status === 401 ? 'Unauthorized' : 'Forbidden',
+        data: '',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      }),
+    )
+    const wrapper = mount(ImageUploader, {
+      props: { type: 'images', modelValue: '/images/previous.png' },
+      global: { stubs: { ElImage: true } },
+    })
+
+    await chooseImage(wrapper)
+
+    expect(errorMessage).toHaveBeenCalledWith(message)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.findComponent(ElUpload).props('disabled')).toBe(false)
+  })
+
   it('shows a retry message when the request has no response', async () => {
     post.mockRejectedValueOnce(new AxiosError('Network Error', 'ERR_NETWORK'))
     const wrapper = mount(ImageUploader, { props: { type: 'images' } })

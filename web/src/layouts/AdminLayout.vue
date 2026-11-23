@@ -109,4 +109,21 @@ const currentYear = new Date().getFullYear()
     font-size: 0.75rem;
   }
 }
+
+// 短表单弹窗在较矮的视口中只滚动内容，标题和操作按钮保持可见。
+.admin-form-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+
+  .el-dialog__header,
+  .el-dialog__footer {
+    flex-shrink: 0;
+  }
+
+  .el-dialog__body {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
 </style>

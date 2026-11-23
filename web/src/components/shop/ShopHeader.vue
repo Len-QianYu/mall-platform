@@ -22,10 +22,10 @@
           "
           active-class="is-active"
         >
-          全部商品
+          商品
         </RouterLink>
         <RouterLink :to="{ name: 'seckill' }" class="nav-link" active-class="is-active">
-          限时秒杀
+          秒杀
         </RouterLink>
         <RouterLink :to="{ name: 'about' }" class="nav-link" active-class="is-active">
           关于我们

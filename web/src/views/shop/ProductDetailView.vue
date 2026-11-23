@@ -1,15 +1,20 @@
 <template>
   <div class="shop-container">
+    <div class="detail-navigation">
+      <ElBreadcrumb v-if="product" class="detail-breadcrumb">
+        <ElBreadcrumbItem :to="{ name: 'index' }">首页</ElBreadcrumbItem>
+        <ElBreadcrumbItem :to="{ name: 'products', query: { category: product.category } }">
+          {{ product.category }}
+        </ElBreadcrumbItem>
+        <ElBreadcrumbItem>{{ product.name }}</ElBreadcrumbItem>
+      </ElBreadcrumb>
+      <ElButton class="detail-return" @click="returnToProducts">
+        <i class="bi bi-arrow-left btn-icon" aria-hidden="true"></i>返回全部商品
+      </ElButton>
+    </div>
+
     <div v-loading="loading" class="detail-page">
       <template v-if="product">
-        <ElBreadcrumb class="detail-breadcrumb">
-          <ElBreadcrumbItem :to="{ name: 'index' }">首页</ElBreadcrumbItem>
-          <ElBreadcrumbItem :to="{ name: 'products', query: { category: product.category } }">
-            {{ product.category }}
-          </ElBreadcrumbItem>
-          <ElBreadcrumbItem>{{ product.name }}</ElBreadcrumbItem>
-        </ElBreadcrumb>
-
         <ElCard shadow="never">
           <div class="detail-main">
             <ElImage
@@ -90,7 +95,7 @@
         sub-title="看看其他商品吧"
       >
         <template #extra>
-          <ElButton type="primary" @click="router.push({ name: 'products' })">去逛逛</ElButton>
+          <ElButton type="primary" @click="returnToProducts">去逛逛</ElButton>
         </template>
       </ElResult>
     </div>
@@ -123,6 +128,15 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+
+const returnToProducts = () => {
+  const previous = router.options.history.state.back
+  if (typeof previous === 'string' && router.resolve(previous).name === 'products') {
+    router.back()
+  } else {
+    void router.push({ name: 'products' })
+  }
+}
 
 const loading = ref(false)
 const product = ref<Product | null>(null)
@@ -205,7 +219,22 @@ const buyNow = () => {
 }
 
 .detail-breadcrumb {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.detail-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.detail-return {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .detail-main {

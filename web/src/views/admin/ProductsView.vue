@@ -199,6 +199,8 @@
     v-model="stockDialogVisible"
     title="调整库存"
     width="min(440px, 94vw)"
+    class="admin-form-dialog"
+    align-center
     :close-on-click-modal="!stockSaving"
     :close-on-press-escape="!stockSaving"
     :show-close="!stockSaving"

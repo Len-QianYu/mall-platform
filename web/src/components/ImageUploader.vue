@@ -104,9 +104,14 @@ const upload = async ({ file }: UploadRequestOptions) => {
     // 头像已由上传接口保存；商品图片的路径要随商品表单保存
     model.value = data.payload.url
   } catch (error) {
-    const message = isAxiosError<ApiResult>(error)
-      ? error.response?.data?.payload?.message
-      : undefined
+    const response = isAxiosError<ApiResult>(error) ? error.response : undefined
+    let message = response?.data?.payload?.message
+    if (!message && response?.status === 401) {
+      message = '登录已失效，请重新登录后上传'
+    }
+    if (!message && response?.status === 403) {
+      message = '当前账号没有上传权限'
+    }
     ElMessage.error(message || '上传失败，请稍后重试')
   } finally {
     uploading.value = false
