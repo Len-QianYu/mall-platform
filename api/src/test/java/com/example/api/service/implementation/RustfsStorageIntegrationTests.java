@@ -5,12 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.UUID;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockMultipartFile;
 
 import com.example.api.configuration.UploadConfiguration;
@@ -24,11 +31,23 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 @EnabledIfEnvironmentVariable(named = "RUSTFS_INTEGRATION_TESTS", matches = "true")
 class RustfsStorageIntegrationTests {
 
-    @Test
-    void uploadsAndReadsImagesFromPrivateBucket() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = { false, true })
+    void uploadsAndReadsImagesFromPrivateBucket(boolean diskBacked, @TempDir Path temporaryDirectory) throws Exception {
         String bucket = "mall-upload-test-" + UUID.randomUUID();
         byte[] image = Base64.getDecoder().decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a/p8AAAAASUVORK5CYII=");
+        if (diskBacked) {
+            image = Arrays.copyOf(image, 2 * 1024 * 1024);
+        }
+        Path imageFile = Files.write(temporaryDirectory.resolve("image.png"), image);
+        MockMultipartFile file = new MockMultipartFile("file", "fake.html", "text/html", image) {
+            @Override
+            public InputStream getInputStream() throws IOException {
+                // 大图片落盘后，Servlet 提供的文件流不支持 mark/reset。
+                return diskBacked ? Files.newInputStream(imageFile) : super.getInputStream();
+            }
+        };
 
         try (S3Client client = new UploadConfiguration().rustfsClient(
             URI.create(setting("RUSTFS_ENDPOINT", "http://127.0.0.1:9000")),
@@ -38,8 +57,7 @@ class RustfsStorageIntegrationTests {
             FileStorageServiceImpl storage = new FileStorageServiceImpl(client, bucket);
             try {
                 for (String directory : UploadConfiguration.DIRECTORIES) {
-                    String url = storage.store(directory,
-                        new MockMultipartFile("file", "fake.html", "text/html", image), "png");
+                    String url = storage.store(directory, file, "png");
                     assertTrue(url.matches("/" + directory + "/[0-9a-f-]{36}\\.png"));
                     String filename = url.substring(url.lastIndexOf('/') + 1);
 

@@ -246,10 +246,11 @@ import request from '@/utils/request'
 import type { ApiResult, Pagination, Product } from '@/types/api'
 import { assetUrl, formatDateTime, formatMoney } from '@/utils/format'
 import ImageUploader from '@/components/ImageUploader.vue'
+import { mergeProductCategories } from '@/constants/productCategories'
 
 const loading = ref(false)
 const products = ref<Product[]>([])
-const categories = ref<string[]>([])
+const categories = ref<string[]>(mergeProductCategories())
 
 // 下拉框清空后值为 undefined，axios 不会把 undefined 参数拼进查询串
 const filter = reactive({
@@ -299,10 +300,10 @@ const fetchCategories = async () => {
       '/admin/product/categories',
     )
     if (data.status) {
-      categories.value = data.payload.categories
+      categories.value = mergeProductCategories(data.payload.categories)
     }
   } catch {
-    // 下拉里没有已有分类，表单里仍可手动输入
+    // 预设玩偶分类仍可选择，表单也可手动输入其他分类。
   }
 }
 

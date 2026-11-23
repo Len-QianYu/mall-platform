@@ -6,31 +6,14 @@
           ><i class="bi bi-lightning-charge-fill"></i>限时好价 · 限量开抢</span
         >
         <h1 id="seckill-title">限时秒杀</h1>
+      </div>
+      <div class="hero-description">
         <p>把心动好物，带回日常。每一场都有值得期待的好价。</p>
         <div class="hero-perks">
           <span><i class="bi bi-tag"></i>专属秒杀价</span>
           <span><i class="bi bi-box-seam"></i>限量发售</span>
           <span><i class="bi bi-shield-check"></i>正品保障</span>
         </div>
-      </div>
-      <div class="hero-clock">
-        <template v-if="nextActivity">
-          <span class="clock-label">{{
-            phaseOf(nextActivity) === 'LIVE' ? '本场结束倒计时' : '下一场开抢倒计时'
-          }}</span>
-          <div class="clock-digits" aria-label="倒计时">
-            <template v-for="(part, index) in heroCountdown.split(':')" :key="index">
-              <span v-if="index" class="clock-colon">:</span>
-              <strong>{{ part }}</strong>
-            </template>
-          </div>
-          <span class="clock-caption">{{ nextActivity.title }}</span>
-        </template>
-        <template v-else>
-          <i class="bi bi-lightning-charge-fill clock-decoration" aria-hidden="true"></i>
-          <span class="clock-label">好物限量，先到先得</span>
-          <span class="clock-caption">下一场惊喜，值得期待</span>
-        </template>
       </div>
     </section>
 
@@ -151,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ElButton, ElEmpty, ElImage, ElPagination, ElSkeleton } from 'element-plus'
 import request from '@/utils/request'
@@ -181,21 +164,6 @@ let clockTimer: ReturnType<typeof setInterval> | undefined
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 const phaseOf = (activity: SeckillActivity) => seckillPhase(activity, now.value)
-const nextActivity = computed(
-  () =>
-    activities.value.find((activity) => phaseOf(activity) === 'LIVE') ??
-    activities.value
-      .filter((activity) => phaseOf(activity) === 'UPCOMING')
-      .sort((first, second) => first.startsAtEpochMs - second.startsAtEpochMs)[0],
-)
-const heroCountdown = computed(() => {
-  const activity = nextActivity.value
-  if (!activity) return '00:00:00'
-  return seckillCountdown(
-    phaseOf(activity) === 'LIVE' ? activity.endsAtEpochMs : activity.startsAtEpochMs,
-    now.value,
-  )
-})
 const discount = (activity: SeckillActivity) =>
   activity.originalPrice > 0
     ? ((activity.seckillPrice / activity.originalPrice) * 10).toFixed(1)
@@ -262,15 +230,33 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .seckill-hero {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
+  box-sizing: border-box;
+  align-items: flex-start;
+  aspect-ratio: 1155 / 707;
+  min-height: 360px;
   padding: 2.5rem 3rem;
   overflow: hidden;
   border-radius: 20px;
-  background: linear-gradient(115deg, #df334c, #ed5537 65%, #f78b45);
+  background-color: #18293f;
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(10, 18, 32, 0.6),
+      rgba(10, 18, 32, 0.15) 35%,
+      rgba(10, 18, 32, 0) 60%,
+      rgba(10, 18, 32, 0.65)
+    ),
+    url('@/assets/images/pals miaosha.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
   color: #fff;
+}
+.hero-copy {
+  min-width: 0;
+  max-width: 520px;
 }
 .hero-eyebrow {
   display: flex;
@@ -285,7 +271,15 @@ onUnmounted(() => {
   font-weight: 800;
   letter-spacing: 0.08em;
 }
-.hero-copy p {
+.hero-description {
+  position: absolute;
+  right: 3rem;
+  bottom: 2.5rem;
+  max-width: calc(100% - 6rem);
+  text-align: right;
+  text-shadow: 0 2px 8px #0009;
+}
+.hero-description p {
   margin: 0;
   color: #fffde8;
   line-height: 1.8;
@@ -293,55 +287,15 @@ onUnmounted(() => {
 .hero-perks {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.4rem;
+  margin-top: 0.8rem;
   font-size: 0.8rem;
 }
 .hero-perks span {
   display: flex;
   gap: 0.35rem;
   align-items: center;
-}
-.hero-clock {
-  display: flex;
-  flex: 0 0 270px;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 1.6rem 1.2rem;
-  border: 1px solid #ffffff45;
-  border-radius: 16px;
-  background: #ffffff15;
-}
-.clock-label {
-  font-size: 0.9rem;
-}
-.clock-digits {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.clock-digits strong {
-  min-width: 54px;
-  padding: 0.6rem 0.4rem;
-  border-radius: 8px;
-  background: #fff;
-  color: #cf3343;
-  font-size: 1.7rem;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.clock-colon {
-  font-size: 1.5rem;
-}
-.clock-caption {
-  max-width: 250px;
-  font-size: 0.8rem;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-.clock-decoration {
-  font-size: 2.4rem;
 }
 .activity-toolbar {
   display: flex;
@@ -551,17 +505,29 @@ onUnmounted(() => {
 }
 @media (max-width: 768px) {
   .seckill-hero {
+    aspect-ratio: auto;
+    min-height: 420px;
     padding: 1.8rem;
-    gap: 1.2rem;
-    flex-direction: column;
-    align-items: stretch;
+    background-position:
+      center,
+      center bottom;
+    background-size:
+      cover,
+      100% auto;
   }
   .hero-copy h1 {
     font-size: 2.25rem;
   }
-  .hero-clock {
-    flex-basis: auto;
-    padding: 1rem;
+  .hero-description {
+    right: 1.5rem;
+    bottom: 1.5rem;
+    max-width: calc(100% - 3rem);
+  }
+  .hero-description p {
+    font-size: 0.875rem;
+  }
+  .hero-perks {
+    gap: 0.6rem;
   }
   .seckill-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

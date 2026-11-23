@@ -5,7 +5,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      // 商城前台：ShopLayout 提供顶部导航和页脚；首页、商品页游客可看，
+      // 商城前台：ShopLayout 提供顶部导航和页脚；首页、商品页、关于我们游客可看，
       // 购物车、下单、订单、个人中心要登录（requiresAuth 只标在需要的子路由上）
       path: '/',
       component: () => import('@/layouts/ShopLayout.vue'),
@@ -30,6 +30,11 @@ const router = createRouter({
           path: 'seckill',
           name: 'seckill',
           component: () => import('@/views/shop/SeckillView.vue'),
+        },
+        {
+          path: 'about',
+          name: 'about',
+          component: () => import('@/views/shop/AboutView.vue'),
         },
         {
           path: 'cart',

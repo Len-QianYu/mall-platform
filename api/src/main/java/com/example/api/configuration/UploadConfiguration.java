@@ -37,7 +37,10 @@ public class UploadConfiguration {
             .region(Region.of(region))
             .forcePathStyle(true)
             // 使用已知长度的普通 PUT，避免 S3 兼容服务对 aws-chunked / 可选校验和的实现差异。
-            .serviceConfiguration(S3Configuration.builder().chunkedEncodingEnabled(false).build())
+            .serviceConfiguration(S3Configuration.builder()
+                .chunkedEncodingEnabled(false)
+                .expectContinueEnabled(false)
+                .build())
             .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
             .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
             .httpClientBuilder(UrlConnectionHttpClient.builder()

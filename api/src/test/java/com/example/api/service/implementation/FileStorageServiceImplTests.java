@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.io.ByteArrayInputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
@@ -86,6 +87,47 @@ class FileStorageServiceImplTests {
         assertEquals(url.substring(1), request.getValue().key());
         assertEquals(BUCKET, request.getValue().bucket());
         assertEquals("image/jpeg", request.getValue().contentType());
+        verify(input).close();
+    }
+
+    @Test
+    void replaysLargeMultipartStreamsForSigningAndRetries() throws Exception {
+        byte[] image = new byte[2 * 1024 * 1024];
+        InputStream input = spy(new FilterInputStream(new ByteArrayInputStream(image)) {
+            @Override
+            public boolean markSupported() {
+                return false;
+            }
+
+            @Override
+            public void mark(int readLimit) {
+                // Servlet multipart streams may be backed by files and cannot be rewound.
+            }
+
+            @Override
+            public void reset() throws IOException {
+                throw new IOException("Multipart stream cannot be reset");
+            }
+        });
+        MockMultipartFile file = new MockMultipartFile("file", "large.png", "image/png", image) {
+            @Override
+            public InputStream getInputStream() {
+                return input;
+            }
+        };
+        doAnswer(invocation -> {
+            RequestBody body = invocation.getArgument(1);
+            assertEquals(image.length, body.optionalContentLength().orElseThrow());
+            try (InputStream first = body.contentStreamProvider().newStream()) {
+                assertArrayEquals(image, first.readAllBytes());
+            }
+            try (InputStream retry = body.contentStreamProvider().newStream()) {
+                assertArrayEquals(image, retry.readAllBytes());
+            }
+            return PutObjectResponse.builder().build();
+        }).when(this.client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
+
+        assertTrue(this.storage.store("images", file, "png").startsWith("/images/"));
         verify(input).close();
     }
 

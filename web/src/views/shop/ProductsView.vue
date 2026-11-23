@@ -73,6 +73,7 @@ import {
 import request from '@/utils/request'
 import type { ApiResult, Pagination, Product, ProductSort } from '@/types/api'
 import ProductCard from '@/components/shop/ProductCard.vue'
+import { mergeProductCategories } from '@/constants/productCategories'
 
 const PAGE_SIZE = 20
 
@@ -120,7 +121,7 @@ const updateQuery = (changes: ProductQuery, resetPage = true) => {
   })
 }
 
-const categories = ref<string[]>([])
+const categories = ref<string[]>(mergeProductCategories())
 const products = ref<Product[]>([])
 const total = ref(0)
 const loading = ref(false)
@@ -129,10 +130,10 @@ const fetchCategories = async () => {
   try {
     const { data } = await request.get<ApiResult<{ categories: string[] }>>('/product/categories')
     if (data.status) {
-      categories.value = data.payload.categories
+      categories.value = mergeProductCategories(data.payload.categories)
     }
   } catch {
-    // 分类加载失败时只剩「全部」，不影响浏览
+    // 加载失败时仍可浏览预设玩偶分类。
   }
 }
 

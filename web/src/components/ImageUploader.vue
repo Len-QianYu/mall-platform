@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { isAxiosError } from 'axios'
 import {
   ElButton,
   ElImage,
@@ -88,8 +89,11 @@ const upload = async ({ file }: UploadRequestOptions) => {
     }
     // 只是拿到了访问路径，要随表单保存后才会写进库
     model.value = data.payload.url
-  } catch {
-    ElMessage.error('上传失败')
+  } catch (error) {
+    const message = isAxiosError<ApiResult>(error)
+      ? error.response?.data?.payload?.message
+      : undefined
+    ElMessage.error(message || '上传失败，请稍后重试')
   } finally {
     uploading.value = false
   }

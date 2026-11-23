@@ -39,6 +39,7 @@ const mountPage = async (header = false) => {
     'index',
     'products',
     'seckill',
+    'about',
     'cart',
     'favorites',
     'notifications',

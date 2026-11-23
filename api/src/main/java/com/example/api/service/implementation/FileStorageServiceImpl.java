@@ -46,10 +46,11 @@ public class FileStorageServiceImpl implements FileStorageService {
         String filename = UUID.randomUUID() + "." + extension;
         try (InputStream input = file.getInputStream()) {
             ensureBucket();
+            // 图片由 multipart 限制为 5MB；使用可重放的内容，供 SDK 签名和重试时重复读取。
             this.client.putObject(request -> request
                 .bucket(this.bucket)
                 .key(directory + "/" + filename)
-                .contentType(contentType), RequestBody.fromInputStream(input, file.getSize()));
+                .contentType(contentType), RequestBody.fromBytes(input.readAllBytes()));
         } catch (SdkException exception) {
             throw new IOException("上传到 RustFS 失败", exception);
         }

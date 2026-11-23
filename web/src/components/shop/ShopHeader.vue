@@ -5,117 +5,138 @@
         <img src="@/assets/logo/logo.png" class="logo-img" alt="Mall Platform" />
       </RouterLink>
 
-      <nav class="header-nav">
+      <nav class="header-nav" aria-label="商城导航">
         <RouterLink :to="{ name: 'index' }" class="nav-link" exact-active-class="is-active">
           首页
         </RouterLink>
-        <RouterLink :to="{ name: 'products' }" class="nav-link" active-class="is-active">
+        <RouterLink
+          :to="{ name: 'products' }"
+          class="nav-link"
+          :class="{ 'is-active': route.name === 'product_detail' }"
+          :aria-current="
+            route.name === 'product_detail'
+              ? 'location'
+              : route.name === 'products'
+                ? 'page'
+                : undefined
+          "
+          active-class="is-active"
+        >
           全部商品
         </RouterLink>
         <RouterLink :to="{ name: 'seckill' }" class="nav-link" active-class="is-active">
           限时秒杀
         </RouterLink>
+        <RouterLink :to="{ name: 'about' }" class="nav-link" active-class="is-active">
+          关于我们
+        </RouterLink>
       </nav>
 
-      <!-- 搜索：跳到商品列表并带上关键字；在商品列表页时回显当前关键字 -->
-      <form
-        class="header-search"
-        :class="{ 'is-expanded': searchExpanded }"
-        @submit.prevent="search"
-        @keydown.esc.prevent="closeSearch"
-        @focusout="onSearchFocusOut"
-      >
-        <button
-          ref="searchButton"
-          type="button"
-          class="search-toggle"
-          :aria-label="searchExpanded ? '搜索商品' : '展开商品搜索'"
-          :aria-expanded="searchExpanded"
-          aria-controls="shop-header-search-input"
-          @click="onSearchClick"
+      <div class="header-actions">
+        <!-- 搜索：跳到商品列表并带上关键字；在商品列表页时回显当前关键字 -->
+        <form
+          class="header-search"
+          :class="{ 'is-expanded': searchExpanded }"
+          @submit.prevent="search"
+          @keydown.esc.prevent="closeSearch"
+          @focusout="onSearchFocusOut"
         >
-          <i class="bi bi-search" aria-hidden="true"></i>
-        </button>
-        <ElInput
-          v-show="searchExpanded"
-          id="shop-header-search-input"
-          ref="searchInput"
-          v-model="keyword"
-          class="search-input"
-          placeholder="搜索商品"
-          aria-label="搜索商品"
-          clearable
-        />
-      </form>
-
-      <div class="header-right">
-        <RouterLink :to="{ name: 'seckill' }" class="seckill-mobile-link" aria-label="限时秒杀">
-          <i class="bi bi-lightning-charge"></i>
-        </RouterLink>
-        <!-- 亮色 / 暗色切换：图标表示点击后切换到的模式 -->
-        <ElButton
-          class="header-btn"
-          text
-          :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
-          @click="toggleTheme"
-        >
-          <i :class="isDark ? 'bi bi-sun' : 'bi bi-moon-stars'"></i>
-        </ElButton>
-
-        <RouterLink :to="{ name: 'notifications' }" class="notification-link" aria-label="消息通知">
-          <ElBadge
-            :value="notificationsStore.unreadCount"
-            :hidden="notificationsStore.unreadCount === 0"
-            :max="99"
+          <button
+            ref="searchButton"
+            type="button"
+            class="search-toggle"
+            :aria-label="searchExpanded ? '搜索商品' : '展开商品搜索'"
+            :aria-expanded="searchExpanded"
+            aria-controls="shop-header-search-input"
+            @click="onSearchClick"
           >
-            <i class="bi bi-bell" aria-hidden="true"></i>
-          </ElBadge>
-        </RouterLink>
+            <i class="bi bi-search" aria-hidden="true"></i>
+          </button>
+          <ElInput
+            v-show="searchExpanded"
+            id="shop-header-search-input"
+            ref="searchInput"
+            v-model="keyword"
+            class="search-input"
+            placeholder="搜索商品"
+            aria-label="搜索商品"
+            clearable
+          />
+        </form>
 
-        <!-- 购物车：未登录时点击会被路由守卫带去登录页 -->
-        <RouterLink :to="{ name: 'cart' }" class="cart-link" aria-label="购物车">
-          <ElBadge :value="cartStore.count" :hidden="cartStore.count === 0" :max="99">
-            <i class="bi bi-cart3"></i>
-          </ElBadge>
-        </RouterLink>
+        <div class="header-right">
+          <!-- 亮色 / 暗色切换：图标表示点击后切换到的模式 -->
+          <ElButton
+            class="header-btn"
+            text
+            :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
+            @click="toggleTheme"
+          >
+            <i
+              class="header-icon"
+              :class="isDark ? 'bi bi-sun' : 'bi bi-moon-stars'"
+              aria-hidden="true"
+            ></i>
+          </ElButton>
 
-        <ElDropdown v-if="userStore.logged" trigger="click" @command="handleCommand">
-          <div class="user-box">
-            <ElAvatar :size="30" :src="avatarUrl">
-              {{ userStore.name.charAt(0).toUpperCase() }}
-            </ElAvatar>
-            <span class="user-name">{{ userStore.name }}</span>
-          </div>
-          <template #dropdown>
-            <ElDropdownMenu>
-              <ElDropdownItem command="favorites">
-                <i class="bi bi-heart dropdown-icon"></i>
-                <span>我的收藏</span>
-              </ElDropdownItem>
-              <ElDropdownItem command="orders">
-                <i class="bi bi-receipt dropdown-icon"></i>
-                <span>我的订单</span>
-              </ElDropdownItem>
-              <ElDropdownItem command="profile">
-                <i class="bi bi-person dropdown-icon"></i>
-                <span>个人中心</span>
-              </ElDropdownItem>
-              <ElDropdownItem v-if="userStore.isAdmin" command="admin">
-                <i class="bi bi-speedometer2 dropdown-icon"></i>
-                <span>管理后台</span>
-              </ElDropdownItem>
-              <ElDropdownItem command="logout" divided>
-                <i class="bi bi-box-arrow-right dropdown-icon"></i>
-                <span>退出登录</span>
-              </ElDropdownItem>
-            </ElDropdownMenu>
-          </template>
-        </ElDropdown>
+          <RouterLink
+            :to="{ name: 'notifications' }"
+            class="notification-link"
+            aria-label="消息通知"
+          >
+            <ElBadge
+              :value="notificationsStore.unreadCount"
+              :hidden="notificationsStore.unreadCount === 0"
+              :max="99"
+            >
+              <i class="bi bi-bell header-icon" aria-hidden="true"></i>
+            </ElBadge>
+          </RouterLink>
 
-        <template v-else>
-          <ElButton type="primary" @click="toLogin">登录</ElButton>
-          <ElButton @click="router.push({ name: 'register' })">注册</ElButton>
-        </template>
+          <!-- 购物车：未登录时点击会被路由守卫带去登录页 -->
+          <RouterLink :to="{ name: 'cart' }" class="cart-link" aria-label="购物车">
+            <ElBadge :value="cartStore.count" :hidden="cartStore.count === 0" :max="99">
+              <i class="bi bi-cart3 header-icon" aria-hidden="true"></i>
+            </ElBadge>
+          </RouterLink>
+
+          <ElDropdown v-if="userStore.logged" trigger="click" @command="handleCommand">
+            <div class="user-box">
+              <ElAvatar :size="30" :src="avatarUrl">
+                {{ userStore.name.charAt(0).toUpperCase() }}
+              </ElAvatar>
+              <span class="user-name">{{ userStore.name }}</span>
+            </div>
+            <template #dropdown>
+              <ElDropdownMenu>
+                <ElDropdownItem command="favorites">
+                  <i class="bi bi-heart dropdown-icon"></i>
+                  <span>我的收藏</span>
+                </ElDropdownItem>
+                <ElDropdownItem command="orders">
+                  <i class="bi bi-receipt dropdown-icon"></i>
+                  <span>我的订单</span>
+                </ElDropdownItem>
+                <ElDropdownItem command="profile">
+                  <i class="bi bi-person dropdown-icon"></i>
+                  <span>个人中心</span>
+                </ElDropdownItem>
+                <ElDropdownItem v-if="userStore.isAdmin" command="admin">
+                  <i class="bi bi-speedometer2 dropdown-icon"></i>
+                  <span>管理后台</span>
+                </ElDropdownItem>
+                <ElDropdownItem command="logout" divided>
+                  <i class="bi bi-box-arrow-right dropdown-icon"></i>
+                  <span>退出登录</span>
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            </template>
+          </ElDropdown>
+
+          <ElButton v-else class="header-btn" text aria-label="登录" @click="toLogin">
+            <i class="bi bi-person header-icon" aria-hidden="true"></i>
+          </ElButton>
+        </div>
       </div>
     </div>
   </header>
@@ -252,7 +273,8 @@ const logout = () => {
 }
 
 .header-inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 1.5rem;
   height: 60px;
@@ -277,14 +299,43 @@ const logout = () => {
 .header-nav {
   display: flex;
   flex-shrink: 0;
+  align-items: center;
+  align-self: stretch;
   gap: 1.25rem;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
 .nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
   color: var(--el-text-color-regular);
   font-size: 0.9375rem;
+  line-height: 1;
   text-decoration: none;
+  white-space: nowrap;
   transition: color 0.15s;
+
+  &::after {
+    position: absolute;
+    right: 0;
+    bottom: 2px;
+    left: 0;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background-color: var(--el-color-primary);
+    content: '';
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+  }
 
   &:hover,
   &.is-active {
@@ -293,6 +344,15 @@ const logout = () => {
 
   &.is-active {
     font-weight: 600;
+
+    &::after {
+      transform: scaleX(1);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 4px;
   }
 }
 
@@ -352,6 +412,8 @@ const logout = () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .nav-link,
+  .nav-link::after,
   .header-search,
   .search-toggle {
     transition: none;
@@ -377,23 +439,45 @@ const logout = () => {
   }
 }
 
-.seckill-mobile-link {
-  display: none;
-  color: var(--el-color-danger);
-  font-size: 1.25rem;
-  text-decoration: none;
-}
-
 .cart-link,
 .notification-link {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
   padding: 0 0.25rem;
   color: var(--el-text-color-regular);
-  font-size: 1.25rem;
+  font-size: 1.125rem;
+  line-height: 1;
   text-decoration: none;
+
+  .el-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.125rem;
+  }
 
   &:hover {
     color: var(--el-color-primary);
+  }
+}
+
+.header-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  font-size: 1.125rem;
+  line-height: 1;
+
+  &::before {
+    display: block;
+    line-height: 1;
+    vertical-align: 0;
   }
 }
 
@@ -420,24 +504,25 @@ const logout = () => {
   margin-right: 0.5rem;
 }
 
-// 窄屏：隐藏导航文字和用户名，给搜索框留位置
+// 窄屏：导航放到第二行，保留全部入口和当前页面指示。
 @media (max-width: 768px) {
-  .seckill-mobile-link {
-    display: flex;
-  }
   .header-inner {
-    gap: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.75rem;
+    height: auto;
+    padding-top: 0.5rem;
 
     &.is-search-expanded {
-      flex-wrap: wrap;
-      height: auto;
-      padding-top: 0.875rem;
-      padding-bottom: 0.875rem;
-
       .header-search {
         order: 1;
         width: 100%;
         max-width: none;
+        margin-top: 0.75rem;
+      }
+
+      .header-nav {
+        order: 2;
       }
 
       .header-right {
@@ -446,13 +531,24 @@ const logout = () => {
     }
   }
 
+  .header-actions {
+    display: contents;
+  }
+
+  .header-nav {
+    order: 1;
+    justify-content: center;
+    gap: 1.5rem;
+    width: 100%;
+    height: 44px;
+  }
+
   .logo-img {
     width: 28px;
     height: 28px;
     object-fit: cover;
   }
 
-  .header-nav,
   .user-name {
     display: none;
   }
@@ -460,7 +556,11 @@ const logout = () => {
 
 @media (max-width: 480px) {
   .header-inner {
-    gap: 0.5rem;
+    gap: 0 0.5rem;
+  }
+
+  .header-nav {
+    gap: 1.25rem;
   }
 
   .header-right {
