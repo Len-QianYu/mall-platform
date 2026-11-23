@@ -112,6 +112,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Integer updateAvatar(Integer id, String avatarUrl) {
+        return this.userMapper.update(
+            Wrappers.<UserEntity>lambdaUpdate()
+                .set(UserEntity::getAvatarUrl, avatarUrl)
+                .eq(UserEntity::getId, id)
+        );
+    }
+
+    @Override
     public Integer updatePassword(Integer id, String password) {
         // 和注册一样，数据库只存 BCrypt 哈希
         return this.userMapper.update(

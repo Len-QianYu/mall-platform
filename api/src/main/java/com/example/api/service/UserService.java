@@ -32,6 +32,9 @@ public interface UserService {
     // 用户改自己的资料，返回受影响行数（0 表示用户不存在）
     Integer updateProfile(Integer id, ProfileRequests.Update profile);
 
+    // 上传后单独保存头像，返回受影响行数（0 表示用户不存在）
+    Integer updateAvatar(Integer id, String avatarUrl);
+
     // 改密码：传入明文，在此加密，返回受影响行数（0 表示用户不存在）
     Integer updatePassword(Integer id, String password);
 

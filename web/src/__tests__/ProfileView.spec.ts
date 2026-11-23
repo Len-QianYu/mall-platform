@@ -1,16 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { ElOption, ElSelect } from 'element-plus'
+import { ElAvatar, ElOption, ElSelect } from 'element-plus'
 import type { ApiResult, User } from '@/types/api'
 import { useUserStore } from '@/stores/user'
 import ProfileView from '@/views/shop/ProfileView.vue'
+import ImageUploader from '@/components/ImageUploader.vue'
+
+type ProfileResponse = { data: ApiResult<{ url?: string }> }
 
 const { getProfile, postProfile } = vi.hoisted(() => ({
   getProfile: vi.fn<(url: string) => Promise<{ data: ApiResult<{ user: User }> }>>(),
   postProfile:
-    vi.fn<(url: string, fields: Record<string, unknown>) => Promise<{ data: ApiResult }>>(),
+    vi.fn<(url: string, fields: Record<string, unknown> | FormData) => Promise<ProfileResponse>>(),
 }))
 vi.mock('@/utils/request', () => ({ default: { get: getProfile, post: postProfile } }))
 enableAutoUnmount(afterEach)
@@ -53,17 +56,20 @@ const mountProfile = async (admin = true, query: Record<string, string> = {}) =>
       plugins: [pinia, router],
       stubs: {
         ElCard: { template: '<div><slot /></div>' },
-        ImageUploader: {
-          name: 'ImageUploader',
-          props: ['modelValue'],
-          emits: ['update:modelValue'],
-          template: '<div class="avatar-uploader-stub" />',
-        },
       },
     },
   })
   await flushPromises()
   return { wrapper, store, router }
+}
+
+const chooseAvatar = async (wrapper: VueWrapper) => {
+  const file = new File([new Uint8Array(32)], 'avatar.png', { type: 'image/png' })
+  const input = wrapper.get<HTMLInputElement>('input[type="file"]')
+  Object.defineProperty(input.element, 'files', { configurable: true, value: [file] })
+  await input.trigger('change')
+  await flushPromises()
+  return file
 }
 
 describe('personal information page', () => {
@@ -93,7 +99,86 @@ describe('personal information page', () => {
     expect(wrapper.find('.side-links').exists()).toBe(false)
   })
 
-  it('saves editable profile fields and updates the avatar while preserving token and role', async () => {
+  it.each([true, false])(
+    'updates the avatar after upload without saving invalid profile edits or returning to checkout (admin: %s)',
+    async (admin) => {
+      const { wrapper, store, router } = await mountProfile(admin, {
+        redirect: '/checkout?productId=11&quantity=2',
+      })
+      const inputs = wrapper.get('.profile-form').findAll('input.el-input__inner')
+      await inputs[1]!.setValue('未保存的名字')
+      await inputs[2]!.setValue('invalid-email')
+
+      const input = wrapper.get<HTMLInputElement>('input[type="file"]')
+      const openFilePicker = vi.spyOn(input.element, 'click')
+      await wrapper.get('.avatar-trigger').trigger('click')
+      expect(openFilePicker).toHaveBeenCalledOnce()
+
+      let complete: (result: ProfileResponse) => void = () => undefined
+      postProfile.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            complete = resolve
+          }),
+      )
+      const file = await chooseAvatar(wrapper)
+
+      expect(postProfile).toHaveBeenCalledOnce()
+      expect(postProfile).toHaveBeenCalledWith('/upload/avatars', expect.any(FormData))
+      expect((postProfile.mock.calls[0]![1] as FormData).get('file')).toBe(file)
+      expect(store.user?.user.avatarUrl).toBeNull()
+      for (const form of wrapper.findAll('.profile-form')) {
+        expect((form.get('button').element as HTMLButtonElement).disabled).toBe(true)
+      }
+      await wrapper.get('.profile-form button').trigger('click')
+      expect(postProfile).toHaveBeenCalledOnce()
+
+      complete({ data: { status: true, payload: { url: '/avatars/new.png' } } })
+      await flushPromises()
+
+      expect(store.user?.user.avatarUrl).toBe('/avatars/new.png')
+      expect(wrapper.getComponent(ElAvatar).props('src')).toContain('/avatars/new.png')
+      expect(JSON.parse(localStorage.getItem('user')!).user.avatarUrl).toBe('/avatars/new.png')
+      expect(store.user?.user.name).toBe(user.name)
+      expect(store.user?.user.email).toBe(user.email)
+      expect((inputs[1]!.element as HTMLInputElement).value).toBe('未保存的名字')
+      expect((inputs[2]!.element as HTMLInputElement).value).toBe('invalid-email')
+      expect(store.user?.token).toBe('profile-test-token')
+      expect(store.user?.user.role).toBe(admin ? 'admin' : 'user')
+      expect(router.currentRoute.value.name).toBe(admin ? 'admin_profile' : 'profile')
+      expect(wrapper.getComponent(ImageUploader).props('uploading')).toBe(false)
+      expect(postProfile).toHaveBeenCalledOnce()
+    },
+  )
+
+  it('keeps the previous avatar after a failed save and allows retrying the upload', async () => {
+    getProfile.mockResolvedValueOnce({
+      data: { status: true, payload: { user: { ...user, avatarUrl: '/avatars/previous.png' } } },
+    })
+    const { wrapper, store } = await mountProfile()
+    store.updateUser({ avatarUrl: '/avatars/previous.png' })
+    postProfile.mockResolvedValueOnce({
+      data: { status: false, payload: { message: '用户不存在，头像保存失败' } },
+    })
+
+    await chooseAvatar(wrapper)
+
+    expect(store.user?.user.avatarUrl).toBe('/avatars/previous.png')
+    expect(wrapper.getComponent(ElAvatar).props('src')).toContain('/avatars/previous.png')
+    expect(JSON.parse(localStorage.getItem('user')!).user.avatarUrl).toBe('/avatars/previous.png')
+    expect(wrapper.getComponent(ImageUploader).props('uploading')).toBe(false)
+    expect((wrapper.get('.profile-form button').element as HTMLButtonElement).disabled).toBe(false)
+
+    postProfile.mockResolvedValueOnce({
+      data: { status: true, payload: { url: '/avatars/retry.png' } },
+    })
+    await chooseAvatar(wrapper)
+
+    expect(store.user?.user.avatarUrl).toBe('/avatars/retry.png')
+    expect(wrapper.getComponent(ElAvatar).props('src')).toContain('/avatars/retry.png')
+  })
+
+  it('saves editable profile fields without reverting the automatically saved avatar', async () => {
     const { wrapper, store } = await mountProfile()
     const form = wrapper.get('.profile-form')
     const inputs = form.findAll('input.el-input__inner')
@@ -103,7 +188,11 @@ describe('personal information page', () => {
       .vm.$emit('update:modelValue', '/avatars/new.png')
     await flushPromises()
 
-    let complete: (result: { data: ApiResult }) => void = () => undefined
+    expect(postProfile).not.toHaveBeenCalled()
+    expect(store.user?.user.avatarUrl).toBe('/avatars/new.png')
+    expect(store.user?.user.name).toBe(user.name)
+
+    let complete: (result: ProfileResponse) => void = () => undefined
     postProfile.mockImplementationOnce(
       () =>
         new Promise((resolve) => {

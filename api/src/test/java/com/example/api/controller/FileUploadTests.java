@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -38,6 +39,7 @@ import com.example.api.exception.FileStorageExceptionHandler;
 import com.example.api.security.SecurityConfiguration;
 import com.example.api.service.FileStorageService;
 import com.example.api.service.FileStorageService.StoredFile;
+import com.example.api.service.UserService;
 
 @WebMvcTest({ UploadController.class, FileController.class })
 @Import({ SecurityConfiguration.class, FileStorageExceptionHandler.class })
@@ -55,6 +57,9 @@ class FileUploadTests {
     private FileStorageService storage;
 
     @MockitoBean
+    private UserService users;
+
+    @MockitoBean
     private JwtDecoder jwtDecoder;
 
     @Test
@@ -62,6 +67,7 @@ class FileUploadTests {
         this.mvc.perform(multipart("/upload/avatars").file(png()))
             .andExpect(status().isUnauthorized());
         verify(this.storage, never()).store(any(), any(), any());
+        verifyNoInteractions(this.users);
     }
 
     @Test
@@ -83,15 +89,37 @@ class FileUploadTests {
             .andExpect(jsonPath("$.status").value(true))
             .andExpect(jsonPath("$.payload.url").value("/images/" + FILENAME));
         verify(this.storage).store(eq("images"), any(), eq("png"));
+        verifyNoInteractions(this.users);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "user", "admin", "super_admin" })
+    void avatarUploadSavesTheUrlForTheJwtAccountWithoutChangingOtherProfileFields(String role) throws Exception {
+        when(this.storage.store(eq("avatars"), any(), eq("png"))).thenReturn("/avatars/" + FILENAME);
+        when(this.users.updateAvatar(7, "/avatars/" + FILENAME)).thenReturn(1);
+
+        this.mvc.perform(multipart("/upload/avatars").file(png())
+            .param("userId", "999").param("name", "未保存的名字")
+            .with(jwt().jwt(token -> token.claim("userId", 7L))
+                .authorities(new SimpleGrantedAuthority("ROLE_" + role))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value(true))
+            .andExpect(jsonPath("$.payload.url").value("/avatars/" + FILENAME));
+        verify(this.users).updateAvatar(7, "/avatars/" + FILENAME);
+        verify(this.users, never()).updateProfile(any(), any());
     }
 
     @Test
-    void loggedInUserCanUploadAvatar() throws Exception {
+    void missingAccountDoesNotReportAvatarUploadSuccess() throws Exception {
         when(this.storage.store(eq("avatars"), any(), eq("png"))).thenReturn("/avatars/" + FILENAME);
+        when(this.users.updateAvatar(7, "/avatars/" + FILENAME)).thenReturn(0);
 
-        this.mvc.perform(multipart("/upload/avatars").file(png()).with(jwt()))
+        this.mvc.perform(multipart("/upload/avatars").file(png())
+            .with(jwt().jwt(token -> token.claim("userId", 7L))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.payload.url").value("/avatars/" + FILENAME));
+            .andExpect(jsonPath("$.status").value(false))
+            .andExpect(jsonPath("$.payload.message").value("用户不存在，头像保存失败"))
+            .andExpect(jsonPath("$.payload.url").doesNotExist());
     }
 
     @Test
@@ -173,6 +201,7 @@ class FileUploadTests {
             .andExpect(status().isServiceUnavailable())
             .andExpect(jsonPath("$.status").value(false))
             .andExpect(jsonPath("$.payload.message").value("文件服务暂不可用，请稍后重试"));
+        verifyNoInteractions(this.users);
     }
 
     @Test

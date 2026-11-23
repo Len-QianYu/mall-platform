@@ -7,9 +7,30 @@
 
     <div v-loading="loading" class="profile-body">
       <ElCard shadow="never" class="profile-side">
-        <ElAvatar :size="88" :src="assetUrl(form.avatarUrl)">
-          <span class="avatar-letter">{{ userStore.name.charAt(0).toUpperCase() }}</span>
-        </ElAvatar>
+        <ImageUploader
+          :model-value="form.avatarUrl"
+          v-model:uploading="avatarUploading"
+          type="avatars"
+          :disabled="loading || saving || changingPassword || avatarUploading || !loaded"
+          :show-tip="false"
+          class="profile-avatar"
+          @update:model-value="onAvatarUploaded"
+        >
+          <template #trigger="{ uploading, disabled }">
+            <div
+              v-loading="uploading"
+              class="avatar-trigger"
+              :class="{ 'is-disabled': disabled }"
+              title="支持 JPG、PNG、GIF、WEBP，不超过 5MB"
+            >
+              <ElAvatar :size="88" :src="assetUrl(form.avatarUrl)">
+                <span class="avatar-letter">{{ userStore.name.charAt(0).toUpperCase() }}</span>
+              </ElAvatar>
+              <span class="avatar-action">更换头像</span>
+            </div>
+          </template>
+        </ImageUploader>
+        <div class="avatar-tip text-secondary">点击头像更换，上传后自动保存</div>
         <div class="side-name">{{ form.name || userStore.name }}</div>
         <div class="text-secondary">@{{ userStore.name }}</div>
         <div v-if="registeredAt" class="text-secondary side-meta">
@@ -32,7 +53,7 @@
               ref="profileFormRef"
               :model="form"
               :rules="profileRules"
-              :disabled="loading || saving || changingPassword || !loaded"
+              :disabled="loading || saving || changingPassword || avatarUploading || !loaded"
               label-width="80px"
               class="profile-form"
             >
@@ -103,9 +124,6 @@
                 />
                 <div class="address-note">下单时使用上方的名字、手机号和此地址。</div>
               </ElFormItem>
-              <ElFormItem label="头像" prop="avatarUrl">
-                <ImageUploader v-model="form.avatarUrl" type="avatars" :size="88" />
-              </ElFormItem>
               <ElFormItem>
                 <ElButton type="primary" :loading="saving" @click="saveProfile">
                   {{ returnToCheckout ? '保存并返回下单' : '保存' }}
@@ -119,7 +137,7 @@
               ref="passwordFormRef"
               :model="passwordForm"
               :rules="passwordRules"
-              :disabled="loading || saving || changingPassword || !loaded"
+              :disabled="loading || saving || changingPassword || avatarUploading || !loaded"
               label-width="80px"
               class="profile-form"
             >
@@ -187,6 +205,7 @@ const returnToCheckout = computed(() => {
 const activeTab = ref('profile')
 const loading = ref(false)
 const loaded = ref(false)
+const avatarUploading = ref(false)
 const registeredAt = ref<string | null>(null)
 
 // 表单里空值统一用 ''，提交时再转回 null
@@ -244,10 +263,16 @@ onMounted(async () => {
 
 const saving = ref(false)
 
+const onAvatarUploaded = (avatarUrl: string) => {
+  form.avatarUrl = avatarUrl
+  userStore.updateUser({ avatarUrl })
+  ElMessage.success('头像已更新')
+}
+
 const saveProfile = async () => {
-  if (!loaded.value || saving.value || changingPassword.value) return
+  if (!loaded.value || saving.value || changingPassword.value || avatarUploading.value) return
   const valid = await profileFormRef.value?.validate().catch(() => false)
-  if (!valid || saving.value || changingPassword.value) return
+  if (!valid || saving.value || changingPassword.value || avatarUploading.value) return
 
   const fields = {
     name: form.name.trim() || null,
@@ -313,9 +338,9 @@ const changingPassword = ref(false)
 
 // 改密成功后退出登录，用新密码重新登录
 const changePassword = async () => {
-  if (!loaded.value || saving.value || changingPassword.value) return
+  if (!loaded.value || saving.value || changingPassword.value || avatarUploading.value) return
   const valid = await passwordFormRef.value?.validate().catch(() => false)
-  if (!valid || saving.value || changingPassword.value) return
+  if (!valid || saving.value || changingPassword.value || avatarUploading.value) return
 
   changingPassword.value = true
   try {
@@ -362,6 +387,54 @@ const changePassword = async () => {
 
 .avatar-letter {
   font-size: 2rem;
+}
+
+.profile-avatar :deep(.el-upload:focus-visible) {
+  border-radius: 50%;
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 3px;
+
+  .avatar-action {
+    opacity: 1;
+  }
+}
+
+.avatar-trigger {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  border-radius: 50%;
+  cursor: pointer;
+
+  &:hover .avatar-action {
+    opacity: 1;
+  }
+
+  &.is-disabled {
+    cursor: not-allowed;
+
+    .avatar-action {
+      opacity: 0;
+    }
+  }
+}
+
+.avatar-action {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgb(0 0 0 / 45%);
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.avatar-tip {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
 }
 
 .side-name {

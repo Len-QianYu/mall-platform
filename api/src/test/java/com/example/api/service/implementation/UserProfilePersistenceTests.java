@@ -39,6 +39,37 @@ class UserProfilePersistenceTests {
     private PaymentReconciliationTask paymentReconciliationTask;
 
     @Test
+    void savesAvatarWithoutChangingSavedProfileFieldsOrCredentials() {
+        UserEntity user = new UserEntity();
+        user.setUsername("ava_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12));
+        user.setPassword("avatar-test-password");
+        assertEquals(Integer.valueOf(1), this.users.create(user));
+
+        ProfileRequests.Update profile = new ProfileRequests.Update(
+            "头像测试", "M", "avatar@example.com", "13800138000", "浙江省", "杭州市",
+            "浙江省杭州市西湖区文三路1号", "/avatars/previous.png"
+        );
+        assertEquals(Integer.valueOf(1), this.users.updateProfile(user.getId(), profile));
+        UserEntity before = this.users.fetchById(user.getId()).orElseThrow();
+
+        assertEquals(Integer.valueOf(1), this.users.updateAvatar(user.getId(), "/avatars/new.png"));
+
+        UserEntity saved = this.users.fetchById(user.getId()).orElseThrow();
+        assertEquals("/avatars/new.png", saved.getAvatarUrl());
+        assertEquals(before.getName(), saved.getName());
+        assertEquals(before.getGender(), saved.getGender());
+        assertEquals(before.getEmail(), saved.getEmail());
+        assertEquals(before.getPhone(), saved.getPhone());
+        assertEquals(before.getProvince(), saved.getProvince());
+        assertEquals(before.getCity(), saved.getCity());
+        assertEquals(before.getReceiverAddress(), saved.getReceiverAddress());
+        assertEquals(before.getUsername(), saved.getUsername());
+        assertEquals(before.getRole(), saved.getRole());
+        assertEquals(before.getStatus(), saved.getStatus());
+        assertEquals(before.getPassword(), saved.getPassword());
+    }
+
+    @Test
     void savesAndClearsLocationAndAddressWhileKeepingTheAccountIdentityAndCredentials() {
         UserEntity user = new UserEntity();
         user.setUsername("loc_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12));
