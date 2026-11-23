@@ -118,9 +118,9 @@
     v-model="drawerVisible"
     :title="form.id === null ? '新增商品' : '编辑商品'"
     size="min(520px, 100vw)"
-    :close-on-click-modal="!saving"
-    :close-on-press-escape="!saving"
-    :show-close="!saving"
+    :close-on-click-modal="!saving && !imageUploading"
+    :close-on-press-escape="!saving && !imageUploading"
+    :show-close="!saving && !imageUploading"
   >
     <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px" :disabled="saving">
       <ElFormItem label="商品名" prop="name">
@@ -170,7 +170,12 @@
         <span class="text-secondary">请通过商品列表中的“库存”操作补货或减少库存。</span>
       </ElFormItem>
       <ElFormItem label="主图" prop="mainImage">
-        <ImageUploader v-model="form.mainImage" type="images" />
+        <ImageUploader
+          v-model="form.mainImage"
+          v-model:uploading="imageUploading"
+          type="images"
+          :disabled="saving"
+        />
       </ElFormItem>
       <ElFormItem label="商品详情" prop="description">
         <ElInput v-model="form.description" type="textarea" :rows="5" placeholder="选填" />
@@ -183,8 +188,10 @@
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="saving" @click="drawerVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
+      <ElButton :disabled="saving || imageUploading" @click="drawerVisible = false">取消</ElButton>
+      <ElButton type="primary" :loading="saving" :disabled="imageUploading" @click="save">
+        保存
+      </ElButton>
     </template>
   </ElDrawer>
 
@@ -387,6 +394,7 @@ const saveStock = async () => {
 // 新增 / 编辑抽屉
 const drawerVisible = ref(false)
 const saving = ref(false)
+const imageUploading = ref(false)
 const formRef = ref<FormInstance>()
 
 const form = reactive({
@@ -430,10 +438,10 @@ const openDrawer = (product?: Product) => {
 }
 
 const save = async () => {
-  if (!formRef.value || saving.value) return
+  if (!formRef.value || saving.value || imageUploading.value) return
 
   const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
+  if (!valid || saving.value || imageUploading.value) return
 
   const creating = form.id === null
   saving.value = true

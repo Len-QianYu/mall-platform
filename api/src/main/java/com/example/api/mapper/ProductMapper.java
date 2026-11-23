@@ -16,6 +16,16 @@ public interface ProductMapper extends BaseMapper<ProductEntity> {
     @Select("SELECT * FROM product WHERE id = #{id} FOR UPDATE")
     ProductEntity selectByIdForUpdate(@Param("id") Integer id);
 
+    // 商品、头像、历史订单和通知都可能引用同一图片；最后一个引用释放后才能清理对象。
+    @Select("""
+        SELECT EXISTS (SELECT 1 FROM product WHERE main_image = #{imageUrl})
+            OR EXISTS (SELECT 1 FROM user WHERE avatar_url = #{imageUrl})
+            OR EXISTS (SELECT 1 FROM order_item WHERE product_image = #{imageUrl})
+            OR EXISTS (SELECT 1 FROM product_notification WHERE product_image = #{imageUrl})
+            OR EXISTS (SELECT 1 FROM product_notification_event WHERE product_image = #{imageUrl})
+        """)
+    boolean isImageReferenced(@Param("imageUrl") String imageUrl);
+
     // 已用过的全部分类（去重）
     @Select("SELECT DISTINCT category FROM product ORDER BY category")
     List<String> selectCategories();

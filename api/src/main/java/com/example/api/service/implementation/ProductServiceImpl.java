@@ -1,5 +1,6 @@
 package com.example.api.service.implementation;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.api.configuration.CacheConfiguration;
 import com.example.api.entity.ProductEntity;
 import com.example.api.mapper.ProductMapper;
+import com.example.api.service.FileStorageService;
 import com.example.api.service.ProductService;
 import com.example.api.service.ProductNotificationEventRecorder;
 import com.example.api.utils.Pagination;
@@ -38,11 +40,14 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductNotificationEventRecorder notificationEvents;
 
+    private final FileStorageService fileStorageService;
+
     public ProductServiceImpl(ProductMapper productMapper, CacheManager cacheManager,
-        ProductNotificationEventRecorder notificationEvents) {
+        ProductNotificationEventRecorder notificationEvents, FileStorageService fileStorageService) {
         this.productMapper = productMapper;
         this.cacheManager = cacheManager;
         this.notificationEvents = notificationEvents;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -141,6 +146,9 @@ public class ProductServiceImpl implements ProductService {
         );
         if (rows > 0) this.notificationEvents.recordChanges(before, product);
         this.evictCatalog(product.getId());
+        if (rows > 0) {
+            this.deleteOldImageAfterCommit(product.getId(), before.getMainImage(), product.getMainImage());
+        }
         return rows;
     }
 
@@ -242,6 +250,31 @@ public class ProductServiceImpl implements ProductService {
             @Override
             public void afterCommit() {
                 quietly.run();
+            }
+        });
+    }
+
+    // 新图已由上传接口存入 RustFS；事务提交后清理旧图，回滚时不删除任何旧对象。
+    private void deleteOldImageAfterCommit(Integer productId, String oldImage, String newImage) {
+        if (oldImage == null || !oldImage.startsWith("/images/") || Objects.equals(oldImage, newImage)) return;
+
+        Runnable cleanup = () -> {
+            try {
+                if (!this.productMapper.isImageReferenced(oldImage)) {
+                    this.fileStorageService.delete(oldImage);
+                }
+            } catch (IOException | RuntimeException error) {
+                log.warn("商品 {} 已更新，但旧主图 {} 清理失败", productId, oldImage, error);
+            }
+        };
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            cleanup.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                cleanup.run();
             }
         });
     }

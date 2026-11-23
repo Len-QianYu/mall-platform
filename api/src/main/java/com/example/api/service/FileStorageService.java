@@ -17,6 +17,9 @@ public interface FileStorageService {
     // 文件不存在时返回空；调用方负责关闭返回的流。
     Optional<StoredFile> load(String directory, String filename) throws IOException;
 
+    // 删除本服务的相对访问路径对应的对象；外链和不合法路径忽略，已不存在的对象视为删除成功。
+    void delete(String url) throws IOException;
+
     record StoredFile(
         InputStream content,
         String contentType,

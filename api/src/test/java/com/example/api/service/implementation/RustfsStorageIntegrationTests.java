@@ -86,6 +86,10 @@ class RustfsStorageIntegrationTests {
                     } finally {
                         anonymous.disconnect();
                     }
+
+                    storage.delete(url);
+                    assertTrue(storage.load(directory, filename).isEmpty());
+                    storage.delete(url);
                 }
                 assertTrue(storage.load("images", UUID.randomUUID() + ".png").isEmpty());
                 assertTrue(storage.load("images", "../private.png").isEmpty());

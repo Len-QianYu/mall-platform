@@ -82,6 +82,26 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    @Override
+    public void delete(String url) throws IOException {
+        if (url == null) return;
+        String[] path = url.split("/", -1);
+        if (path.length != 3 || !path[0].isEmpty()
+            || !UploadConfiguration.DIRECTORIES.contains(path[1])
+            || !path[2].matches("[A-Za-z0-9_-]+\\.(jpg|png|gif|webp)")) {
+            return;
+        }
+
+        try {
+            this.client.deleteObject(request -> request.bucket(this.bucket).key(path[1] + "/" + path[2]));
+        } catch (S3Exception exception) {
+            if (exception.statusCode() == 404) return;
+            throw new IOException("删除 RustFS 文件失败", exception);
+        } catch (SdkException exception) {
+            throw new IOException("删除 RustFS 文件失败", exception);
+        }
+    }
+
     // 首次上传时初始化桶；RustFS 暂未启动不影响后端启动，失败后下次上传会再次尝试。
     private synchronized void ensureBucket() {
         if (this.bucketReady) {

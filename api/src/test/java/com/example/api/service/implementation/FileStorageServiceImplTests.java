@@ -25,6 +25,9 @@ import java.time.Instant;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -36,6 +39,8 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.CreateBucketResponse;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
@@ -61,6 +66,7 @@ class FileStorageServiceImplTests {
         doReturn(CreateBucketResponse.builder().build()).when(this.client).createBucket(any(CreateBucketRequest.class));
         doReturn(PutObjectResponse.builder().build()).when(this.client)
             .putObject(any(PutObjectRequest.class), any(RequestBody.class));
+        doReturn(DeleteObjectResponse.builder().build()).when(this.client).deleteObject(any(DeleteObjectRequest.class));
     }
 
     @Test
@@ -232,6 +238,52 @@ class FileStorageServiceImplTests {
         doThrow(SdkClientException.create("offline")).when(this.client).getObject(any(GetObjectRequest.class));
 
         assertThrows(IOException.class, () -> this.storage.load("images", "test.jpg"));
+    }
+
+    @Test
+    void deletesTheObjectKeyFromItsRelativeImageUrlWithoutCreatingABucket() throws Exception {
+        this.storage.delete("/images/previous.webp");
+
+        ArgumentCaptor<DeleteObjectRequest> request = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        verify(this.client).deleteObject(request.capture());
+        assertEquals(BUCKET, request.getValue().bucket());
+        assertEquals("images/previous.webp", request.getValue().key());
+        verify(this.client, never()).headBucket(any(HeadBucketRequest.class));
+        verify(this.client, never()).createBucket(any(CreateBucketRequest.class));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = { "", "images/a.png", "/private/a.png", "/images/../secret.png",
+        "/images/a.png?version=1", "/images/a.png#fragment", "/images/a.svg", "//images/a.png",
+        "https://example.com/images/a.png", "/images/%2e%2e.png" })
+    void unmanagedOrInvalidDeletionUrlsDoNotReachRustfs(String url) throws Exception {
+        this.storage.delete(url);
+
+        verifyNoInteractions(this.client);
+    }
+
+    @Test
+    void deletingAnAlreadyMissingObjectIsSuccessful() throws Exception {
+        doThrow(s3Error(404)).when(this.client).deleteObject(any(DeleteObjectRequest.class));
+
+        this.storage.delete("/images/missing.png");
+
+        verify(this.client).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void failedDeletionKeepsTheStorageError() {
+        doThrow(SdkClientException.create("offline")).when(this.client).deleteObject(any(DeleteObjectRequest.class));
+
+        assertThrows(IOException.class, () -> this.storage.delete("/images/previous.png"));
+    }
+
+    @Test
+    void deniedDeletionKeepsTheStorageError() {
+        doThrow(s3Error(403)).when(this.client).deleteObject(any(DeleteObjectRequest.class));
+
+        assertThrows(IOException.class, () -> this.storage.delete("/images/previous.png"));
     }
 
     private static MockMultipartFile file() {
