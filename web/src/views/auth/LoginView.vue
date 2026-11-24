@@ -26,7 +26,6 @@
       <div class="login-form-box">
         <!-- 主题切换按钮：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
         <div class="theme-toggle-button_box">
-          <LanguageSwitch />
           <button
             class="change-theme"
             @click="toggleTheme"
@@ -149,7 +148,6 @@ import {
   saveRememberedAccount,
 } from '@/utils/rememberAccount'
 import ModerationIcon from '@/assets/svg/moderation-icon.svg?component'
-import LanguageSwitch from '@/components/LanguageSwitch.vue'
 // npm install bootstrap-icons
 // 引入 Bootstrap Icons
 import 'bootstrap-icons/font/bootstrap-icons.css'

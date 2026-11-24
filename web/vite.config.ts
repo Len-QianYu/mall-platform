@@ -25,5 +25,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  optimizeDeps: {
+    // 按需注入样式组件
+    include: ['element-plus/es/components/check-tag/style/css'],
+  },
   envPrefix: 'APP_',
 })

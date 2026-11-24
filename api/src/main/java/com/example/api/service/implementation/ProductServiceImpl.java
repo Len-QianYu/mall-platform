@@ -156,7 +156,7 @@ public class ProductServiceImpl implements ProductService {
     public boolean adjustStock(Integer id, Integer delta) {
         if (delta == null || delta == 0) return false;
         boolean adjusted = this.productMapper.adjustStock(id, delta) > 0;
-        if (adjusted) this.evictDetail(id);
+        if (adjusted) this.evictStock(id);
         return adjusted;
     }
 
@@ -222,6 +222,14 @@ public class ProductServiceImpl implements ProductService {
             this.cache(CacheConfiguration.PRODUCT_LIST).clear();
             this.cache(CacheConfiguration.PRODUCT_COUNT).clear();
             this.cache(CacheConfiguration.PRODUCT_CATEGORIES).clear();
+        });
+    }
+
+    // 后台调整库存（含补货）会改变首页、分类和搜索列表里的售罄状态，提交后删详情并清空全部列表缓存。
+    private void evictStock(Integer id) {
+        this.evictAfterCommit(() -> {
+            this.cache(CacheConfiguration.PRODUCT_DETAIL).evict(id);
+            this.cache(CacheConfiguration.PRODUCT_LIST).clear();
         });
     }
 

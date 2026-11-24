@@ -26,7 +26,6 @@
       <div class="register-form-box">
         <!-- 主题切换按钮：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
         <div class="theme-toggle-button_box">
-          <LanguageSwitch />
           <button
             class="change-theme"
             @click="toggleTheme"
@@ -146,7 +145,6 @@
 
 <script setup lang="ts">
 import { t, formLabelWidth } from '@/i18n'
-import LanguageSwitch from '@/components/LanguageSwitch.vue'
 import { ref, reactive, computed, watch } from 'vue'
 import { isAxiosError } from 'axios'
 import {
