@@ -8,8 +8,12 @@
     </div>
 
     <div v-loading="loading" class="checkout-body">
+      <div v-if="userStore.isAdmin" class="admin-purchase-notice" role="alert">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <span>{{ t(ADMIN_PURCHASE_NOTICE) }}</span>
+      </div>
       <template v-if="items.length">
-        <ElCard shadow="never" class="checkout-card">
+        <ElCard v-if="!userStore.isAdmin" shadow="never" class="checkout-card">
           <template #header>
             <div class="card-header">
               <span class="card-title">{{ t('收货信息') }}</span>
@@ -98,7 +102,8 @@
             type="primary"
             size="large"
             :loading="submitting"
-            :disabled="loading || addressLoading || !hasShippingAddress"
+            :disabled="userStore.isAdmin || loading || addressLoading || !hasShippingAddress"
+            :title="userStore.isAdmin ? t(ADMIN_PURCHASE_NOTICE) : undefined"
             @click="submit"
           >
             {{ t('提交订单') }}
@@ -154,6 +159,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+const ADMIN_PURCHASE_NOTICE = '当前为管理员身份，无法进行购买'
 
 // 地址栏带 productId 是立即购买，否则结算购物车里勾选的商品
 const buyNowProductId = typeof route.query.productId === 'string' ? route.query.productId : ''
@@ -274,7 +280,7 @@ const fetchCartItems = async () => {
 
 // 进入下单页时读取最新资料，避免使用登录缓存中的旧地址
 const fetchShippingAddress = async () => {
-  if (addressLoading.value) return
+  if (userStore.isAdmin || addressLoading.value) return
   addressLoading.value = true
   addressError.value = ''
   shippingAddress.value = null
@@ -354,6 +360,7 @@ const requestIdFor = (content: string) => {
 }
 
 const submit = async () => {
+  if (userStore.isAdmin) return
   if (loading.value || addressLoading.value || submitting.value || !items.value.length) return
   const receiver = shippingAddress.value
   if (!receiver || !hasShippingAddress.value) {
@@ -425,6 +432,25 @@ const submit = async () => {
 
 .checkout-body {
   min-height: 300px;
+}
+
+.admin-purchase-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--el-color-warning-light-8);
+  border-radius: 8px;
+  background-color: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+  font-size: 0.875rem;
+  line-height: 1.6;
+
+  .bi {
+    flex-shrink: 0;
+    font-size: 1rem;
+  }
 }
 
 .checkout-card {

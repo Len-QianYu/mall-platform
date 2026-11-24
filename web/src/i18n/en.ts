@@ -357,6 +357,7 @@ export const english: Record<string, string> = {
   确认订单: 'Review order',
   返回商品详情页面: 'Back to product details',
   收货信息: 'Shipping information',
+  '当前为管理员身份，无法进行购买': 'Administrator accounts cannot make purchases',
   管理收货地址: 'Manage shipping address',
   收货人未填写: 'Recipient not provided',
   手机号未填写: 'Phone number not provided',

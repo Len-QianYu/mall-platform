@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { ElButton } from 'element-plus'
+import { setLocale } from '@/i18n'
 import type { ApiResult, CartItem, Order, Product, SeckillActivity, User } from '@/types/api'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
@@ -101,12 +103,19 @@ const defaultGet = async (url: string) => {
 
 const mountCheckout = async (
   query: Record<string, string> = { productId: '11', quantity: '2' },
+  account: Partial<User> = {},
 ) => {
   const pinia = createPinia()
   const store = useUserStore(pinia)
   store.login({
     token: 'checkout-test-token',
-    user: { ...user, name: '旧收货人', phone: '13800138000', receiverAddress: '旧收货地址' },
+    user: {
+      ...user,
+      name: '旧收货人',
+      phone: '13800138000',
+      receiverAddress: '旧收货地址',
+      ...account,
+    },
   })
   const router = createRouter({
     history: createMemoryHistory(),
@@ -158,6 +167,7 @@ describe('checkout shipping information', () => {
     serverTime: 1795320000000,
   }
   beforeEach(() => {
+    setLocale('zh-CN')
     localStorage.removeItem('user')
     sessionStorage.clear()
     vi.stubEnv('APP_BASE_URL', 'http://localhost:8080')
@@ -168,6 +178,7 @@ describe('checkout shipping information', () => {
   })
 
   afterEach(() => {
+    setLocale('zh-CN')
     localStorage.removeItem('user')
     sessionStorage.clear()
     vi.unstubAllEnvs()
@@ -184,6 +195,74 @@ describe('checkout shipping information', () => {
     expect(wrapper.get('.remark-form input').attributes('placeholder')).toBe('选填，给商家的留言')
     expect(wrapper.get('.submit-button').attributes('disabled')).toBeUndefined()
     expect(store.user?.user.receiverAddress).toBe(user.receiverAddress)
+  })
+
+  it.each(['admin', 'super_admin'] as const)(
+    'shows the purchase restriction and disables checkout for %s accounts',
+    async (role) => {
+      const { wrapper } = await mountCheckout(undefined, {
+        role,
+        name: null,
+        phone: null,
+        receiverAddress: null,
+      })
+
+      expect(wrapper.get('.admin-purchase-notice').text()).toBe('当前为管理员身份，无法进行购买')
+      expect(wrapper.get('.admin-purchase-notice').attributes('role')).toBe('alert')
+      expect(wrapper.find('.saved-address').exists()).toBe(false)
+      expect(wrapper.find('.address-hint').exists()).toBe(false)
+      expect(wrapper.find('.address-link').exists()).toBe(false)
+      expect(wrapper.find('.remark-form').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('收货人未填写')
+      expect(wrapper.text()).not.toContain('手机号未填写')
+      expect(wrapper.text()).not.toContain('尚未设置收货地址')
+      expect(getCheckout).not.toHaveBeenCalledWith('/user/profile')
+      expect(wrapper.get('.submit-button').attributes('disabled')).toBeDefined()
+      await wrapper.get('.submit-button').trigger('click')
+      await flushPromises()
+      expect(postCheckout).not.toHaveBeenCalled()
+    },
+  )
+
+  it('prevents submission after becoming an administrator even with a valid loaded address', async () => {
+    const { wrapper, store } = await mountCheckout()
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeUndefined()
+
+    store.updateUser({ role: 'admin' })
+    await flushPromises()
+
+    expect(wrapper.get('.admin-purchase-notice').text()).toBe('当前为管理员身份，无法进行购买')
+    expect(wrapper.find('.saved-address').exists()).toBe(false)
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeDefined()
+    wrapper.get('.submit-bar').getComponent(ElButton).vm.$emit('click', new MouseEvent('click'))
+    await flushPromises()
+    expect(postCheckout).not.toHaveBeenCalled()
+  })
+
+  it('keeps the administrator notice visible when no items are available for checkout', async () => {
+    getCheckout.mockImplementation((url) =>
+      url === '/cart' ? Promise.resolve(response({ items: [] })) : defaultGet(url),
+    )
+    const { wrapper } = await mountCheckout({}, { role: 'admin' })
+
+    expect(wrapper.get('.admin-purchase-notice').text()).toBe('当前为管理员身份，无法进行购买')
+    expect(wrapper.find('.submit-bar').exists()).toBe(false)
+    expect(getCheckout).not.toHaveBeenCalledWith('/user/profile')
+    expect(postCheckout).not.toHaveBeenCalled()
+  })
+
+  it('translates the administrator notice when switching the checkout page to English', async () => {
+    const { wrapper } = await mountCheckout(undefined, { role: 'admin' })
+    setLocale('en')
+    await flushPromises()
+
+    expect(wrapper.get('.admin-purchase-notice').text()).toBe(
+      'Administrator accounts cannot make purchases',
+    )
+    expect(wrapper.get('.submit-button').attributes('title')).toBe(
+      'Administrator accounts cannot make purchases',
+    )
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeDefined()
   })
 
   it('submits a buy-now order with the displayed address and optional remark', async () => {
