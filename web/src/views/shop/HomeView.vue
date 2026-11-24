@@ -94,7 +94,7 @@
         <p>
           {{
             t(
-              '在 Prompt Pals，发现 Claude、DeepSeek、GPT 与 Grok 玩偶， 把喜欢的 AI 伙伴带进你的日常。',
+              '在 Prompt Pals，发现 Claude、DeepSeek、GPT 与 Gemini 玩偶， 把喜欢的 AI 伙伴带进你的日常。',
             )
           }}
         </p>
@@ -118,7 +118,7 @@ import { PLUSH_CATEGORIES } from '@/constants/productCategories'
 import claudeImage from '@/assets/ai-pals/claude/claude分类.png'
 import deepseekImage from '@/assets/ai-pals/deepseek/deepseek分类.png'
 import gptImage from '@/assets/ai-pals/gpt/gpt分类.png'
-import grokImage from '@/assets/ai-pals/grok/gork分类.png'
+import geminiImage from '@/assets/ai-pals/gemini/gemini分类 .png'
 import brandImage from '@/assets/images/five pal.png'
 
 const router = useRouter()
@@ -127,7 +127,7 @@ const categoryImages = {
   claude: claudeImage,
   deepseek: deepseekImage,
   gpt: gptImage,
-  grok: grokImage,
+  gemini: geminiImage,
 }
 const hotProducts = ref<Product[]>([])
 const loadingHot = ref(true)
@@ -300,7 +300,7 @@ onMounted(fetchHotProducts)
     --category-background: #e8eddf;
   }
 
-  &.grok {
+  &.gemini {
     --category-background: #e8e5f4;
   }
 

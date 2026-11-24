@@ -320,8 +320,8 @@ export const english: Record<string, string> = {
   '注册成功，请登录': 'Account created. Please sign in.',
   '请求超时，请稍后重试': 'Request timed out. Please try again later.',
   '小小玩偶，大大陪伴。': 'Little plush pals, lasting companionship.',
-  'Prompt Pals 是一个以 AI 玩偶为主题的线上商城。你可以在这里发现 Claude、DeepSeek、GPT 与 Grok 系列玩偶，把喜欢的 AI 伙伴带进日常。我们把商品浏览、收藏、购物车和订单管理汇集在一起， 希望让你从挑选心仪玩偶到完成购买，都能拥有清晰、顺手的体验。':
-    'Prompt Pals is an online shop for AI-inspired plush companions. Discover Claude, DeepSeek, GPT and Grok plushies and bring your favorite AI pal into everyday life. Browse products, save favorites, manage your cart and track orders in one place, with an easy shopping experience from discovery to checkout.',
+  'Prompt Pals 是一个以 AI 玩偶为主题的线上商城。你可以在这里发现 Claude、DeepSeek、GPT 与 Gemini 系列玩偶，把喜欢的 AI 伙伴带进日常。我们把商品浏览、收藏、购物车和订单管理汇集在一起， 希望让你从挑选心仪玩偶到完成购买，都能拥有清晰、顺手的体验。':
+    'Prompt Pals is an online shop for AI-inspired plush companions. Discover Claude, DeepSeek, GPT and Gemini plushies and bring your favorite AI pal into everyday life. Browse products, save favorites, manage your cart and track orders in one place, with an easy shopping experience from discovery to checkout.',
   网站介绍: 'About this website',
   '从这里，发现你的下一位伙伴': 'Find your next companion here',
   '在首页通过玩偶分类与热销榜单发现喜欢的伙伴，或进入“全部商品”，通过分类、关键词和排序找到适合自己的选择。 商品详情展示价格、库存和商品介绍，方便你了解每件商品，再决定是否加入购物车。':
@@ -411,8 +411,8 @@ export const english: Record<string, string> = {
   浏览全部玩偶: 'Browse all plushies',
   五只玩偶并排坐在一起: 'Five plush companions sitting together',
   '小小玩偶，大大陪伴': 'Little plush pals, lasting companionship',
-  '在 Prompt Pals，发现 Claude、DeepSeek、GPT 与 Grok 玩偶， 把喜欢的 AI 伙伴带进你的日常。':
-    'Discover Claude, DeepSeek, GPT and Grok plushies at Prompt Pals, and bring your favorite AI companion into everyday life.',
+  '在 Prompt Pals，发现 Claude、DeepSeek、GPT 与 Gemini 玩偶， 把喜欢的 AI 伙伴带进你的日常。':
+    'Discover Claude, DeepSeek, GPT and Gemini plushies at Prompt Pals, and bring your favorite AI companion into everyday life.',
   了解我们: 'Meet Prompt Pals',
   '热销玩偶加载失败，请重试': 'Could not load bestsellers. Please try again.',
   '热销玩偶加载失败，请检查网络后重试':
@@ -569,9 +569,9 @@ export const english: Record<string, string> = {
   gpt玩偶: 'GPT plushies',
   'GPT 玩偶': 'GPT plushies',
   '随时相伴，分享日常': 'Always by your side, sharing everyday moments',
-  grok玩偶: 'Grok plushies',
-  'Grok 玩偶': 'Grok plushies',
-  '自在有趣，自有个性': 'Playful, easygoing and full of character',
+  gemini玩偶: 'Gemini plushies',
+  'Gemini 玩偶': 'Gemini plushies',
+  '多彩灵感，创意相伴': 'Colorful inspiration, creative companionship',
   更新收藏失败: 'Could not update favorites',
   获取通知连接失败: 'Could not connect to notifications',
   按天展示销售额和新增订单数的趋势图: 'Daily sales and new order trends',

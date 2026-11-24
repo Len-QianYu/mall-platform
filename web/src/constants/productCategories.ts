@@ -18,10 +18,10 @@ export const PLUSH_CATEGORIES = [
     description: '随时相伴，分享日常',
   },
   {
-    key: 'grok',
-    name: 'grok玩偶',
-    title: 'Grok 玩偶',
-    description: '自在有趣，自有个性',
+    key: 'gemini',
+    name: 'gemini玩偶',
+    title: 'Gemini 玩偶',
+    description: '多彩灵感，创意相伴',
   },
 ] as const
 
