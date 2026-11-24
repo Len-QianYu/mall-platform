@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, disposePinia, setActivePinia, type Pinia } from 'pinia'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { setLocale } from '@/i18n'
 import { useUserStore } from '@/stores/user'
 import { useNotificationsStore } from '@/stores/notifications'
 import NotificationsView from '@/views/shop/NotificationsView.vue'
@@ -60,9 +61,13 @@ const mountPage = async (header = false) => {
       { path: '/products/:id', name: 'product_detail', component: { template: '<p>product</p>' } },
     ],
   })
-  await router.push('/notifications')
+  await router.push(header ? '/' : '/notifications')
   const wrapper = mount(header ? ShopHeader : NotificationsView, {
-    global: { plugins: [pinia, router], stubs: { ElImage: true, ElPagination: true } },
+    attachTo: document.body,
+    global: {
+      plugins: [pinia, router],
+      stubs: { ElImage: true, ElPagination: true, teleport: true },
+    },
   })
   await flushPromises()
   return { wrapper, router }
@@ -71,6 +76,7 @@ const mountPage = async (header = false) => {
 describe('notification center', () => {
   beforeEach(() => {
     localStorage.clear()
+    setLocale('zh-CN')
     pinia = createPinia()
     setActivePinia(pinia)
     useUserStore().login({ token: 'test-token', user: { id: 7, username: 'test', role: 'user' } })
@@ -107,6 +113,7 @@ describe('notification center', () => {
     })
   })
   afterEach(() => {
+    setLocale('zh-CN')
     disposePinia(pinia)
   })
 
@@ -168,11 +175,189 @@ describe('notification center', () => {
     expect(wrapper.get('.browse-link').attributes('href')).toBe('/products')
   })
 
-  it('places the bell between the theme and cart buttons and displays unread notifications', async () => {
+  it('opens recent notifications from the aligned toolbar without navigating away', async () => {
     useNotificationsStore().unreadCount = 3
-    const { wrapper } = await mountPage(true)
-    expect(wrapper.find('.header-btn + .notification-link + .cart-link').exists()).toBe(true)
-    expect(wrapper.get('.notification-link').attributes('href')).toBe('/notifications')
+    const { wrapper, router } = await mountPage(true)
+    expect(wrapper.find('.language-switch + .notification-link + .cart-link').exists()).toBe(true)
     expect(wrapper.get('.notification-link .el-badge__content').text()).toBe('3')
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('.notification-dropdown').exists()).toBe(false)
+
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('index')
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.findAll('.dropdown-notification-item')).toHaveLength(3)
+    expect(wrapper.get('.notification-dropdown').text()).toContain('3 条未读')
+    expect(get).toHaveBeenCalledWith('/notification', {
+      params: { page: 1, pageSize: 8, unreadOnly: false },
+    })
+  })
+
+  it('filters unread notifications and marks one read while keeping the dropdown open', async () => {
+    const { wrapper, router } = await mountPage(true)
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    await wrapper.findAll('.dropdown-tabs [role="tab"]')[1]?.trigger('click')
+    await flushPromises()
+    await wrapper.get('.dropdown-mark-read').trigger('click')
+    await flushPromises()
+
+    expect(post).toHaveBeenCalledWith('/notification/read', { id: 1 })
+    expect(wrapper.findAll('.dropdown-notification-item')).toHaveLength(2)
+    expect(wrapper.get('.notification-link .el-badge__content').text()).toBe('2')
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('true')
+    expect(router.currentRoute.value.name).toBe('index')
+  })
+
+  it('marks all dropdown notifications read and preserves their history', async () => {
+    const { wrapper } = await mountPage(true)
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    await wrapper.get('.dropdown-read-all').trigger('click')
+    await flushPromises()
+
+    expect(post).toHaveBeenCalledWith('/notification/read-all')
+    expect(wrapper.findAll('.dropdown-notification-item')).toHaveLength(3)
+    expect(wrapper.findAll('.dropdown-notification-item.unread')).toHaveLength(0)
+    expect(useNotificationsStore().unreadCount).toBe(0)
+    expect(wrapper.get('.dropdown-read-all').attributes('disabled')).toBeDefined()
+  })
+
+  it('marks a dropdown notification read before opening its product and closes the dropdown', async () => {
+    const { wrapper, router } = await mountPage(true)
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    await wrapper.findAll('.dropdown-product')[1]?.trigger('click')
+    await flushPromises()
+
+    expect(post).toHaveBeenCalledWith('/notification/read', { id: 2 })
+    expect(router.currentRoute.value.name).toBe('product_detail')
+    expect(router.currentRoute.value.params.id).toBe('11')
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
+  })
+
+  it('keeps a failed read notification visible without opening its product', async () => {
+    const { wrapper, router } = await mountPage(true)
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    post.mockRejectedValueOnce(new Error('标记已读失败'))
+    await wrapper.get('.dropdown-product').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('index')
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.findAll('.dropdown-notification-item.unread')).toHaveLength(3)
+  })
+
+  it('refreshes the dropdown after a live notification and avoids loading lists while closed', async () => {
+    const { wrapper } = await mountPage(true)
+    const store = useNotificationsStore()
+    get.mockClear()
+    store.revision += 1
+    await flushPromises()
+    expect(get).not.toHaveBeenCalled()
+
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    items.unshift({ ...notification(4, 'PRICE_DROP'), productName: '刚降价的玩偶' })
+    store.revision += 1
+    await flushPromises()
+
+    expect(wrapper.findAll('.dropdown-notification-item')).toHaveLength(4)
+    expect(wrapper.get('.notification-dropdown').text()).toContain('刚降价的玩偶')
+  })
+
+  it('shows a sign-in prompt without requesting private notifications for guests', async () => {
+    useUserStore().logout()
+    const { wrapper, router } = await mountPage(true)
+    get.mockClear()
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.dropdown-login').text()).toContain('登录后查看消息通知')
+    expect(get).not.toHaveBeenCalled()
+    await wrapper.get('.dropdown-login a').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/')
+  })
+
+  it('discards a delayed notification response after logging out', async () => {
+    let complete!: (result: MockResponse) => void
+    const original = get.getMockImplementation()!
+    get.mockImplementation((url, options) =>
+      url === '/notification'
+        ? new Promise((resolve) => {
+            complete = resolve
+          })
+        : original(url, options),
+    )
+    const { wrapper } = await mountPage(true)
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toContain('正在加载通知')
+
+    useUserStore().logout()
+    complete(response({ notifications: items }))
+    await flushPromises()
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('.dropdown-login').exists()).toBe(true)
+    expect(wrapper.find('.dropdown-notification-item').exists()).toBe(false)
+  })
+
+  it('retries failed dropdown loads and opens the full notification history from its footer', async () => {
+    const original = get.getMockImplementation()!
+    let fail = true
+    get.mockImplementation(async (url, options) => {
+      if (url === '/notification' && fail) {
+        fail = false
+        throw new Error('offline')
+      }
+      return original(url, options)
+    })
+    const { wrapper, router } = await mountPage(true)
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('.dropdown-error').text()).toContain('加载通知失败')
+    await wrapper.get('.dropdown-error button').trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('.dropdown-notification-item')).toHaveLength(3)
+    await wrapper.get('.dropdown-view-all').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('notifications')
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
+  })
+
+  it('closes the dropdown with Escape or a click outside', async () => {
+    const { wrapper } = await mountPage(true)
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    await wrapper.get('.notification-dropdown').trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
+
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    await wrapper.get('.logo-link').trigger('mousedown')
+    await wrapper.get('.logo-link').trigger('mouseup')
+    await flushPromises()
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
+  })
+
+  it('translates the open notification dropdown without translating product data', async () => {
+    const { wrapper } = await mountPage(true)
+    await wrapper.get('.notification-link').trigger('click')
+    await flushPromises()
+    setLocale('en')
+    await flushPromises()
+
+    expect(wrapper.get('.dropdown-heading').text()).toContain('3 unread')
+    expect(wrapper.get('.dropdown-read-all').text()).toBe('Mark all as read')
+    expect(wrapper.get('.dropdown-view-all').text()).toContain('View all notifications')
+    expect(wrapper.get('.dropdown-product-name').text()).toBe('测试商品')
   })
 })

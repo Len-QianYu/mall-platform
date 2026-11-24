@@ -83,20 +83,24 @@
 
             <LanguageSwitch icon-only class="header-tool" />
 
-            <RouterLink
-              :to="{ name: 'notifications' }"
-              class="header-tool notification-link"
-              :aria-label="t('消息通知')"
-              :title="t('消息通知')"
-            >
-              <ElBadge
-                :value="notificationsStore.unreadCount"
-                :hidden="notificationsStore.unreadCount === 0"
-                :max="99"
+            <NotificationDropdown v-slot="{ open }">
+              <button
+                type="button"
+                class="header-tool notification-link"
+                :aria-label="t('消息通知')"
+                :title="t('消息通知')"
+                :aria-expanded="open"
+                aria-haspopup="dialog"
               >
-                <i class="bi bi-bell header-icon" aria-hidden="true"></i>
-              </ElBadge>
-            </RouterLink>
+                <ElBadge
+                  :value="notificationsStore.unreadCount"
+                  :hidden="notificationsStore.unreadCount === 0"
+                  :max="99"
+                >
+                  <i class="bi bi-bell header-icon" aria-hidden="true"></i>
+                </ElBadge>
+              </button>
+            </NotificationDropdown>
 
             <!-- 购物车：未登录时点击会被路由守卫带去登录页 -->
             <RouterLink
@@ -175,6 +179,7 @@ import { useCartStore } from '@/stores/cart'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useTheme } from '@/utils/useTheme'
 import LanguageSwitch from '@/components/LanguageSwitch.vue'
+import NotificationDropdown from '@/components/shop/NotificationDropdown.vue'
 
 const route = useRoute()
 const router = useRouter()

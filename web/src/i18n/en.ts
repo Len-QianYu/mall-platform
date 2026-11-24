@@ -420,6 +420,9 @@ export const english: Record<string, string> = {
   '收藏商品上架、降价或涨价时，会在这里提醒你。':
     'Get alerts here when your favorites become available or their prices change.',
   刷新通知: 'Refresh notifications',
+  正在加载通知: 'Loading notifications',
+  登录后查看消息通知: 'Sign in to view notifications',
+  '{count} 条未读': '{count} unread',
   正在刷新通知: 'Refreshing notifications',
   全部已读: 'Mark all as read',
   通知筛选: 'Notification filter',
