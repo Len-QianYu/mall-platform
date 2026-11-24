@@ -65,41 +65,51 @@
         </form>
 
         <div class="header-right">
-          <LanguageSwitch />
-          <!-- 亮色 / 暗色切换：图标表示点击后切换到的模式 -->
-          <ElButton
-            class="header-btn"
-            text
-            :aria-label="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
-            @click="toggleTheme"
-          >
-            <i
-              class="header-icon"
-              :class="isDark ? 'bi bi-sun' : 'bi bi-moon-stars'"
-              aria-hidden="true"
-            ></i>
-          </ElButton>
-
-          <RouterLink
-            :to="{ name: 'notifications' }"
-            class="notification-link"
-            :aria-label="t('消息通知')"
-          >
-            <ElBadge
-              :value="notificationsStore.unreadCount"
-              :hidden="notificationsStore.unreadCount === 0"
-              :max="99"
+          <div class="header-tools">
+            <!-- 亮色 / 暗色切换：图标表示点击后切换到的模式 -->
+            <ElButton
+              class="header-btn header-tool"
+              text
+              :aria-label="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
+              :title="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
+              @click="toggleTheme"
             >
-              <i class="bi bi-bell header-icon" aria-hidden="true"></i>
-            </ElBadge>
-          </RouterLink>
+              <i
+                class="header-icon"
+                :class="isDark ? 'bi bi-sun' : 'bi bi-moon-stars'"
+                aria-hidden="true"
+              ></i>
+            </ElButton>
 
-          <!-- 购物车：未登录时点击会被路由守卫带去登录页 -->
-          <RouterLink :to="{ name: 'cart' }" class="cart-link" :aria-label="t('购物车')">
-            <ElBadge :value="cartStore.count" :hidden="cartStore.count === 0" :max="99">
-              <i class="bi bi-cart3 header-icon" aria-hidden="true"></i>
-            </ElBadge>
-          </RouterLink>
+            <LanguageSwitch icon-only class="header-tool" />
+
+            <RouterLink
+              :to="{ name: 'notifications' }"
+              class="header-tool notification-link"
+              :aria-label="t('消息通知')"
+              :title="t('消息通知')"
+            >
+              <ElBadge
+                :value="notificationsStore.unreadCount"
+                :hidden="notificationsStore.unreadCount === 0"
+                :max="99"
+              >
+                <i class="bi bi-bell header-icon" aria-hidden="true"></i>
+              </ElBadge>
+            </RouterLink>
+
+            <!-- 购物车：未登录时点击会被路由守卫带去登录页 -->
+            <RouterLink
+              :to="{ name: 'cart' }"
+              class="header-tool cart-link"
+              :aria-label="t('购物车')"
+              :title="t('购物车')"
+            >
+              <ElBadge :value="cartStore.count" :hidden="cartStore.count === 0" :max="99">
+                <i class="bi bi-cart3 header-icon" aria-hidden="true"></i>
+              </ElBadge>
+            </RouterLink>
+          </div>
 
           <ElDropdown v-if="userStore.logged" trigger="click" @command="handleCommand">
             <div class="user-box">
@@ -414,15 +424,6 @@ const logout = () => {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .nav-link,
-  .nav-link::after,
-  .header-search,
-  .search-toggle {
-    transition: none;
-  }
-}
-
 .header-right {
   display: flex;
   flex-shrink: 0;
@@ -442,29 +443,65 @@ const logout = () => {
   }
 }
 
-.cart-link,
-.notification-link {
+.header-tools {
   display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-tool {
+  --el-button-text-color: var(--el-text-color-regular);
+  --el-button-hover-text-color: var(--el-color-primary);
+  --el-button-hover-bg-color: var(--el-fill-color-light);
+
+  display: inline-flex;
+  flex: 0 0 32px;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  min-width: 32px;
   height: 32px;
-  padding: 0 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--el-border-radius-base);
+  background-color: transparent;
   color: var(--el-text-color-regular);
   font-size: 1.125rem;
   line-height: 1;
   text-decoration: none;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
 
   .el-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.25rem;
-    height: 1.125rem;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
   }
 
-  &:hover {
+  &:hover,
+  &:focus-visible {
+    background-color: var(--el-fill-color-light);
     color: var(--el-color-primary);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.header-tools :deep(.el-button > span) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .header-icon {
@@ -568,20 +605,20 @@ const logout = () => {
 
   .header-right {
     gap: 0.25rem;
-
-    .el-button {
-      padding-right: 0.5rem;
-      padding-left: 0.5rem;
-    }
-
-    .header-btn {
-      padding: 0;
-    }
   }
 
-  .cart-link,
-  .notification-link {
-    padding: 0 0.125rem;
+  .header-tools {
+    gap: 0.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link,
+  .nav-link::after,
+  .header-search,
+  .search-toggle,
+  .header-tool {
+    transition: none;
   }
 }
 </style>

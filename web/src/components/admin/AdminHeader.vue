@@ -27,15 +27,15 @@
     </div>
 
     <div class="header-right">
-      <LanguageSwitch />
       <!-- 全屏 -->
       <ElButton
         class="header-btn"
         text
         :aria-label="isFullscreen ? t('退出全屏') : t('全屏')"
+        :title="isFullscreen ? t('退出全屏') : t('全屏')"
         @click="toggleFullscreen"
       >
-        <i :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'"></i>
+        <i :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'" aria-hidden="true"></i>
       </ElButton>
 
       <!-- 亮色 / 暗色切换：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
@@ -43,10 +43,13 @@
         class="header-btn"
         text
         :aria-label="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
+        :title="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
         @click="toggleTheme"
       >
-        <i :class="isDark ? 'bi bi-sun' : 'bi bi-moon-stars'"></i>
+        <i :class="isDark ? 'bi bi-sun' : 'bi bi-moon-stars'" aria-hidden="true"></i>
       </ElButton>
+
+      <LanguageSwitch icon-only class="header-btn" />
 
       <!-- 用户菜单 -->
       <ElDropdown trigger="click" @command="handleCommand">
@@ -189,11 +192,35 @@ const logout = () => {
   gap: 0.25rem;
 }
 
+.header-right {
+  gap: 0.5rem;
+}
+
+:deep(.header-btn .bi) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  font-size: 1.125rem;
+  line-height: 1;
+
+  &::before {
+    display: block;
+    line-height: 1;
+    vertical-align: 0;
+  }
+}
+
 .header-breadcrumb {
   margin-left: 0.5rem;
 }
 
 @media (max-width: 768px) {
+  .header-right {
+    gap: 0.25rem;
+  }
+
   .header-breadcrumb,
   .user-name,
   :deep(.user-role-tag) {
