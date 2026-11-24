@@ -7,17 +7,24 @@ import { useUserStore } from '@/stores/user'
 import { useNotificationsStore } from '@/stores/notifications'
 import NotificationsView from '@/views/shop/NotificationsView.vue'
 import ShopHeader from '@/components/shop/ShopHeader.vue'
-import type { ProductNotification } from '@/types/api'
+import ShopLayout from '@/layouts/ShopLayout.vue'
+import type { OrderShipmentNotification, ProductNotification, UserNotification } from '@/types/api'
 
 type MockResponse = { data: { status: boolean; payload: object } }
+type PopupOptions = { title?: string; message?: string; onClick?: () => unknown }
 
-const { get, post } = vi.hoisted(() => ({
+const { get, post, notify } = vi.hoisted(() => ({
   get: vi.fn<
     (url: string, options?: { params?: { unreadOnly?: boolean } }) => Promise<MockResponse>
   >(),
-  post: vi.fn<(url: string, body?: { id?: number }) => Promise<MockResponse>>(),
+  post: vi.fn<(url: string, body?: { id?: number; type?: string }) => Promise<MockResponse>>(),
+  notify: vi.fn<(options: PopupOptions) => { close: () => void }>(),
 }))
 vi.mock('@/utils/request', () => ({ default: { get, post } }))
+vi.mock('element-plus', async (original) => ({
+  ...(await original<typeof import('element-plus')>()),
+  ElNotification: notify,
+}))
 enableAutoUnmount(afterEach)
 
 const notification = (id: number, type: ProductNotification['type']): ProductNotification => ({
@@ -31,11 +38,21 @@ const notification = (id: number, type: ProductNotification['type']): ProductNot
   readAt: null,
   createdAt: '2026-11-22T12:00:00',
 })
+const shipmentNotification: OrderShipmentNotification = {
+  id: 1,
+  type: 'ORDER_SHIPPED',
+  orderId: 99,
+  orderNo: 'ORDER-99',
+  totalAmount: 168.8,
+  shippedAt: '2026-11-25T12:30:00',
+  readAt: null,
+  createdAt: '2026-11-25T12:30:00',
+}
 const response = (payload: object) => ({ data: { status: true, payload } })
 let pinia: Pinia
-let items: ProductNotification[]
+let items: UserNotification[]
 
-const mountPage = async (header = false) => {
+const mountPage = async (header = false, layout = false) => {
   const routes = [
     'index',
     'products',
@@ -59,10 +76,11 @@ const mountPage = async (header = false) => {
     routes: [
       ...routes,
       { path: '/products/:id', name: 'product_detail', component: { template: '<p>product</p>' } },
+      { path: '/orders/:id', name: 'order_detail', component: { template: '<p>order</p>' } },
     ],
   })
   await router.push(header ? '/' : '/notifications')
-  const wrapper = mount(header ? ShopHeader : NotificationsView, {
+  const wrapper = mount(layout ? ShopLayout : header ? ShopHeader : NotificationsView, {
     attachTo: document.body,
     global: {
       plugins: [pinia, router],
@@ -95,6 +113,8 @@ describe('notification center', () => {
     ]
     get.mockReset()
     post.mockReset()
+    notify.mockReset()
+    notify.mockReturnValue({ close: vi.fn() })
     get.mockImplementation(async (url: string, options?: { params?: { unreadOnly?: boolean } }) => {
       if (url === '/cart') return response({ items: [] })
       const unreadCount = items.filter((item) => item.readAt === null).length
@@ -108,19 +128,27 @@ describe('notification center', () => {
         pagination: { total: notifications.length, pageSize: 20, pageCount: 1, currentPage: 1 },
       })
     })
-    post.mockImplementation(async (url: string, body?: { id?: number }) => {
+    post.mockImplementation(async (url: string, body?: { id?: number; type?: string }) => {
       if (url === '/notification/read-all')
         items.forEach((item) => {
           item.readAt = '2026-11-22T12:01:00'
         })
       if (url === '/notification/read') {
-        const item = items.find((item) => item.id === body?.id)
+        const item = items.find(
+          (item) =>
+            item.id === body?.id &&
+            (body?.type === 'ORDER_SHIPPED'
+              ? item.type === 'ORDER_SHIPPED'
+              : item.type !== 'ORDER_SHIPPED'),
+        )
         if (item) item.readAt = '2026-11-22T12:01:00'
       }
       return response({})
     })
   })
   afterEach(() => {
+    useNotificationsStore().stop()
+    vi.unstubAllGlobals()
     setLocale('zh-CN')
     disposePinia(pinia)
     document.body.innerHTML = ''
@@ -180,8 +208,67 @@ describe('notification center', () => {
     await wrapper.get('[role="alert"] button').trigger('click')
     await flushPromises()
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('先收藏喜欢的商品')
+    expect(wrapper.text()).toContain('暂时没有消息通知')
     expect(wrapper.get('.browse-link').attributes('href')).toBe('/products')
+  })
+
+  it.each([false, true])(
+    'opens the buyer order and only reads its shipment when header=%s and product IDs collide',
+    async (header) => {
+      items.unshift({ ...shipmentNotification })
+      const { wrapper, router } = await mountPage(header)
+      if (header) await openDropdown(wrapper)
+      const cards = wrapper.findAll(header ? '.dropdown-notification-item' : '.notification-item')
+      expect(cards).toHaveLength(4)
+      expect(cards[0]!.text()).toContain('已发货')
+      expect(cards[0]!.text()).toContain('ORDER-99')
+      expect(cards[0]!.find('.bi-truck').exists()).toBe(true)
+      if (header) await cards[0]!.get('.dropdown-product').trigger('click')
+      else await cards[0]!.findAll('button')[0]!.trigger('click')
+      await flushPromises()
+      expect(post).toHaveBeenCalledWith('/notification/read', {
+        id: 1,
+        type: 'ORDER_SHIPPED',
+      })
+      expect(router.currentRoute.value.name).toBe('order_detail')
+      expect(router.currentRoute.value.params.id).toBe('99')
+      expect(items.find((item) => item.type === 'LISTED')?.readAt).toBeNull()
+      expect(useNotificationsStore().unreadCount).toBe(3)
+    },
+  )
+
+  it('marks both shipment and product notifications read and keeps their history', async () => {
+    items.unshift({ ...shipmentNotification })
+    const { wrapper } = await mountPage()
+    await wrapper.findAll('.heading-actions button')[1]!.trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('.notification-item')).toHaveLength(4)
+    expect(wrapper.findAll('.notification-item.unread')).toHaveLength(0)
+    expect(useNotificationsStore().unreadCount).toBe(0)
+  })
+
+  it('translates shipment messages and opens the order from its live popup', async () => {
+    vi.stubGlobal(
+      'WebSocket',
+      class {
+        static OPEN = 1
+        readyState = 0
+        close() {}
+      },
+    )
+    items.unshift({ ...shipmentNotification })
+    setLocale('en')
+    const { router } = await mountPage(false, true)
+    useNotificationsStore().latestNotification = { ...shipmentNotification }
+    await flushPromises()
+    const popup = notify.mock.calls[notify.mock.calls.length - 1]![0]
+    expect(popup.title).toBe('Shipped')
+    expect(popup.message).toContain('Your order ORDER-99 has shipped')
+    await popup.onClick?.()
+    await flushPromises()
+    expect(post).toHaveBeenCalledWith('/notification/read', { id: 1, type: 'ORDER_SHIPPED' })
+    expect(router.currentRoute.value.name).toBe('order_detail')
+    expect(router.currentRoute.value.params.id).toBe('99')
   })
 
   it('opens recent notifications from the aligned toolbar without navigating away', async () => {

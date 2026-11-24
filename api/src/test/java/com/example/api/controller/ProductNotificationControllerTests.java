@@ -27,12 +27,11 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.example.api.entity.ProductNotificationEntity;
-import com.example.api.enums.ProductNotificationType;
+import com.example.api.dto.UserNotificationView;
 import com.example.api.exception.TradeExceptionHandler;
 import com.example.api.security.SecurityConfiguration;
 import com.example.api.service.ProductFavoriteService;
-import com.example.api.service.ProductNotificationService;
+import com.example.api.service.UserNotificationService;
 import com.example.api.websocket.NotificationSocketTickets;
 
 @WebMvcTest({ ProductFavoriteController.class, ProductNotificationController.class })
@@ -40,7 +39,7 @@ import com.example.api.websocket.NotificationSocketTickets;
 class ProductNotificationControllerTests {
     @Autowired private MockMvc mvc;
     @MockitoBean private ProductFavoriteService favorites;
-    @MockitoBean private ProductNotificationService notifications;
+    @MockitoBean private UserNotificationService notifications;
     @MockitoBean private NotificationSocketTickets tickets;
     @MockitoBean private JwtDecoder jwtDecoder;
 
@@ -80,12 +79,10 @@ class ProductNotificationControllerTests {
     @Test
     void unreadListIsOwnerScopedAndDoesNotExposeInternalOwnerOrEventIds() throws Exception {
         this.authenticate();
-        ProductNotificationEntity notification = new ProductNotificationEntity();
+        UserNotificationView notification = new UserNotificationView();
         notification.setId(42L);
-        notification.setUserId(7);
-        notification.setEventId(100L);
         notification.setProductId(11);
-        notification.setType(ProductNotificationType.PRICE_DROP);
+        notification.setType("PRICE_DROP");
         notification.setOldPrice(new BigDecimal("100.00"));
         notification.setNewPrice(new BigDecimal("80.00"));
         when(this.notifications.count(7, true)).thenReturn(1);
@@ -105,7 +102,27 @@ class ProductNotificationControllerTests {
         this.mvc.perform(post("/notification/read").header(HttpHeaders.AUTHORIZATION, "Bearer notification-token")
             .contentType(MediaType.APPLICATION_JSON).content("{\"id\":999,\"userId\":8}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.status").value(false));
-        verify(this.notifications).markRead(7, 999L);
+        verify(this.notifications).markRead(7, 999L, null);
+    }
+
+    @Test
+    void shippedNotificationsAreReadByTypeAndJwtOwner() throws Exception {
+        this.authenticate();
+        when(this.notifications.markRead(7, 42L, "ORDER_SHIPPED")).thenReturn(true);
+        this.mvc.perform(post("/notification/read").header(HttpHeaders.AUTHORIZATION, "Bearer notification-token")
+            .contentType(MediaType.APPLICATION_JSON).content("{\"id\":42,\"type\":\"ORDER_SHIPPED\",\"userId\":999}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.status").value(true));
+        verify(this.notifications).markRead(7, 42L, "ORDER_SHIPPED");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "NEW_ORDER", "UNKNOWN", "" })
+    void unsupportedNotificationTypesAreRejectedBeforeWrites(String type) throws Exception {
+        this.authenticate();
+        this.mvc.perform(post("/notification/read").header(HttpHeaders.AUTHORIZATION, "Bearer notification-token")
+            .contentType(MediaType.APPLICATION_JSON).content("{\"id\":42,\"type\":\"" + type + "\"}"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(false));
+        verifyNoInteractions(this.notifications);
     }
 
     @Test

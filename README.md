@@ -75,6 +75,10 @@ cd api
 
 已有数据库先执行 [`upgrade-order-notifications.sql`](api/src/main/resources/db/upgrade-order-notifications.sql)，新增 `order_notification` 表，再重启后端；脚本可重复执行，新建库的 `schema.sql` 已包含该表。
 
+管理员发货成功后，订单买家会在商城通知铃铛、通知中心和实时弹窗收到“已发货”通知，展示订单号、金额和发货时间，点击可标为已读并打开自己的订单详情。发货通知与订单状态在同一事务中保存，提交后推送；离线时保留通知，登录、重连或刷新后恢复。只通知对应订单买家，重复发货或发货失败不重复提醒，回滚不留通知。
+
+已有数据库先执行 [`upgrade-order-shipment-notifications.sql`](api/src/main/resources/db/upgrade-order-shipment-notifications.sql)，新增 `order_shipment_notification` 表，再重启后端；脚本可重复执行，不补发历史订单，新建库的 `schema.sql` 已包含该表。商城 `/notification` 将商品通知与发货通知按时间合并分页，并统一未读数量和全部已读；单条发货通知的 `/notification/read` 请求携带 `{id, type: "ORDER_SHIPPED"}`，避免与商品通知相同 ID 的记录混淆。复用现有 WebSocket，无需新增消息 Topic。
+
 在 `api/` 的 PowerShell 中设置 `$env:ORDER_NOTIFICATION_INTEGRATION_TESTS = 'true'`，运行 `mvn.cmd -Dtest=OrderNotificationIntegrationTests test`，可验证真实 HTTP / MySQL / Redis / WebSocket 链路，包括两个管理员角色、同账号多个页面、离线记录、幂等重试、读状态隔离和失败回滚。测试使用随机端口与临时账号、商品，关闭真实消息及定时任务，并在结束后清理自身数据。
 
 已有数据库先执行 [`upgrade-product-notifications.sql`](api/src/main/resources/db/upgrade-product-notifications.sql)，新增 `product_favorite`、`product_notification_event`、`product_notification` 三张表，再重启后端；脚本可重复执行，新建库的 `schema.sql` 已包含这些表。首次使用还需要创建普通消息 Topic 和消费组：

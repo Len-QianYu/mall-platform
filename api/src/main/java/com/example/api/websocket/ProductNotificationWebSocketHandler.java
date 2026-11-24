@@ -17,6 +17,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.example.api.entity.ProductNotificationEntity;
 import com.example.api.entity.OrderNotificationEntity;
+import com.example.api.entity.OrderShipmentNotificationEntity;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -70,6 +71,10 @@ public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
 
     public void sendOrderNotification(OrderNotificationEntity notification) {
         this.sendNotification(notification.getUserId(), notification.getId(), "order_notification", notification);
+    }
+
+    public void sendShipmentNotification(OrderShipmentNotificationEntity notification) {
+        this.sendNotification(notification.getUserId(), notification.getId(), "notification", notification);
     }
 
     private void sendNotification(Integer userId, Long id, String type, Object notification) {

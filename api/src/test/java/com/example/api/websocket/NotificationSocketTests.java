@@ -27,6 +27,7 @@ import org.springframework.web.socket.WebSocketSession;
 
 import com.example.api.entity.ProductNotificationEntity;
 import com.example.api.entity.OrderNotificationEntity;
+import com.example.api.entity.OrderShipmentNotificationEntity;
 import com.example.api.enums.ProductNotificationType;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -114,6 +115,32 @@ class NotificationSocketTests {
         handler.afterConnectionEstablished(session);
         verify(session).close(CloseStatus.POLICY_VIOLATION);
         verify(session, never()).sendMessage(any());
+    }
+
+    @Test
+    void shipmentNotificationsOnlyReachTheBuyerAcrossTabs() throws Exception {
+        ProductNotificationWebSocketHandler handler = new ProductNotificationWebSocketHandler(JsonMapper.builder().build());
+        WebSocketSession buyer = this.session("buyer", 7);
+        WebSocketSession secondTab = this.session("buyer-tab", 7);
+        WebSocketSession otherUser = this.session("other", 8);
+        handler.afterConnectionEstablished(buyer);
+        handler.afterConnectionEstablished(secondTab);
+        handler.afterConnectionEstablished(otherUser);
+        clearInvocations(buyer, secondTab, otherUser);
+        OrderShipmentNotificationEntity notification = new OrderShipmentNotificationEntity();
+        notification.setId(42L);
+        notification.setUserId(7);
+        notification.setOrderId(99L);
+        notification.setOrderNo("ORDER-99");
+        handler.sendShipmentNotification(notification);
+        ArgumentCaptor<TextMessage> message = ArgumentCaptor.forClass(TextMessage.class);
+        verify(buyer).sendMessage(message.capture());
+        verify(secondTab).sendMessage(any());
+        verify(otherUser, never()).sendMessage(any());
+        assertTrue(message.getValue().getPayload().contains("ORDER_SHIPPED"));
+        assertTrue(message.getValue().getPayload().contains("ORDER-99"));
+        assertFalse(message.getValue().getPayload().contains("userId"));
+        assertFalse(message.getValue().getPayload().contains("order_notification"));
     }
 
     private WebSocketSession session(String id, int userId) {

@@ -405,14 +405,17 @@ public class OrderServiceImpl implements OrderService {
     // 重复提交、两个管理员同时操作、或取消时买家恰好付了款，都只有一方能改成功，不会出现状态被覆盖
 
     @Override
+    @Transactional
     public boolean ship(Long id) {
-        return this.orderMapper.update(
+        boolean shipped = this.orderMapper.update(
             Wrappers.<OrderEntity>lambdaUpdate()
                 .set(OrderEntity::getStatus, OrderStatus.SHIPPED)
                 .set(OrderEntity::getShippedAt, LocalDateTime.now())
                 .eq(OrderEntity::getId, id)
                 .eq(OrderEntity::getStatus, OrderStatus.PAID)
         ) > 0;
+        if (shipped) this.notifications.recordShippedOrder(id);
+        return shipped;
     }
 
     @Override

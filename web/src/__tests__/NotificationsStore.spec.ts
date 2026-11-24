@@ -4,13 +4,13 @@ import { flushPromises } from '@vue/test-utils'
 import { useUserStore } from '@/stores/user'
 import { useNotificationsStore } from '@/stores/notifications'
 import { notificationSocketUrl } from '@/utils/productNotifications'
-import type { OrderNotification, ProductNotification } from '@/types/api'
+import type { OrderNotification, OrderShipmentNotification, ProductNotification } from '@/types/api'
 
 type MockResponse = { data: { status: boolean; payload: object } }
 
 const { get, post } = vi.hoisted(() => ({
   get: vi.fn<(url: string) => Promise<MockResponse>>(),
-  post: vi.fn<(url: string, body?: { id: number }) => Promise<MockResponse>>(),
+  post: vi.fn<(url: string, body?: { id: number; type?: string }) => Promise<MockResponse>>(),
 }))
 vi.mock('@/utils/request', () => ({ default: { get, post } }))
 
@@ -61,6 +61,16 @@ const orderNotification: OrderNotification = {
   totalAmount: 168.8,
   readAt: null,
   createdAt: '2026-11-25T12:00:00',
+}
+const shipmentNotification: OrderShipmentNotification = {
+  id: 42,
+  type: 'ORDER_SHIPPED',
+  orderId: 99,
+  orderNo: 'ORDER-99',
+  totalAmount: 168.8,
+  shippedAt: '2026-11-25T12:30:00',
+  readAt: null,
+  createdAt: '2026-11-25T12:30:00',
 }
 const response = (payload: object) => ({ data: { status: true, payload } })
 let pinia: Pinia
@@ -146,6 +156,28 @@ describe('live product notifications', () => {
     await flushPromises()
     expect(store.connected).toBe(true)
     expect(store.unreadCount).toBe(3)
+  })
+
+  it('shows a shipment to a buyer even when a product notification has the same ID', async () => {
+    const { store, socket } = await start()
+    socket.receive({ type: 'notification', notification })
+    await flushPromises()
+    serverCount = 2
+    socket.receive({ type: 'notification', notification: shipmentNotification })
+    await flushPromises()
+    expect(store.latestNotification?.type).toBe('ORDER_SHIPPED')
+    expect(store.unreadCount).toBe(2)
+    expect(store.latestOrderNotification).toBeNull()
+    expect(get).not.toHaveBeenCalledWith('/admin/notification/unread-count')
+    const received = store.latestNotification
+    socket.receive({
+      type: 'notification',
+      notification: { ...shipmentNotification, orderNo: 'duplicate' },
+    })
+    await flushPromises()
+    expect(store.latestNotification).toBe(received)
+    await store.markRead(42, 'user', 'ORDER_SHIPPED')
+    expect(post).toHaveBeenCalledWith('/notification/read', { id: 42, type: 'ORDER_SHIPPED' })
   })
 
   it('retries a failed ticket request without opening an unauthenticated socket', async () => {

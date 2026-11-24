@@ -429,6 +429,11 @@ export const english: Record<string, string> = {
   全部通知: 'All notifications',
   未读通知: 'Unread notifications',
   暂时没有未读通知: 'No unread notifications',
+  暂时没有消息通知: 'No notifications yet',
+  '订单发货、收藏商品上架或变价时，会在这里提醒你。':
+    'Get notified when your orders ship or your favorite products are listed or change price.',
+  '你的订单 {orderNo} 已发货，请留意收货':
+    'Your order {orderNo} has shipped. Please watch for its delivery.',
   '还没有商品通知，先收藏喜欢的商品吧':
     'No product alerts yet. Save your favorite products to get started.',
   查看全部通知: 'View all notifications',

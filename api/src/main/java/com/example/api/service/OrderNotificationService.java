@@ -14,7 +14,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.api.entity.OrderNotificationEntity;
+import com.example.api.entity.OrderShipmentNotificationEntity;
 import com.example.api.mapper.OrderNotificationMapper;
+import com.example.api.mapper.OrderShipmentNotificationMapper;
 import com.example.api.utils.Pagination;
 import com.example.api.websocket.ProductNotificationWebSocketHandler;
 
@@ -22,10 +24,13 @@ import com.example.api.websocket.ProductNotificationWebSocketHandler;
 public class OrderNotificationService {
     private static final Logger log = LoggerFactory.getLogger(OrderNotificationService.class);
     private final OrderNotificationMapper notifications;
+    private final OrderShipmentNotificationMapper shipments;
     private final ProductNotificationWebSocketHandler sockets;
 
-    public OrderNotificationService(OrderNotificationMapper notifications, ProductNotificationWebSocketHandler sockets) {
+    public OrderNotificationService(OrderNotificationMapper notifications, OrderShipmentNotificationMapper shipments,
+        ProductNotificationWebSocketHandler sockets) {
         this.notifications = notifications;
+        this.shipments = shipments;
         this.sockets = sockets;
     }
 
@@ -44,6 +49,26 @@ public class OrderNotificationService {
                     catch (RuntimeException error) {
                         // 通知已落库，推送失败不能把已提交的订单报成失败。
                         log.warn("新订单通知 {} 已保存，但实时推送失败", notification.getId(), error);
+                    }
+                }
+            }
+        });
+    }
+
+    // 发货状态和买家通知一起提交；只有条件更新成功的发货操作会调用。
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordShippedOrder(Long orderId) {
+        this.shipments.insertForOrder(orderId);
+        List<OrderShipmentNotificationEntity> created = this.shipments.selectList(
+            Wrappers.<OrderShipmentNotificationEntity>lambdaQuery()
+                .eq(OrderShipmentNotificationEntity::getOrderId, orderId));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                for (OrderShipmentNotificationEntity notification : created) {
+                    try { sockets.sendShipmentNotification(notification); }
+                    catch (RuntimeException error) {
+                        log.warn("发货通知 {} 已保存，但实时推送失败", notification.getId(), error);
                     }
                 }
             }

@@ -20,12 +20,16 @@
 <script setup lang="ts">
 import { onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
-import { ElConfigProvider, ElNotification } from 'element-plus'
+import { ElConfigProvider, ElMessage, ElNotification } from 'element-plus'
 import { useLocale, t } from '@/i18n'
 import ShopHeader from '@/components/shop/ShopHeader.vue'
 import { useUserStore } from '@/stores/user'
 import { useNotificationsStore } from '@/stores/notifications'
-import { notificationDescription, PRODUCT_NOTIFICATION_LABELS } from '@/utils/productNotifications'
+import {
+  notificationDescription,
+  notificationLabel,
+  notificationTarget,
+} from '@/utils/notifications'
 // 引入 Bootstrap Icons（顶栏和各商城页面共用）
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
@@ -48,8 +52,9 @@ watch(
   () => notifications.latestNotification,
   (notification) => {
     if (!notification) return
-    ElNotification({
-      title: t(PRODUCT_NOTIFICATION_LABELS[notification.type]),
+    const token = userStore.user?.token
+    const popup = ElNotification({
+      title: t(notificationLabel(notification)),
       message: notificationDescription(notification),
       type:
         notification.type === 'PRICE_DROP'
@@ -58,8 +63,21 @@ watch(
             ? 'warning'
             : 'info',
       duration: 6000,
-      onClick: () => {
-        void router.push({ name: 'notifications' })
+      onClick: async () => {
+        if (token !== userStore.user?.token) return
+        if (notification.type !== 'ORDER_SHIPPED') {
+          await router.push({ name: 'notifications' })
+          return
+        }
+        try {
+          await notifications.markRead(notification.id, 'user', notification.type)
+          if (token !== userStore.user?.token) return
+          popup.close()
+          await router.push(notificationTarget(notification))
+        } catch (failure) {
+          if (token === userStore.user?.token)
+            ElMessage.error(t(failure instanceof Error ? failure.message : '标记已读失败'))
+        }
       },
     })
   },

@@ -3,14 +3,10 @@ import { defineStore } from 'pinia'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { notificationSocketUrl } from '@/utils/productNotifications'
-import type {
-  ApiResult,
-  NotificationItem,
-  OrderNotification,
-  ProductNotification,
-} from '@/types/api'
+import { notificationKey } from '@/utils/notifications'
+import type { ApiResult, NotificationItem, OrderNotification, UserNotification } from '@/types/api'
 
-type NotificationScope = 'product' | 'order'
+type NotificationScope = 'user' | 'order'
 const endpoint = (scope: NotificationScope) =>
   scope === 'order' ? '/admin/notification' : '/notification'
 
@@ -21,7 +17,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   const connected = ref(false)
   const revision = ref(0)
   const orderRevision = ref(0)
-  const latestNotification = ref<ProductNotification | null>(null)
+  const latestNotification = ref<UserNotification | null>(null)
   const latestOrderNotification = ref<OrderNotification | null>(null)
   let active = false
   let generation = 0
@@ -35,7 +31,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   let lastMessageAt = 0
   const received = new Set<string>()
 
-  const refreshUnread = async (scope: NotificationScope = 'product'): Promise<void> => {
+  const refreshUnread = async (scope: NotificationScope = 'user'): Promise<void> => {
     if (!userStore.logged || (scope === 'order' && !userStore.isAdmin)) return
     const token = userStore.user?.token
     const current = generation
@@ -57,7 +53,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   }
 
   const sync = (scope?: NotificationScope) => {
-    if (!scope || scope === 'product') {
+    if (!scope || scope === 'user') {
       void refreshUnread()
       revision.value += 1
     }
@@ -112,7 +108,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
             type?: string
             notification?: NotificationItem
           }
-          if (message.type === 'refresh') sync('product')
+          if (message.type === 'refresh') sync('user')
           else if (message.type === 'order_refresh') sync('order')
           else if (
             (message.type === 'notification' || message.type === 'order_notification') &&
@@ -122,14 +118,14 @@ export const useNotificationsStore = defineStore('notifications', () => {
             const order = message.type === 'order_notification'
             if (order ? !userStore.isAdmin || item.type !== 'NEW_ORDER' : item.type === 'NEW_ORDER')
               return
-            const key = `${order ? 'order' : 'product'}:${item.id}`
+            const key = notificationKey(item)
             if (!received.has(key)) {
               received.add(key)
               if (received.size > 200) received.delete(received.values().next().value!)
               if (item.type === 'NEW_ORDER') latestOrderNotification.value = item
               else latestNotification.value = item
             }
-            sync(order ? 'order' : 'product')
+            sync(order ? 'order' : 'user')
           }
         } catch {
           // 非通知消息不改变用户数据。
@@ -195,10 +191,15 @@ export const useNotificationsStore = defineStore('notifications', () => {
     void connect(generation)
   }
 
-  const markRead = async (id: number, scope: NotificationScope = 'product'): Promise<void> => {
+  const markRead = async (
+    id: number,
+    scope: NotificationScope = 'user',
+    type?: NotificationItem['type'],
+  ): Promise<void> => {
     const token = userStore.user?.token
     const current = generation
-    const { data } = await request.post<ApiResult>(`${endpoint(scope)}/read`, { id })
+    const body = type === 'ORDER_SHIPPED' ? { id, type } : { id }
+    const { data } = await request.post<ApiResult>(`${endpoint(scope)}/read`, body)
     if (!data.status) throw new Error(data.payload.message || '标记已读失败')
     if (token !== userStore.user?.token || current !== generation) return
     await refreshUnread(scope)
@@ -206,7 +207,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       (scope === 'order' ? orderRevision : revision).value += 1
   }
 
-  const markAllRead = async (scope: NotificationScope = 'product'): Promise<void> => {
+  const markAllRead = async (scope: NotificationScope = 'user'): Promise<void> => {
     const token = userStore.user?.token
     const current = generation
     const { data } = await request.post<ApiResult>(`${endpoint(scope)}/read-all`)

@@ -10,7 +10,7 @@
             t(
               admin
                 ? '买家提交新订单后，会在这里提醒你。'
-                : '收藏商品上架、降价或涨价时，会在这里提醒你。',
+                : '订单发货、收藏商品上架或变价时，会在这里提醒你。',
             )
           }}
         </p>
@@ -71,13 +71,7 @@
       <ElEmpty
         v-else-if="!loading && items.length === 0"
         :description="
-          t(
-            unreadOnly
-              ? '暂时没有未读通知'
-              : admin
-                ? '暂时没有新订单通知'
-                : '还没有商品通知，先收藏喜欢的商品吧',
-          )
+          t(unreadOnly ? '暂时没有未读通知' : admin ? '暂时没有新订单通知' : '暂时没有消息通知')
         "
       >
         <ElButton v-if="unreadOnly" @click="setFilter(false)">{{ t('查看全部通知') }}</ElButton>
@@ -91,19 +85,25 @@
       <template v-else>
         <article
           v-for="item in items"
-          :key="item.id"
+          :key="notificationKey(item)"
           class="notification-item"
           :class="{ unread: item.readAt === null }"
         >
           <ElImage
-            v-if="item.type !== 'NEW_ORDER' && item.productImage"
+            v-if="isProductNotification(item) && item.productImage"
             class="notification-image"
             :src="assetUrl(item.productImage)"
             fit="cover"
           />
           <div v-else class="notification-image image-placeholder">
             <i
-              :class="item.type === 'NEW_ORDER' ? 'bi bi-receipt' : 'bi bi-image'"
+              :class="
+                item.type === 'ORDER_SHIPPED'
+                  ? 'bi bi-truck'
+                  : item.type === 'NEW_ORDER'
+                    ? 'bi bi-receipt'
+                    : 'bi bi-image'
+              "
               aria-hidden="true"
             ></i>
           </div>
@@ -124,7 +124,7 @@
               <h2>{{ notificationName(item) }}</h2>
             </div>
             <p class="notification-description">{{ notificationDescription(item) }}</p>
-            <div v-if="item.type === 'NEW_ORDER'" class="notification-prices">
+            <div v-if="!isProductNotification(item)" class="notification-prices">
               <strong>{{ formatMoney(item.totalAmount) }}</strong>
             </div>
             <div
@@ -145,16 +145,16 @@
           <div class="notification-actions">
             <ElButton
               size="small"
-              :loading="reading.has(item.id)"
+              :loading="reading.has(notificationKey(item))"
               :disabled="markingAll"
               @click="viewNotification(item)"
-              >{{ t(item.type === 'NEW_ORDER' ? '查看订单' : '查看商品') }}</ElButton
+              >{{ t(isProductNotification(item) ? '查看商品' : '查看订单') }}</ElButton
             >
             <ElButton
               v-if="item.readAt === null"
               size="small"
               text
-              :loading="reading.has(item.id)"
+              :loading="reading.has(notificationKey(item))"
               :disabled="markingAll"
               @click="markRead(item)"
               >{{ t('标为已读') }}</ElButton
@@ -185,7 +185,9 @@ import request from '@/utils/request'
 import type { ApiResult, NotificationItem, Pagination } from '@/types/api'
 import { assetUrl, formatDateTime, formatMoney } from '@/utils/format'
 import {
+  isProductNotification,
   notificationDescription,
+  notificationKey,
   notificationLabel,
   notificationName,
   notificationTarget,
@@ -197,7 +199,7 @@ const props = defineProps<{ admin?: boolean }>()
 const notifications = useNotificationsStore()
 const user = useUserStore()
 const router = useRouter()
-const scope = computed(() => (props.admin ? 'order' : 'product'))
+const scope = computed(() => (props.admin ? 'order' : 'user'))
 const endpoint = computed(() => (props.admin ? '/admin/notification' : '/notification'))
 const unreadCount = computed(() =>
   props.admin ? notifications.orderUnreadCount : notifications.unreadCount,
@@ -210,7 +212,7 @@ const page = ref(1)
 const unreadOnly = ref(false)
 const loading = ref(false)
 const error = ref('')
-const reading = ref(new Set<number>())
+const reading = ref(new Set<string>())
 const markingAll = ref(false)
 const pagination = ref<Pagination>({ total: 0, pageSize: 20, currentPage: 1, pageCount: 1 })
 let sequence = 0
@@ -254,20 +256,21 @@ const setFilter = (unread: boolean) => {
 }
 
 const markRead = async (item: NotificationItem): Promise<boolean> => {
-  if (!user.logged || markingAll.value || reading.value.has(item.id)) return false
+  const key = notificationKey(item)
+  if (!user.logged || markingAll.value || reading.value.has(key)) return false
   if (item.readAt !== null) return true
   const token = user.user?.token
   const pending = reading.value
-  pending.add(item.id)
+  pending.add(key)
   try {
-    await notifications.markRead(item.id, scope.value)
+    await notifications.markRead(item.id, scope.value, item.type)
     return token === user.user?.token
   } catch (failure) {
     if (token === user.user?.token)
       ElMessage.error(t(failure instanceof Error ? failure.message : '标记已读失败'))
     return false
   } finally {
-    pending.delete(item.id)
+    pending.delete(key)
   }
 }
 

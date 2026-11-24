@@ -87,7 +87,19 @@ export interface OrderNotification {
   createdAt: string
 }
 
-export type NotificationItem = ProductNotification | OrderNotification
+export interface OrderShipmentNotification {
+  id: number
+  type: 'ORDER_SHIPPED'
+  orderId: number
+  orderNo: string
+  totalAmount: number
+  shippedAt: string
+  readAt: string | null
+  createdAt: string
+}
+
+export type UserNotification = ProductNotification | OrderShipmentNotification
+export type NotificationItem = UserNotification | OrderNotification
 
 export type SeckillPhase = 'UPCOMING' | 'LIVE' | 'SOLD_OUT' | 'ENDED' | 'CLOSED'
 
@@ -224,10 +236,10 @@ export interface DashboardData {
  *     POST /favorite                { productId, favorite } → 幂等设置收藏及通知订阅
  *     GET  /notification            page, pageSize, unreadOnly → { notifications, pagination, unreadCount }
  *     GET  /notification/unread-count → { unreadCount }
- *     POST /notification/read       { id } → 仅标记自己的通知
+ *     POST /notification/read       { id, type? } → 仅标记自己的通知（发货通知传 ORDER_SHIPPED）
  *     POST /notification/read-all   → 仅标记自己的全部通知
  *     POST /notification/socket-ticket → { ticket }（30 秒内一次有效）
- *     WS   /ws/notifications?ticket=... → 收藏商品的上架、降价、涨价实时提醒
+ *     WS   /ws/notifications?ticket=... → 订单发货、收藏商品的上架、降价、涨价实时提醒
  *     GET  /cart                    → { items: CartItem[] }
  *     POST /cart/create             { productId, quantity }      已在购物车则累加数量
  *     POST /cart/update             { id, quantity?, checked? }

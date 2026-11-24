@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.api.dto.ProductNotificationRequests;
 import com.example.api.exception.ValidateFailedException;
-import com.example.api.service.ProductNotificationService;
+import com.example.api.service.UserNotificationService;
 import com.example.api.utils.CurrentUser;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.ResultTemplate;
@@ -22,10 +22,10 @@ import com.example.api.websocket.NotificationSocketTickets;
 @RestController
 @RequestMapping("/notification")
 public class ProductNotificationController {
-    private final ProductNotificationService notifications;
+    private final UserNotificationService notifications;
     private final NotificationSocketTickets tickets;
 
-    public ProductNotificationController(ProductNotificationService notifications, NotificationSocketTickets tickets) {
+    public ProductNotificationController(UserNotificationService notifications, NotificationSocketTickets tickets) {
         this.notifications = notifications;
         this.tickets = tickets;
     }
@@ -52,7 +52,7 @@ public class ProductNotificationController {
         BindingResult bindingResult, @AuthenticationPrincipal Jwt jwt) {
         if (bindingResult.hasErrors()) throw new ValidateFailedException("通知 ID 不正确");
         ResultTemplate result = new ResultTemplate();
-        if (!this.notifications.markRead(CurrentUser.id(jwt), fields.id())) {
+        if (!this.notifications.markRead(CurrentUser.id(jwt), fields.id(), fields.type())) {
             result.setStatus(false);
             return result.putPayload("message", "通知不存在");
         }
