@@ -1,6 +1,6 @@
 /*
  * Prompt Pals 业务库建表
- * 库：mall_platform —— 11 张表：用户、商品、交易、秒杀，以及收藏、通知事件和通知记录
+ * 库：mall_platform —— 12 张表：用户、商品、交易、秒杀，以及收藏、通知事件和通知记录
  *
  * 约定：
  *   1. 不建物理外键：关联关系由应用层维护（便于逻辑删除与后续），高频关联列均建索引；
@@ -207,3 +207,21 @@ CREATE TABLE IF NOT EXISTS product_notification (
   KEY idx_notification_user_id (user_id, id),
   KEY idx_notification_user_unread (user_id, read_at, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '可离线查看的商品通知';
+
+/* ---------- 12. 管理员新订单通知 ---------- */
+CREATE TABLE IF NOT EXISTS order_notification (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id INT UNSIGNED NOT NULL COMMENT '接收通知的管理员 ID',
+  order_id BIGINT UNSIGNED NOT NULL,
+  order_no VARCHAR(32) NOT NULL,
+  buyer_id INT UNSIGNED NOT NULL,
+  buyer_username VARCHAR(16) NOT NULL,
+  buyer_name VARCHAR(32) NULL,
+  total_amount DECIMAL(10,2) NOT NULL,
+  read_at DATETIME(6) NULL,
+  created_at DATETIME(6) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_order_notification_order_user (order_id, user_id),
+  KEY idx_order_notification_user_id (user_id, id),
+  KEY idx_order_notification_user_unread (user_id, read_at, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '与订单一起提交的管理员新订单通知';

@@ -52,6 +52,7 @@ import com.example.api.mapper.OrderMapper;
 import com.example.api.mapper.ProductMapper;
 import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.OrderService;
+import com.example.api.service.OrderNotificationService;
 import com.example.api.service.PaymentService;
 import com.example.api.service.ProductService;
 import com.example.api.service.SeckillService;
@@ -83,6 +84,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final PaymentService paymentService;
 
+    private final OrderNotificationService notifications;
+
     private final RedissonClient redisson;
 
     private final TransactionTemplate createTransaction;
@@ -98,6 +101,7 @@ public class OrderServiceImpl implements OrderService {
         CartMapper cartMapper,
         OrderPayTimeoutProducer payTimeoutProducer,
         PaymentService paymentService,
+        OrderNotificationService notifications,
         RedissonClient redisson,
         PlatformTransactionManager transactionManager,
         @Value("${order.create-lock-wait:3s}") Duration createLockWait
@@ -110,6 +114,7 @@ public class OrderServiceImpl implements OrderService {
         this.cartMapper = cartMapper;
         this.payTimeoutProducer = payTimeoutProducer;
         this.paymentService = paymentService;
+        this.notifications = notifications;
         this.redisson = redisson;
         this.createTransaction = new TransactionTemplate(transactionManager);
         // 获取锁后才开启独立事务：锁内查询使用新快照，提交/回滚结束后才能释放锁。
@@ -373,6 +378,8 @@ public class OrderServiceImpl implements OrderService {
                     .in(CartEntity::getProductId, quantities.keySet())
             );
         }
+
+        this.notifications.recordCreatedOrder(order.getId());
 
         // 到期未支付自动取消、回补库存；消息在事务提交后才发出
         this.payTimeoutProducer.sendAfterCommit(order);

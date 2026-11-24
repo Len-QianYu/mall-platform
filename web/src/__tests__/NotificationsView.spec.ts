@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, disposePinia, setActivePinia, type Pinia } from 'pinia'
-import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { DOMWrapper, enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { setLocale } from '@/i18n'
 import { useUserStore } from '@/stores/user'
@@ -66,11 +66,19 @@ const mountPage = async (header = false) => {
     attachTo: document.body,
     global: {
       plugins: [pinia, router],
-      stubs: { ElImage: true, ElPagination: true, teleport: true },
+      stubs: { ElImage: true, ElPagination: true },
     },
   })
   await flushPromises()
-  return { wrapper, router }
+  return { wrapper: header ? new DOMWrapper(document.body) : wrapper, router }
+}
+
+const openDropdown = async (wrapper: Awaited<ReturnType<typeof mountPage>>['wrapper']) => {
+  await wrapper.get('.notification-link').trigger('click')
+  await vi.waitFor(() => {
+    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('true')
+  })
+  await flushPromises()
 }
 
 describe('notification center', () => {
@@ -115,6 +123,7 @@ describe('notification center', () => {
   afterEach(() => {
     setLocale('zh-CN')
     disposePinia(pinia)
+    document.body.innerHTML = ''
   })
 
   it('shows relisting, price drop and price rise snapshots', async () => {
@@ -178,13 +187,12 @@ describe('notification center', () => {
   it('opens recent notifications from the aligned toolbar without navigating away', async () => {
     useNotificationsStore().unreadCount = 3
     const { wrapper, router } = await mountPage(true)
-    expect(wrapper.find('.language-switch + .notification-link + .cart-link').exists()).toBe(true)
+    expect(wrapper.find('.language-switch + .notification-link').exists()).toBe(true)
     expect(wrapper.get('.notification-link .el-badge__content').text()).toBe('3')
     expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
     expect(wrapper.find('.notification-dropdown').exists()).toBe(false)
 
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
 
     expect(router.currentRoute.value.name).toBe('index')
     expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('true')
@@ -197,8 +205,7 @@ describe('notification center', () => {
 
   it('filters unread notifications and marks one read while keeping the dropdown open', async () => {
     const { wrapper, router } = await mountPage(true)
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     await wrapper.findAll('.dropdown-tabs [role="tab"]')[1]?.trigger('click')
     await flushPromises()
     await wrapper.get('.dropdown-mark-read').trigger('click')
@@ -213,8 +220,7 @@ describe('notification center', () => {
 
   it('marks all dropdown notifications read and preserves their history', async () => {
     const { wrapper } = await mountPage(true)
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     await wrapper.get('.dropdown-read-all').trigger('click')
     await flushPromises()
 
@@ -227,8 +233,7 @@ describe('notification center', () => {
 
   it('marks a dropdown notification read before opening its product and closes the dropdown', async () => {
     const { wrapper, router } = await mountPage(true)
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     await wrapper.findAll('.dropdown-product')[1]?.trigger('click')
     await flushPromises()
 
@@ -240,8 +245,7 @@ describe('notification center', () => {
 
   it('keeps a failed read notification visible without opening its product', async () => {
     const { wrapper, router } = await mountPage(true)
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     post.mockRejectedValueOnce(new Error('标记已读失败'))
     await wrapper.get('.dropdown-product').trigger('click')
     await flushPromises()
@@ -259,8 +263,7 @@ describe('notification center', () => {
     await flushPromises()
     expect(get).not.toHaveBeenCalled()
 
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     items.unshift({ ...notification(4, 'PRICE_DROP'), productName: '刚降价的玩偶' })
     store.revision += 1
     await flushPromises()
@@ -273,8 +276,7 @@ describe('notification center', () => {
     useUserStore().logout()
     const { wrapper, router } = await mountPage(true)
     get.mockClear()
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
 
     expect(wrapper.get('.dropdown-login').text()).toContain('登录后查看消息通知')
     expect(get).not.toHaveBeenCalled()
@@ -295,17 +297,15 @@ describe('notification center', () => {
         : original(url, options),
     )
     const { wrapper } = await mountPage(true)
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     expect(wrapper.get('[role="status"]').text()).toContain('正在加载通知')
 
     useUserStore().logout()
     complete(response({ notifications: items }))
     await flushPromises()
     expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
-    expect(wrapper.get('.dropdown-login').exists()).toBe(true)
+    await openDropdown(wrapper)
+    expect(wrapper.find('.dropdown-login').exists()).toBe(true)
     expect(wrapper.find('.dropdown-notification-item').exists()).toBe(false)
   })
 
@@ -320,8 +320,7 @@ describe('notification center', () => {
       return original(url, options)
     })
     const { wrapper, router } = await mountPage(true)
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     expect(wrapper.get('.dropdown-error').text()).toContain('加载通知失败')
     await wrapper.get('.dropdown-error button').trigger('click')
     await flushPromises()
@@ -334,24 +333,22 @@ describe('notification center', () => {
 
   it('closes the dropdown with Escape or a click outside', async () => {
     const { wrapper } = await mountPage(true)
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     await wrapper.get('.notification-dropdown').trigger('keydown', { key: 'Escape' })
     await flushPromises()
     expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
 
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
-    await wrapper.get('.logo-link').trigger('mousedown')
-    await wrapper.get('.logo-link').trigger('mouseup')
-    await flushPromises()
-    expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
+    await openDropdown(wrapper)
+    await wrapper.get('.logo-link').trigger('pointerdown')
+    await wrapper.get('.logo-link').trigger('click')
+    await vi.waitFor(() => {
+      expect(wrapper.get('.notification-link').attributes('aria-expanded')).toBe('false')
+    })
   })
 
   it('translates the open notification dropdown without translating product data', async () => {
     const { wrapper } = await mountPage(true)
-    await wrapper.get('.notification-link').trigger('click')
-    await flushPromises()
+    await openDropdown(wrapper)
     setLocale('en')
     await flushPromises()
 

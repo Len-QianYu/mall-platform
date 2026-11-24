@@ -53,6 +53,7 @@ import com.example.api.mapper.OrderMapper;
 import com.example.api.mapper.ProductMapper;
 import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.PaymentService;
+import com.example.api.service.OrderNotificationService;
 import com.example.api.service.ProductService;
 import com.example.api.service.SeckillService;
 
@@ -70,6 +71,7 @@ class OrderIdempotencyTests {
     private ProductService stock;
     private CartMapper cart;
     private OrderPayTimeoutProducer messages;
+    private OrderNotificationService notifications;
     private RedissonClient redisson;
     private RLock lock;
     private PlatformTransactionManager transactions;
@@ -88,11 +90,12 @@ class OrderIdempotencyTests {
         this.stock = mock(ProductService.class);
         this.cart = mock(CartMapper.class);
         this.messages = mock(OrderPayTimeoutProducer.class);
+        this.notifications = mock(OrderNotificationService.class);
         this.redisson = mock(RedissonClient.class);
         this.lock = mock(RLock.class);
         this.transactions = mock(PlatformTransactionManager.class);
         this.service = new OrderServiceImpl(this.orders, this.items, this.products, this.stock,
-            mock(SeckillService.class), this.cart, this.messages, mock(PaymentService.class), this.redisson,
+            mock(SeckillService.class), this.cart, this.messages, mock(PaymentService.class), this.notifications, this.redisson,
             this.transactions, Duration.ofSeconds(3));
 
         when(this.redisson.getLock(anyString())).thenReturn(this.lock);
@@ -293,5 +296,17 @@ class OrderIdempotencyTests {
         return new TradeRequests.OrderCreate(this.requestId,
             List.of(new TradeRequests.OrderCreateItem(11, quantity)), fromCart,
             "receiver", "13900139000", address, remark);
+    }
+
+    @Test
+    void successfulSubmissionRecordsOneNotificationDespiteRetriesAndFailuresRecordNone() {
+        TradeRequests.OrderCreate request = this.request(2, false, "address", null);
+        when(this.stock.deductStock(11, 2)).thenReturn(false, true);
+        assertThrows(TradeFailedException.class, () -> this.service.create(7, request));
+        verifyNoInteractions(this.notifications);
+        OrderEntity first = this.service.create(7, request);
+        assertSame(first, this.service.create(7, request));
+        assertSame(first, this.service.create(7, request));
+        verify(this.notifications, times(1)).recordCreatedOrder(first.getId());
     }
 }

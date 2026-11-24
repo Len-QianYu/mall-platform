@@ -35,7 +35,10 @@
         :title="isFullscreen ? t('退出全屏') : t('全屏')"
         @click="toggleFullscreen"
       >
-        <i :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'" aria-hidden="true"></i>
+        <i
+          :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'"
+          aria-hidden="true"
+        ></i>
       </ElButton>
 
       <!-- 亮色 / 暗色切换：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
@@ -50,6 +53,25 @@
       </ElButton>
 
       <LanguageSwitch icon-only class="header-btn" />
+
+      <NotificationDropdown v-slot="{ open }" admin>
+        <button
+          type="button"
+          class="header-btn notification-link"
+          :aria-label="t('消息通知')"
+          :title="t('消息通知')"
+          :aria-expanded="open"
+          aria-haspopup="dialog"
+        >
+          <ElBadge
+            :value="notificationsStore.orderUnreadCount"
+            :hidden="notificationsStore.orderUnreadCount === 0"
+            :max="99"
+          >
+            <i class="bi bi-bell" aria-hidden="true"></i>
+          </ElBadge>
+        </button>
+      </NotificationDropdown>
 
       <!-- 用户菜单 -->
       <ElDropdown trigger="click" @command="handleCommand">
@@ -87,6 +109,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ElAvatar,
+  ElBadge,
   ElBreadcrumb,
   ElBreadcrumbItem,
   ElButton,
@@ -98,9 +121,11 @@ import {
 import request from '@/utils/request'
 import { assetUrl } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
+import { useNotificationsStore } from '@/stores/notifications'
 import { useTheme } from '@/utils/useTheme'
 import UserRoleTag from '@/components/UserRoleTag.vue'
 import LanguageSwitch from '@/components/LanguageSwitch.vue'
+import NotificationDropdown from '@/components/shop/NotificationDropdown.vue'
 
 defineProps<{ collapsed: boolean }>()
 
@@ -112,6 +137,7 @@ const emit = defineEmits<{
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const notificationsStore = useNotificationsStore()
 const { isDark, toggleTheme } = useTheme()
 
 // 没有头像时后端返回 null，交给 ElAvatar 显示用户名首字母
@@ -214,6 +240,23 @@ const logout = () => {
 
 .header-breadcrumb {
   margin-left: 0.5rem;
+}
+
+.notification-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--el-border-radius-base);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    background-color: var(--el-fill-color-light);
+    color: var(--el-color-primary);
+  }
 }
 
 @media (max-width: 768px) {

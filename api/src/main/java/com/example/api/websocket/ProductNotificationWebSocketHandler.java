@@ -16,6 +16,7 @@ import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorato
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.example.api.entity.ProductNotificationEntity;
+import com.example.api.entity.OrderNotificationEntity;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -23,7 +24,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(ProductNotificationWebSocketHandler.class);
     private record Connection(Integer userId, Instant expiresAt, WebSocketSession session) { }
-    private record NotificationMessage(String type, ProductNotificationEntity notification) { }
+    private record NotificationMessage(String type, Object notification) { }
 
     private final ConcurrentHashMap<Integer, ConcurrentHashMap<String, Connection>> connections = new ConcurrentHashMap<>();
     private final JsonMapper json;
@@ -64,19 +65,35 @@ public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
     }
 
     public void sendNotification(ProductNotificationEntity notification) {
-        Map<String, Connection> recipients = this.connections.get(notification.getUserId());
+        this.sendNotification(notification.getUserId(), notification.getId(), "notification", notification);
+    }
+
+    public void sendOrderNotification(OrderNotificationEntity notification) {
+        this.sendNotification(notification.getUserId(), notification.getId(), "order_notification", notification);
+    }
+
+    private void sendNotification(Integer userId, Long id, String type, Object notification) {
+        Map<String, Connection> recipients = this.connections.get(userId);
         if (recipients == null) return;
         try {
-            TextMessage message = new TextMessage(this.json.writeValueAsString(new NotificationMessage("notification", notification)));
+            TextMessage message = new TextMessage(this.json.writeValueAsString(new NotificationMessage(type, notification)));
             recipients.values().forEach(connection -> this.send(connection, message));
         } catch (RuntimeException error) {
-            log.warn("通知 {} 已保存，但实时推送失败", notification.getId(), error);
+            log.warn("通知 {} 已保存，但实时推送失败", id, error);
         }
     }
 
     public void sendRefresh(Integer userId) {
+        this.sendRefresh(userId, "refresh");
+    }
+
+    public void sendOrderRefresh(Integer userId) {
+        this.sendRefresh(userId, "order_refresh");
+    }
+
+    private void sendRefresh(Integer userId, String type) {
         Map<String, Connection> recipients = this.connections.get(userId);
-        if (recipients != null) recipients.values().forEach(connection -> this.send(connection, new TextMessage("{\"type\":\"refresh\"}")));
+        if (recipients != null) recipients.values().forEach(connection -> this.send(connection, new TextMessage("{\"type\":\"" + type + "\"}")));
     }
 
     @Scheduled(fixedDelay = 30000)

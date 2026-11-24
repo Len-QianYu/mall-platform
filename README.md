@@ -63,11 +63,19 @@ cd api
 
 ### 商品收藏与通知
 
-商城顶栏的通知铃铛位于主题切换和购物车之间，显示未读数量，点击进入 `/notifications`。商品详情页的爱心收藏按钮与“加入购物车”“立即购买”位于同一行，用户菜单的“我的收藏”进入 `/favorites`，可在收藏列表中取消收藏；下架商品保留在收藏列表中，重新上架后提醒。收藏关系按账号持久化，游客点击详情页的爱心先登录。
+商城顶栏的通知铃铛位于主题切换和购物车之间，显示未读数量，点击展开最近 8 条通知，下拉框底部可进入 `/notifications`。商品详情页的爱心收藏按钮与“加入购物车”“立即购买”位于同一行，用户菜单的“我的收藏”进入 `/favorites`，可在收藏列表中取消收藏；下架商品保留在收藏列表中，重新上架后提醒。收藏关系按账号持久化，游客点击详情页的爱心先登录。
 
 管理员编辑商品价格或把商品从下架改为上架时，后端按实际变化生成 `LISTED`、`PRICE_DROP`、`PRICE_RISE` 事件。价格数值不变、重复上架、改名或库存增减不发通知；一次修改同时上架和变价会分别提醒。商品修改与事件在同一数据库事务中提交，发件箱默认每 2 秒经 RocketMQ 发送，失败重试；消费者将通知落库后通过 WebSocket 推送在线用户。事件处理标记和 `(event_id, user_id)` 唯一索引防止重复消费，通知保留商品名、图片及变价前后的价格快照。
 
 只提醒事件发生之前已收藏且消费时仍在收藏的用户，取消后重新收藏不会补发旧事件。通知中心支持全部/未读筛选、单条已读、全部已读和查看商品；离线消息在登录或重连后查询恢复，断线自动重连，退出登录关闭连接并清空角标。单条和全部已读只操作 JWT 对应账号，也同步该账号的其他在线页面。
+
+管理端顶栏也提供通知铃铛和 `/admin/notifications` 通知中心。买家提交普通、购物车或秒杀订单成功后，向当时启用的管理员和 super管理员分别保存一条新订单通知，展示订单号、买家姓名及用户名、订单金额；点击通知或实时提醒会标为已读并打开 `/admin/orders?orderId=...` 的订单详情抽屉。每位管理员的已读状态独立，普通买家无权访问 `/admin/notification` 接口。
+
+新订单通知与订单、明细和库存处于同一数据库事务，提交后复用通知 WebSocket 推送，无需新增 RocketMQ Topic。回滚不留通知，同一 `requestId` 重试不重复提醒；离线、推送失败或提交后进程中断时，已保存的通知在登录、重连或刷新时恢复。只提醒新提交的订单，不补发历史订单。
+
+已有数据库先执行 [`upgrade-order-notifications.sql`](api/src/main/resources/db/upgrade-order-notifications.sql)，新增 `order_notification` 表，再重启后端；脚本可重复执行，新建库的 `schema.sql` 已包含该表。
+
+在 `api/` 的 PowerShell 中设置 `$env:ORDER_NOTIFICATION_INTEGRATION_TESTS = 'true'`，运行 `mvn.cmd -Dtest=OrderNotificationIntegrationTests test`，可验证真实 HTTP / MySQL / Redis / WebSocket 链路，包括两个管理员角色、同账号多个页面、离线记录、幂等重试、读状态隔离和失败回滚。测试使用随机端口与临时账号、商品，关闭真实消息及定时任务，并在结束后清理自身数据。
 
 已有数据库先执行 [`upgrade-product-notifications.sql`](api/src/main/resources/db/upgrade-product-notifications.sql)，新增 `product_favorite`、`product_notification_event`、`product_notification` 三张表，再重启后端；脚本可重复执行，新建库的 `schema.sql` 已包含这些表。首次使用还需要创建普通消息 Topic 和消费组：
 

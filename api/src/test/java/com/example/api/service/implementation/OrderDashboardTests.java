@@ -28,6 +28,7 @@ import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.ProductService;
 import com.example.api.service.SeckillService;
 import com.example.api.service.PaymentService;
+import com.example.api.service.OrderNotificationService;
 
 class OrderDashboardTests {
 
@@ -40,7 +41,7 @@ class OrderDashboardTests {
         this.service = new OrderServiceImpl(
             this.mapper, mock(OrderItemMapper.class), mock(ProductMapper.class),
             mock(ProductService.class), mock(SeckillService.class), mock(CartMapper.class), mock(OrderPayTimeoutProducer.class),
-            mock(PaymentService.class), mock(RedissonClient.class),
+            mock(PaymentService.class), mock(OrderNotificationService.class), mock(RedissonClient.class),
             mock(PlatformTransactionManager.class), Duration.ofSeconds(3)
         );
         when(this.mapper.fetchDailyOrders(any(), any())).thenReturn(List.of());

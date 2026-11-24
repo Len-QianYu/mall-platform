@@ -172,13 +172,18 @@
           </ElTableColumn>
         </ElTable>
       </template>
+      <div v-if="detailError" class="order-detail-error" role="alert">
+        <p>{{ t(detailError) }}</p>
+        <ElButton @click="retryDetail">{{ t('重新加载') }}</ElButton>
+      </div>
     </div>
   </ElDrawer>
 </template>
 
 <script setup lang="ts">
 import { t } from '@/i18n'
-import { reactive, ref, watch } from 'vue'
+import { onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ElButton,
   ElCard,
@@ -205,6 +210,8 @@ import { ORDER_STATUS, formatDateTime, formatMoney } from '@/utils/format'
 
 const loading = ref(false)
 const orders = ref<Order[]>([])
+const route = useRoute()
+const router = useRouter()
 
 // 下拉框清空后值为 undefined，axios 不会把 undefined 参数拼进查询串
 const filter = reactive({
@@ -284,31 +291,86 @@ const changeStatus = async (id: number, action: keyof typeof ACTION_MESSAGE) => 
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref<{ order: Order; items: OrderItem[] } | null>(null)
+const detailError = ref('')
+let detailSequence = 0
 
-const openDetail = async (id: number) => {
+const openDetail = (id: number) =>
+  router.push({ name: 'admin_orders', query: { ...route.query, orderId: String(id) } })
+
+const fetchDetail = async (id: number) => {
+  const current = ++detailSequence
   detail.value = null
+  detailError.value = ''
   detailVisible.value = true
   detailLoading.value = true
   try {
     const { data } = await request.get<ApiResult<{ order: Order; items: OrderItem[] }>>(
       `/admin/order/${id}`,
     )
+    if (current !== detailSequence || !detailVisible.value) return
     if (!data.status) {
-      ElMessage.error(t(data.payload.message || '加载订单详情失败'))
+      detailError.value = data.payload.message || '加载订单详情失败'
       return
     }
     detail.value = { order: data.payload.order, items: data.payload.items }
   } catch {
-    ElMessage.error(t('加载订单详情失败'))
+    if (current === detailSequence && detailVisible.value) detailError.value = '加载订单详情失败'
   } finally {
-    detailLoading.value = false
+    if (current === detailSequence) detailLoading.value = false
   }
 }
+
+const selectedOrderId = () => {
+  const value = route.query.orderId
+  return typeof value === 'string' &&
+    /^[1-9]\d*$/.test(value) &&
+    Number.isSafeInteger(Number(value))
+    ? Number(value)
+    : null
+}
+
+const retryDetail = () => {
+  const id = selectedOrderId()
+  if (id !== null) void fetchDetail(id)
+}
+
+watch(
+  () => route.query.orderId,
+  () => {
+    const id = selectedOrderId()
+    if (id !== null) void fetchDetail(id)
+    else {
+      detailSequence += 1
+      detailVisible.value = false
+      detail.value = null
+      detailError.value = ''
+      detailLoading.value = false
+    }
+  },
+  { immediate: true },
+)
+
+watch(detailVisible, (visible) => {
+  if (visible || route.query.orderId === undefined) return
+  detailSequence += 1
+  const query = { ...route.query }
+  delete query.orderId
+  void router.replace({ query })
+})
+
+onBeforeUnmount(() => {
+  detailSequence += 1
+})
 </script>
 
 <style lang="scss" scoped>
 .detail-body {
   min-height: 200px;
+}
+.order-detail-error {
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--el-color-danger);
 }
 
 .detail-subtitle {

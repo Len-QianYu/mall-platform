@@ -27,12 +27,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterView } from 'vue-router'
-import { ElConfigProvider } from 'element-plus'
+import { onBeforeUnmount, ref, watch } from 'vue'
+import { RouterView, useRouter } from 'vue-router'
+import { ElConfigProvider, ElMessage, ElNotification } from 'element-plus'
 import { useLocale, t } from '@/i18n'
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminHeader from '@/components/admin/AdminHeader.vue'
+import { useUserStore } from '@/stores/user'
+import { useNotificationsStore } from '@/stores/notifications'
+import {
+  notificationDescription,
+  notificationName,
+  notificationTarget,
+} from '@/utils/notifications'
 // 引入 Bootstrap Icons（侧边栏、顶栏和各管理页面共用）
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
@@ -40,6 +47,46 @@ const collapsed = ref(false)
 const refreshKey = ref(0)
 const currentYear = new Date().getFullYear()
 const { elementLocale } = useLocale()
+const userStore = useUserStore()
+const notifications = useNotificationsStore()
+const router = useRouter()
+
+watch(
+  [() => userStore.user?.token, () => userStore.role],
+  () => {
+    if (userStore.logged && userStore.isAdmin) notifications.start()
+    else notifications.stop()
+  },
+  { immediate: true, flush: 'sync' },
+)
+
+watch(
+  () => notifications.latestOrderNotification,
+  (notification) => {
+    if (!notification) return
+    const token = userStore.user?.token
+    const popup = ElNotification({
+      title: t('新订单'),
+      message: `${notificationName(notification)} · ${notificationDescription(notification)}`,
+      type: 'info',
+      duration: 6000,
+      onClick: async () => {
+        if (token !== userStore.user?.token) return
+        try {
+          await notifications.markRead(notification.id, 'order')
+          if (token !== userStore.user?.token) return
+          popup.close()
+          await router.push(notificationTarget(notification))
+        } catch (failure) {
+          if (token === userStore.user?.token)
+            ElMessage.error(t(failure instanceof Error ? failure.message : '标记已读失败'))
+        }
+      },
+    })
+  },
+)
+
+onBeforeUnmount(() => notifications.stop())
 </script>
 
 <style lang="scss" scoped>

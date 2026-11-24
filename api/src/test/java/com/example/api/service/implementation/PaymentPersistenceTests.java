@@ -36,6 +36,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.example.api.dto.TradeRequests;
 import com.example.api.entity.OrderEntity;
 import com.example.api.entity.OrderItemEntity;
+import com.example.api.entity.OrderNotificationEntity;
 import com.example.api.entity.PaymentEntity;
 import com.example.api.entity.ProductEntity;
 import com.example.api.enums.OrderStatus;
@@ -43,6 +44,7 @@ import com.example.api.enums.PaymentMethod;
 import com.example.api.enums.PaymentStatus;
 import com.example.api.mapper.OrderMapper;
 import com.example.api.mapper.OrderItemMapper;
+import com.example.api.mapper.OrderNotificationMapper;
 import com.example.api.mapper.PaymentMapper;
 import com.example.api.mapper.ProductMapper;
 import com.example.api.service.AlipayGateway;
@@ -64,6 +66,7 @@ class PaymentPersistenceTests {
     @Autowired private OrderMapper orderMapper;
     @Autowired private PaymentMapper paymentMapper;
     @Autowired private OrderItemMapper orderItemMapper;
+    @Autowired private OrderNotificationMapper notificationMapper;
     @Autowired private PlatformTransactionManager transactionManager;
 
     @MockitoBean private AlipayGateway alipay;
@@ -133,6 +136,8 @@ class PaymentPersistenceTests {
         new TransactionTemplate(this.transactionManager).executeWithoutResult(transaction -> {
             OrderEntity order = this.orderMapper.selectByRequest(7, this.requestId);
             if (order != null) {
+                this.notificationMapper.delete(Wrappers.<OrderNotificationEntity>lambdaQuery()
+                    .eq(OrderNotificationEntity::getOrderId, order.getId()));
                 this.paymentMapper.delete(Wrappers.<PaymentEntity>lambdaQuery().eq(PaymentEntity::getOrderId, order.getId()));
                 this.orderItemMapper.delete(Wrappers.<OrderItemEntity>lambdaQuery()
                     .eq(OrderItemEntity::getOrderId, order.getId()));

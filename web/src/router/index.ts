@@ -150,6 +150,13 @@ const router = createRouter({
           meta: { breadcrumbParent: '交易管理', breadcrumbCurrent: '订单管理' },
         },
         {
+          path: 'notifications',
+          name: 'admin_notifications',
+          component: () => import('@/views/shop/NotificationsView.vue'),
+          props: { admin: true },
+          meta: { breadcrumbCurrent: '消息通知' },
+        },
+        {
           path: 'seckill',
           name: 'admin_seckill',
           component: () => import('@/views/admin/SeckillView.vue'),

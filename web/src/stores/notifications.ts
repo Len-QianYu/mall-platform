@@ -3,49 +3,68 @@ import { defineStore } from 'pinia'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { notificationSocketUrl } from '@/utils/productNotifications'
-import type { ApiResult, ProductNotification } from '@/types/api'
+import type {
+  ApiResult,
+  NotificationItem,
+  OrderNotification,
+  ProductNotification,
+} from '@/types/api'
+
+type NotificationScope = 'product' | 'order'
+const endpoint = (scope: NotificationScope) =>
+  scope === 'order' ? '/admin/notification' : '/notification'
 
 export const useNotificationsStore = defineStore('notifications', () => {
   const userStore = useUserStore()
   const unreadCount = ref(0)
+  const orderUnreadCount = ref(0)
   const connected = ref(false)
   const revision = ref(0)
+  const orderRevision = ref(0)
   const latestNotification = ref<ProductNotification | null>(null)
+  const latestOrderNotification = ref<OrderNotification | null>(null)
   let active = false
   let generation = 0
   let countRequest = 0
+  let orderCountRequest = 0
   let socket: WebSocket | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined
   let openTimer: ReturnType<typeof setTimeout> | undefined
   let heartbeat: ReturnType<typeof setInterval> | undefined
   let reconnectAttempts = 0
   let lastMessageAt = 0
-  const received = new Set<number>()
+  const received = new Set<string>()
 
-  const refreshUnread = async (): Promise<void> => {
-    if (!userStore.logged) return
+  const refreshUnread = async (scope: NotificationScope = 'product'): Promise<void> => {
+    if (!userStore.logged || (scope === 'order' && !userStore.isAdmin)) return
     const token = userStore.user?.token
     const current = generation
-    const requestId = ++countRequest
+    const requestId = scope === 'order' ? ++orderCountRequest : ++countRequest
     try {
       const { data } = await request.get<ApiResult<{ unreadCount: number }>>(
-        '/notification/unread-count',
+        `${endpoint(scope)}/unread-count`,
       )
       if (
         data.status &&
         token === userStore.user?.token &&
         current === generation &&
-        requestId === countRequest
+        requestId === (scope === 'order' ? orderCountRequest : countRequest)
       )
-        unreadCount.value = data.payload.unreadCount
+        (scope === 'order' ? orderUnreadCount : unreadCount).value = data.payload.unreadCount
     } catch {
       // 下一次推送、重连或窗口重新获得焦点时重新同步。
     }
   }
 
-  const sync = () => {
-    void refreshUnread()
-    revision.value += 1
+  const sync = (scope?: NotificationScope) => {
+    if (!scope || scope === 'product') {
+      void refreshUnread()
+      revision.value += 1
+    }
+    if ((!scope || scope === 'order') && userStore.isAdmin) {
+      void refreshUnread('order')
+      orderRevision.value += 1
+    }
   }
 
   const scheduleReconnect = (current: number) => {
@@ -91,19 +110,26 @@ export const useNotificationsStore = defineStore('notifications', () => {
         try {
           const message = JSON.parse(event.data) as {
             type?: string
-            notification?: ProductNotification
+            notification?: NotificationItem
           }
-          if (message.type === 'refresh') sync()
+          if (message.type === 'refresh') sync('product')
+          else if (message.type === 'order_refresh') sync('order')
           else if (
-            message.type === 'notification' &&
+            (message.type === 'notification' || message.type === 'order_notification') &&
             typeof message.notification?.id === 'number'
           ) {
-            if (!received.has(message.notification.id)) {
-              received.add(message.notification.id)
+            const item = message.notification
+            const order = message.type === 'order_notification'
+            if (order ? !userStore.isAdmin || item.type !== 'NEW_ORDER' : item.type === 'NEW_ORDER')
+              return
+            const key = `${order ? 'order' : 'product'}:${item.id}`
+            if (!received.has(key)) {
+              received.add(key)
               if (received.size > 200) received.delete(received.values().next().value!)
-              latestNotification.value = message.notification
+              if (item.type === 'NEW_ORDER') latestOrderNotification.value = item
+              else latestNotification.value = item
             }
-            sync()
+            sync(order ? 'order' : 'product')
           }
         } catch {
           // 非通知消息不改变用户数据。
@@ -138,6 +164,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     active = false
     generation += 1
     countRequest += 1
+    orderCountRequest += 1
     clearTimeout(reconnectTimer)
     clearTimeout(openTimer)
     clearInterval(heartbeat)
@@ -151,7 +178,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
     document.removeEventListener('visibilitychange', onVisibility)
     connected.value = false
     unreadCount.value = 0
+    orderUnreadCount.value = 0
     latestNotification.value = null
+    latestOrderNotification.value = null
     received.clear()
   }
 
@@ -166,25 +195,36 @@ export const useNotificationsStore = defineStore('notifications', () => {
     void connect(generation)
   }
 
-  const markRead = async (id: number): Promise<void> => {
-    const { data } = await request.post<ApiResult>('/notification/read', { id })
+  const markRead = async (id: number, scope: NotificationScope = 'product'): Promise<void> => {
+    const token = userStore.user?.token
+    const current = generation
+    const { data } = await request.post<ApiResult>(`${endpoint(scope)}/read`, { id })
     if (!data.status) throw new Error(data.payload.message || '标记已读失败')
-    await refreshUnread()
-    revision.value += 1
+    if (token !== userStore.user?.token || current !== generation) return
+    await refreshUnread(scope)
+    if (token === userStore.user?.token && current === generation)
+      (scope === 'order' ? orderRevision : revision).value += 1
   }
 
-  const markAllRead = async (): Promise<void> => {
-    const { data } = await request.post<ApiResult>('/notification/read-all')
+  const markAllRead = async (scope: NotificationScope = 'product'): Promise<void> => {
+    const token = userStore.user?.token
+    const current = generation
+    const { data } = await request.post<ApiResult>(`${endpoint(scope)}/read-all`)
     if (!data.status) throw new Error(data.payload.message || '标记已读失败')
-    await refreshUnread()
-    revision.value += 1
+    if (token !== userStore.user?.token || current !== generation) return
+    await refreshUnread(scope)
+    if (token === userStore.user?.token && current === generation)
+      (scope === 'order' ? orderRevision : revision).value += 1
   }
 
   return {
     unreadCount,
+    orderUnreadCount,
     connected,
     revision,
+    orderRevision,
     latestNotification,
+    latestOrderNotification,
     refreshUnread,
     start,
     stop,

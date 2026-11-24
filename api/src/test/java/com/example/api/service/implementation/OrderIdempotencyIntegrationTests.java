@@ -58,6 +58,9 @@ import com.example.api.mapper.PaymentMapper;
 import com.example.api.mapper.ProductMapper;
 import com.example.api.mq.OrderPayTimeoutProducer;
 import com.example.api.service.OrderService;
+import com.example.api.service.OrderNotificationService;
+import com.example.api.mapper.OrderNotificationMapper;
+import com.example.api.entity.OrderNotificationEntity;
 import com.example.api.service.PaymentService;
 import com.example.api.service.ProductService;
 import com.example.api.task.OrderPayTimeoutScanTask;
@@ -70,6 +73,8 @@ import com.example.api.task.PaymentReconciliationTask;
 class OrderIdempotencyIntegrationTests {
 
     @Autowired private OrderService orders;
+    @Autowired private OrderNotificationService notifications;
+    @Autowired private OrderNotificationMapper notificationMapper;
     @Autowired private OrderMapper orderMapper;
     @Autowired private OrderItemMapper itemMapper;
     @Autowired private ProductMapper productMapper;
@@ -166,7 +171,7 @@ class OrderIdempotencyIntegrationTests {
 
     private OrderService service(OrderMapper mapper, RedissonClient client) {
         return new OrderServiceImpl(mapper, this.itemMapper, this.productMapper, this.productService,
-            mock(com.example.api.service.SeckillService.class), this.cartMapper, this.timeoutMessages, this.paymentService, client,
+            mock(com.example.api.service.SeckillService.class), this.cartMapper, this.timeoutMessages, this.paymentService, this.notifications, client,
             this.transactionManager, Duration.ofSeconds(10));
     }
 
@@ -226,6 +231,8 @@ class OrderIdempotencyIntegrationTests {
             for (String requestId : this.requestIds) {
                 OrderEntity order = this.orderMapper.selectByRequest(7, requestId);
                 if (order == null) continue;
+                this.notificationMapper.delete(Wrappers.<OrderNotificationEntity>lambdaQuery()
+                    .eq(OrderNotificationEntity::getOrderId, order.getId()));
                 this.paymentMapper.delete(Wrappers.<PaymentEntity>lambdaQuery().eq(PaymentEntity::getOrderId, order.getId()));
                 this.itemMapper.delete(Wrappers.<OrderItemEntity>lambdaQuery().eq(OrderItemEntity::getOrderId, order.getId()));
                 this.orderMapper.deleteById(order.getId());

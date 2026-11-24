@@ -4,7 +4,7 @@ import { flushPromises } from '@vue/test-utils'
 import { useUserStore } from '@/stores/user'
 import { useNotificationsStore } from '@/stores/notifications'
 import { notificationSocketUrl } from '@/utils/productNotifications'
-import type { ProductNotification } from '@/types/api'
+import type { OrderNotification, ProductNotification } from '@/types/api'
 
 type MockResponse = { data: { status: boolean; payload: object } }
 
@@ -49,6 +49,18 @@ const notification: ProductNotification = {
   newPrice: 80,
   readAt: null,
   createdAt: '2026-11-22T12:00:00',
+}
+const orderNotification: OrderNotification = {
+  id: 42,
+  type: 'NEW_ORDER',
+  orderId: 99,
+  orderNo: 'ORDER-99',
+  buyerId: 8,
+  buyerUsername: 'buyer',
+  buyerName: '买家名字',
+  totalAmount: 168.8,
+  readAt: null,
+  createdAt: '2026-11-25T12:00:00',
 }
 const response = (payload: object) => ({ data: { status: true, payload } })
 let pinia: Pinia
@@ -192,5 +204,108 @@ describe('live product notifications', () => {
     expect(notificationSocketUrl('temporary-ticket')).toBe(
       'wss://mall.example/api/ws/notifications?ticket=temporary-ticket',
     )
+  })
+
+  it.each(['admin', 'super_admin'] as const)(
+    'keeps order notifications and product notifications independent for %s',
+    async (role) => {
+      useUserStore().updateUser({ role })
+      get.mockImplementation(async (url) =>
+        response({ unreadCount: url === '/admin/notification/unread-count' ? 5 : 1 }),
+      )
+      const { store, socket } = await start()
+      socket.receive({ type: 'notification', notification })
+      socket.receive({ type: 'order_notification', notification: orderNotification })
+      await flushPromises()
+      expect(store.latestNotification?.id).toBe(42)
+      expect(store.latestOrderNotification?.orderNo).toBe('ORDER-99')
+      expect(store.unreadCount).toBe(1)
+      expect(store.orderUnreadCount).toBe(5)
+      const received = store.latestOrderNotification
+      socket.receive({
+        type: 'order_notification',
+        notification: { ...orderNotification, orderNo: 'duplicate' },
+      })
+      await flushPromises()
+      expect(store.latestOrderNotification).toBe(received)
+      await store.markRead(42, 'order')
+      await store.markAllRead('order')
+      expect(post).toHaveBeenCalledWith('/admin/notification/read', { id: 42 })
+      expect(post).toHaveBeenCalledWith('/admin/notification/read-all')
+      expect(store.unreadCount).toBe(1)
+    },
+  )
+
+  it('ignores order messages and does not request admin counts for ordinary buyers', async () => {
+    const { store, socket } = await start()
+    socket.receive({ type: 'order_notification', notification: orderNotification })
+    socket.receive({ type: 'order_refresh' })
+    await flushPromises()
+    expect(store.latestOrderNotification).toBeNull()
+    expect(store.orderUnreadCount).toBe(0)
+    expect(get).not.toHaveBeenCalledWith('/admin/notification/unread-count')
+  })
+
+  it('restores offline order counts on reconnect and clears them on logout', async () => {
+    useUserStore().updateUser({ role: 'admin' })
+    const { store, socket } = await start()
+    socket.close()
+    serverCount = 3
+    await vi.advanceTimersByTimeAsync(1000)
+    const replacement = TestSocket.instances[1]!
+    replacement.open()
+    replacement.receive({ type: 'order_notification', notification: orderNotification })
+    await flushPromises()
+    expect(store.orderUnreadCount).toBe(3)
+    useUserStore().logout()
+    store.stop()
+    replacement.receive({ type: 'order_notification', notification: orderNotification })
+    expect(store.orderUnreadCount).toBe(0)
+    expect(store.latestOrderNotification).toBeNull()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('does not let a delayed order count overwrite the latest count', async () => {
+    useUserStore().updateUser({ role: 'super_admin' })
+    let complete!: (value: ReturnType<typeof response>) => void
+    let delayed = false
+    get.mockImplementation(async (url) => {
+      if (url === '/admin/notification/unread-count' && !delayed) {
+        delayed = true
+        return new Promise((resolve) => {
+          complete = resolve
+        })
+      }
+      return response({ unreadCount: 4 })
+    })
+    const { store } = await start()
+    expect(store.orderUnreadCount).toBe(4)
+    complete(response({ unreadCount: 1 }))
+    await flushPromises()
+    expect(store.orderUnreadCount).toBe(4)
+  })
+
+  it('discards a previous account read confirmation after switching accounts', async () => {
+    useUserStore().updateUser({ role: 'admin' })
+    const { store } = await start()
+    let complete!: (value: ReturnType<typeof response>) => void
+    post.mockReturnValueOnce(
+      new Promise((resolve) => {
+        complete = resolve
+      }),
+    )
+    const pending = store.markRead(42, 'order')
+    useUserStore().login({
+      token: 'other-token',
+      user: { id: 8, username: 'other', role: 'super_admin' },
+    })
+    store.start()
+    await flushPromises()
+    const countRequests = get.mock.calls.length
+    const revision = store.orderRevision
+    complete(response({}))
+    await pending
+    expect(get.mock.calls).toHaveLength(countRequests)
+    expect(store.orderRevision).toBe(revision)
   })
 })

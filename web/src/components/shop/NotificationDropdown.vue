@@ -6,6 +6,7 @@
     role="dialog"
     :width="380"
     :offset="12"
+    :boundaries-padding="12"
     :show-arrow="false"
     :persistent="false"
     :popper-style="{
@@ -29,7 +30,7 @@
       <div class="dropdown-heading">
         <div>
           <h2>{{ t('消息通知') }}</h2>
-          <p v-if="user.logged">{{ t('{count} 条未读', { count: notifications.unreadCount }) }}</p>
+          <p v-if="user.logged">{{ t('{count} 条未读', { count: unreadCount }) }}</p>
         </div>
         <div v-if="user.logged" class="dropdown-heading-actions">
           <ElButton
@@ -38,7 +39,7 @@
             :disabled="loading"
             :aria-label="t('刷新通知')"
             :title="loading ? t('正在刷新通知') : t('刷新通知')"
-            @click="fetchNotifications"
+            @click="refreshNotifications"
           >
             <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
           </ElButton>
@@ -47,7 +48,7 @@
             text
             size="small"
             :loading="markingAll"
-            :disabled="loading || reading.size > 0 || notifications.unreadCount === 0"
+            :disabled="loading || reading.size > 0 || unreadCount === 0"
             @click="markAllRead"
           >
             {{ t('全部已读') }}
@@ -81,16 +82,30 @@
         </div>
         <div v-else-if="error" class="dropdown-state dropdown-error" role="alert">
           <p>{{ t(error) }}</p>
-          <ElButton size="small" @click="fetchNotifications">{{ t('重新加载') }}</ElButton>
+          <ElButton size="small" @click="refreshNotifications">{{ t('重新加载') }}</ElButton>
         </div>
         <div v-else-if="items.length === 0" class="dropdown-state">
           <i class="bi bi-bell-slash" aria-hidden="true"></i>
-          <p>{{ t(unreadOnly ? '暂时没有未读通知' : '还没有商品通知，先收藏喜欢的商品吧') }}</p>
+          <p>
+            {{
+              t(
+                unreadOnly
+                  ? '暂时没有未读通知'
+                  : admin
+                    ? '暂时没有新订单通知'
+                    : '还没有商品通知，先收藏喜欢的商品吧',
+              )
+            }}
+          </p>
           <ElButton v-if="unreadOnly" size="small" text @click="unreadOnly = false">
             {{ t('查看全部通知') }}
           </ElButton>
-          <RouterLink v-else :to="{ name: 'products' }" @click="visible = false">
-            {{ t('去收藏好物') }}
+          <RouterLink
+            v-else
+            :to="{ name: admin ? 'admin_orders' : 'products' }"
+            @click="visible = false"
+          >
+            {{ t(admin ? '查看订单' : '去收藏好物') }}
           </RouterLink>
         </div>
         <ul v-else class="dropdown-items">
@@ -104,23 +119,30 @@
               type="button"
               class="dropdown-product"
               :disabled="markingAll || reading.has(item.id)"
-              :aria-label="t('查看商品') + '：' + item.productName"
-              @click="viewProduct(item)"
+              :aria-label="
+                t(item.type === 'NEW_ORDER' ? '查看订单' : '查看商品') +
+                '：' +
+                notificationName(item)
+              "
+              @click="viewNotification(item)"
             >
               <ElImage
-                v-if="item.productImage"
+                v-if="item.type !== 'NEW_ORDER' && item.productImage"
                 class="dropdown-product-image"
                 :src="assetUrl(item.productImage)"
                 fit="cover"
                 alt=""
               />
               <span v-else class="dropdown-product-image image-placeholder">
-                <i class="bi bi-box2-heart" aria-hidden="true"></i>
+                <i
+                  :class="item.type === 'NEW_ORDER' ? 'bi bi-receipt' : 'bi bi-box2-heart'"
+                  aria-hidden="true"
+                ></i>
               </span>
               <span class="dropdown-product-content">
                 <span class="dropdown-item-title">
                   <span class="dropdown-type" :class="item.type">{{
-                    t(PRODUCT_NOTIFICATION_LABELS[item.type])
+                    t(notificationLabel(item))
                   }}</span>
                   <span
                     v-if="item.readAt === null"
@@ -128,7 +150,7 @@
                     :aria-label="t('未读')"
                   ></span>
                 </span>
-                <strong class="dropdown-product-name">{{ item.productName }}</strong>
+                <strong class="dropdown-product-name">{{ notificationName(item) }}</strong>
                 <span class="dropdown-description">{{ notificationDescription(item) }}</span>
               </span>
             </button>
@@ -154,7 +176,7 @@
       <RouterLink
         v-if="user.logged"
         class="dropdown-view-all"
-        :to="{ name: 'notifications' }"
+        :to="{ name: admin ? 'admin_notifications' : 'notifications' }"
         @click="visible = false"
       >
         {{ t('查看全部通知') }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
@@ -164,26 +186,40 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ElButton, ElImage, ElMessage, ElPopover } from 'element-plus'
 import { t } from '@/i18n'
 import request from '@/utils/request'
-import type { ApiResult, ProductNotification } from '@/types/api'
+import type { ApiResult, NotificationItem } from '@/types/api'
 import { assetUrl, formatDateTime } from '@/utils/format'
-import { notificationDescription, PRODUCT_NOTIFICATION_LABELS } from '@/utils/productNotifications'
+import {
+  notificationDescription,
+  notificationLabel,
+  notificationName,
+  notificationTarget,
+} from '@/utils/notifications'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUserStore } from '@/stores/user'
 
 defineSlots<{ default(props: { open: boolean }): unknown }>()
+const props = defineProps<{ admin?: boolean }>()
 
 const notifications = useNotificationsStore()
 const user = useUserStore()
 const route = useRoute()
 const router = useRouter()
+const scope = computed(() => (props.admin ? 'order' : 'product'))
+const endpoint = computed(() => (props.admin ? '/admin/notification' : '/notification'))
+const unreadCount = computed(() =>
+  props.admin ? notifications.orderUnreadCount : notifications.unreadCount,
+)
+const revision = computed(() =>
+  props.admin ? notifications.orderRevision : notifications.revision,
+)
 const visible = ref(false)
 const unreadOnly = ref(false)
-const items = ref<ProductNotification[]>([])
+const items = ref<NotificationItem[]>([])
 const loading = ref(false)
 const error = ref('')
 const reading = ref(new Set<number>())
@@ -197,8 +233,8 @@ const fetchNotifications = async () => {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await request.get<ApiResult<{ notifications: ProductNotification[] }>>(
-      '/notification',
+    const { data } = await request.get<ApiResult<{ notifications: NotificationItem[] }>>(
+      endpoint.value,
       { params: { page: 1, pageSize: 8, unreadOnly: unreadOnly.value } },
     )
     if (current !== sequence || token !== user.user?.token || !visible.value) return
@@ -214,14 +250,19 @@ const fetchNotifications = async () => {
   }
 }
 
-const markRead = async (item: ProductNotification): Promise<boolean> => {
+const refreshNotifications = () => {
+  void notifications.refreshUnread(scope.value)
+  void fetchNotifications()
+}
+
+const markRead = async (item: NotificationItem): Promise<boolean> => {
   if (!user.logged || markingAll.value || reading.value.has(item.id)) return false
   if (item.readAt !== null) return true
   const token = user.user?.token
   const pending = reading.value
   pending.add(item.id)
   try {
-    await notifications.markRead(item.id)
+    await notifications.markRead(item.id, scope.value)
     return token === user.user?.token
   } catch (failure) {
     if (token === user.user?.token)
@@ -232,10 +273,10 @@ const markRead = async (item: ProductNotification): Promise<boolean> => {
   }
 }
 
-const viewProduct = async (item: ProductNotification) => {
+const viewNotification = async (item: NotificationItem) => {
   if (await markRead(item)) {
     visible.value = false
-    await router.push({ name: 'product_detail', params: { id: item.productId } })
+    await router.push(notificationTarget(item))
   }
 }
 
@@ -245,13 +286,13 @@ const markAllRead = async () => {
     loading.value ||
     markingAll.value ||
     reading.value.size > 0 ||
-    notifications.unreadCount === 0
+    unreadCount.value === 0
   )
     return
   const token = user.user?.token
   markingAll.value = true
   try {
-    await notifications.markAllRead()
+    await notifications.markAllRead(scope.value)
   } catch (failure) {
     if (token === user.user?.token)
       ElMessage.error(t(failure instanceof Error ? failure.message : '标记已读失败'))
@@ -260,7 +301,7 @@ const markAllRead = async () => {
   }
 }
 
-watch([visible, unreadOnly, () => notifications.revision], () => {
+watch([visible, unreadOnly, revision], () => {
   if (visible.value) void fetchNotifications()
   else {
     sequence += 1
@@ -269,11 +310,11 @@ watch([visible, unreadOnly, () => notifications.revision], () => {
 })
 
 watch(visible, (open) => {
-  if (open && user.logged) void notifications.refreshUnread()
+  if (open && user.logged) void notifications.refreshUnread(scope.value)
 })
 
 watch(
-  () => user.user?.token,
+  [() => user.user?.token, () => props.admin],
   () => {
     sequence += 1
     visible.value = false

@@ -74,6 +74,21 @@ export interface ProductNotification {
   createdAt: string
 }
 
+export interface OrderNotification {
+  id: number
+  type: 'NEW_ORDER'
+  orderId: number
+  orderNo: string
+  buyerId: number
+  buyerUsername: string
+  buyerName: string | null
+  totalAmount: number
+  readAt: string | null
+  createdAt: string
+}
+
+export type NotificationItem = ProductNotification | OrderNotification
+
 export type SeckillPhase = 'UPCOMING' | 'LIVE' | 'SOLD_OUT' | 'ENDED' | 'CLOSED'
 
 export interface SeckillActivity {

@@ -271,6 +271,7 @@ class SeckillIntegrationTests {
                 List<OrderEntity> orders = this.orderMapper.selectList(Wrappers.<OrderEntity>lambdaQuery()
                     .in(OrderEntity::getRequestId, this.requestIds));
                 for (OrderEntity order : orders) {
+                    this.jdbc.update("DELETE FROM order_notification WHERE order_id = ?", order.getId());
                     this.paymentMapper.delete(Wrappers.<PaymentEntity>lambdaQuery().eq(PaymentEntity::getOrderId, order.getId()));
                     this.items.delete(Wrappers.<OrderItemEntity>lambdaQuery().eq(OrderItemEntity::getOrderId, order.getId()));
                     this.orderMapper.deleteById(order.getId());

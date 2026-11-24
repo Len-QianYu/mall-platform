@@ -26,6 +26,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import com.example.api.entity.ProductNotificationEntity;
+import com.example.api.entity.OrderNotificationEntity;
 import com.example.api.enums.ProductNotificationType;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -124,5 +125,37 @@ class NotificationSocketTests {
         attributes.put(NotificationHandshakeInterceptor.TOKEN_EXPIRES_AT, Instant.now().plusSeconds(3600));
         when(session.getAttributes()).thenReturn(attributes);
         return session;
+    }
+
+    @Test
+    void orderNotificationsAndReadRefreshOnlyReachTheirRecipientsAcrossTabs() throws Exception {
+        ProductNotificationWebSocketHandler handler = new ProductNotificationWebSocketHandler(JsonMapper.builder().build());
+        WebSocketSession owner = this.session("admin", 7);
+        WebSocketSession secondTab = this.session("admin-tab", 7);
+        WebSocketSession buyer = this.session("buyer", 8);
+        handler.afterConnectionEstablished(owner);
+        handler.afterConnectionEstablished(secondTab);
+        handler.afterConnectionEstablished(buyer);
+        clearInvocations(owner, secondTab, buyer);
+        OrderNotificationEntity notification = new OrderNotificationEntity();
+        notification.setId(42L);
+        notification.setUserId(7);
+        notification.setOrderId(99L);
+        notification.setOrderNo("ORDER-99");
+        handler.sendOrderNotification(notification);
+        ArgumentCaptor<TextMessage> message = ArgumentCaptor.forClass(TextMessage.class);
+        verify(owner).sendMessage(message.capture());
+        verify(secondTab).sendMessage(any());
+        verify(buyer, never()).sendMessage(any());
+        assertTrue(message.getValue().getPayload().contains("order_notification"));
+        assertTrue(message.getValue().getPayload().contains("NEW_ORDER"));
+        assertTrue(message.getValue().getPayload().contains("ORDER-99"));
+        assertFalse(message.getValue().getPayload().contains("userId"));
+        clearInvocations(owner, secondTab, buyer);
+        handler.sendOrderRefresh(7);
+        verify(owner).sendMessage(message.capture());
+        verify(secondTab).sendMessage(any());
+        verify(buyer, never()).sendMessage(any());
+        assertTrue(message.getValue().getPayload().contains("order_refresh"));
     }
 }
