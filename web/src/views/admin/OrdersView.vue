@@ -1,88 +1,88 @@
 <template>
   <div class="page-heading">
-    <h1 class="page-title">订单管理</h1>
+    <h1 class="page-title">{{ t('订单管理') }}</h1>
   </div>
 
   <ElCard shadow="never">
     <!-- 筛选 -->
     <ElForm :model="filter" inline class="filter-form" @submit.prevent="search">
-      <ElFormItem label="关键字">
+      <ElFormItem :label="t('关键字')">
         <ElInput
           v-model="filter.keyword"
-          placeholder="订单号 / 收货人 / 手机号"
+          :placeholder="t('订单号 / 收货人 / 手机号')"
           clearable
           style="width: 16rem"
         >
           <template #prefix><i class="bi bi-search"></i></template>
         </ElInput>
       </ElFormItem>
-      <ElFormItem label="状态">
-        <ElSelect v-model="filter.status" placeholder="全部" clearable style="width: 8rem">
+      <ElFormItem :label="t('状态')">
+        <ElSelect v-model="filter.status" :placeholder="t('全部')" clearable style="width: 8rem">
           <ElOption
             v-for="(item, code) in ORDER_STATUS"
             :key="code"
-            :label="item.label"
+            :label="t(item.label)"
             :value="code"
           />
         </ElSelect>
       </ElFormItem>
       <ElFormItem>
-        <ElButton type="primary" native-type="submit">查询</ElButton>
-        <ElButton @click="resetFilter">重置</ElButton>
+        <ElButton type="primary" native-type="submit">{{ t('查询') }}</ElButton>
+        <ElButton @click="resetFilter">{{ t('重置') }}</ElButton>
       </ElFormItem>
     </ElForm>
 
     <ElTable v-loading="loading" :data="orders" border stripe>
-      <ElTableColumn prop="orderNo" label="订单号" min-width="200" />
-      <ElTableColumn label="收货人" min-width="150">
+      <ElTableColumn prop="orderNo" :label="t('订单号')" min-width="200" />
+      <ElTableColumn :label="t('收货人')" min-width="150">
         <template #default="{ row }">
           <div>{{ row.receiverName }}</div>
           <div class="text-secondary">{{ row.receiverPhone }}</div>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="订单金额" width="120">
+      <ElTableColumn :label="t('订单金额')" width="120">
         <template #default="{ row }">{{ formatMoney(row.totalAmount) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="状态" width="100">
+      <ElTableColumn :label="t('状态')" width="100">
         <template #default="{ row }">
           <ElTag :type="ORDER_STATUS[row.status]?.type ?? 'info'">
-            {{ ORDER_STATUS[row.status]?.label ?? row.status }}
+            {{ t(ORDER_STATUS[row.status]?.label ?? row.status) }}
           </ElTag>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="下单时间" width="170">
+      <ElTableColumn :label="t('下单时间')" width="170">
         <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="操作" width="150" fixed="right">
+      <ElTableColumn :label="t('操作')" width="150" fixed="right">
         <template #default="{ row }">
-          <ElButton link type="primary" @click="openDetail(row.id)">详情</ElButton>
+          <ElButton link type="primary" @click="openDetail(row.id)">{{ t('详情') }}</ElButton>
           <!-- 已支付的订单才能发货 -->
           <ElPopconfirm
             v-if="row.status === 'PAID'"
-            title="确定该订单已发货吗？"
+            :title="t('确定该订单已发货吗？')"
             @confirm="changeStatus(row.id, 'ship')"
           >
             <template #reference>
-              <ElButton link type="success">发货</ElButton>
+              <ElButton link type="success">{{ t('发货') }}</ElButton>
             </template>
           </ElPopconfirm>
           <!-- 只有待支付的订单能直接取消；已支付、未发货的走退款（已发货的要先退货，暂不支持） -->
           <ElPopconfirm
             v-if="row.status === 'PENDING_PAYMENT'"
-            title="确定取消该订单吗？"
+            :title="t('确定取消该订单吗？')"
             @confirm="changeStatus(row.id, 'cancel')"
           >
             <template #reference>
-              <ElButton link type="danger">取消</ElButton>
+              <ElButton link type="danger">{{ t('取消') }}</ElButton>
             </template>
           </ElPopconfirm>
           <ElPopconfirm
             v-if="row.status === 'PAID'"
-            title="确定给该订单退款吗？库存会回补、销量会扣回"
+            :title="t('确定给该订单退款吗？库存会回补、销量会扣回')"
             @confirm="changeStatus(row.id, 'refund')"
           >
             <template #reference>
-              <ElButton link type="danger">退款</ElButton>
+              <ElButton link type="danger">{{ t('退款') }}</ElButton>
             </template>
           </ElPopconfirm>
         </template>
@@ -101,49 +101,53 @@
   </ElCard>
 
   <!-- 订单详情抽屉 -->
-  <ElDrawer v-model="detailVisible" title="订单详情" size="min(640px, 100vw)">
+  <ElDrawer v-model="detailVisible" :title="t('订单详情')" size="min(640px, 100vw)">
     <div v-loading="detailLoading" class="detail-body">
       <template v-if="detail">
         <ElDescriptions :column="2" border>
-          <ElDescriptionsItem label="订单号">{{ detail.order.orderNo }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="状态">
+          <ElDescriptionsItem :label="t('订单号')">{{ detail.order.orderNo }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="t('状态')">
             <ElTag :type="ORDER_STATUS[detail.order.status]?.type ?? 'info'">
-              {{ ORDER_STATUS[detail.order.status]?.label ?? detail.order.status }}
+              {{ t(ORDER_STATUS[detail.order.status]?.label ?? detail.order.status) }}
             </ElTag>
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="订单金额">
+          <ElDescriptionsItem :label="t('订单金额')">
             {{ formatMoney(detail.order.totalAmount) }}
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="用户 ID">{{ detail.order.userId }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="收货人">{{ detail.order.receiverName }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="联系电话">{{ detail.order.receiverPhone }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="收货地址" :span="2">
+          <ElDescriptionsItem :label="t('用户 ID')">{{ detail.order.userId }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="t('收货人')">{{
+            detail.order.receiverName
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="t('联系电话')">{{
+            detail.order.receiverPhone
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="t('收货地址')" :span="2">
             {{ detail.order.receiverAddress }}
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="买家备注" :span="2">
+          <ElDescriptionsItem :label="t('买家备注')" :span="2">
             {{ detail.order.remark || '-' }}
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="下单时间">
+          <ElDescriptionsItem :label="t('下单时间')">
             {{ formatDateTime(detail.order.createdAt) }}
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="支付时间">
+          <ElDescriptionsItem :label="t('支付时间')">
             {{ formatDateTime(detail.order.paidAt) }}
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="发货时间">
+          <ElDescriptionsItem :label="t('发货时间')">
             {{ formatDateTime(detail.order.shippedAt) }}
           </ElDescriptionsItem>
-          <ElDescriptionsItem label="完成时间">
+          <ElDescriptionsItem :label="t('完成时间')">
             {{ formatDateTime(detail.order.completedAt) }}
           </ElDescriptionsItem>
-          <ElDescriptionsItem v-if="detail.order.cancelledAt" label="取消时间" :span="2">
+          <ElDescriptionsItem v-if="detail.order.cancelledAt" :label="t('取消时间')" :span="2">
             {{ formatDateTime(detail.order.cancelledAt) }}
           </ElDescriptionsItem>
         </ElDescriptions>
 
-        <h3 class="detail-subtitle">商品明细</h3>
+        <h3 class="detail-subtitle">{{ t('商品明细') }}</h3>
         <!-- 商品名、主图、单价都是下单时的快照，不随商品修改变化 -->
         <ElTable :data="detail.items" border>
-          <ElTableColumn label="商品" min-width="220">
+          <ElTableColumn :label="t('商品')" min-width="220">
             <template #default="{ row }">
               <div class="product-cell">
                 <ElImage
@@ -159,11 +163,11 @@
               </div>
             </template>
           </ElTableColumn>
-          <ElTableColumn label="单价" width="100">
+          <ElTableColumn :label="t('单价')" width="100">
             <template #default="{ row }">{{ formatMoney(row.unitPrice) }}</template>
           </ElTableColumn>
-          <ElTableColumn prop="quantity" label="数量" width="70" />
-          <ElTableColumn label="小计" width="110">
+          <ElTableColumn prop="quantity" :label="t('数量')" width="70" />
+          <ElTableColumn :label="t('小计')" width="110">
             <template #default="{ row }">{{ formatMoney(row.unitPrice * row.quantity) }}</template>
           </ElTableColumn>
         </ElTable>
@@ -173,6 +177,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { reactive, ref, watch } from 'vue'
 import {
   ElButton,
@@ -228,13 +233,13 @@ const fetchOrders = async () => {
       },
     )
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载订单列表失败')
+      ElMessage.error(t(data.payload.message || '加载订单列表失败'))
       return
     }
     orders.value = data.payload.orders
     pagination.total = data.payload.pagination.total
   } catch {
-    ElMessage.error('加载订单列表失败')
+    ElMessage.error(t('加载订单列表失败'))
   } finally {
     loading.value = false
   }
@@ -265,13 +270,13 @@ const changeStatus = async (id: number, action: keyof typeof ACTION_MESSAGE) => 
   try {
     const { data } = await request.post<ApiResult>(`/admin/order/${action}`, { id })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '操作失败')
+      ElMessage.error(t(data.payload.message || '操作失败'))
       return
     }
-    ElMessage.success(ACTION_MESSAGE[action])
+    ElMessage.success(t(ACTION_MESSAGE[action]))
     fetchOrders()
   } catch {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('操作失败'))
   }
 }
 
@@ -289,12 +294,12 @@ const openDetail = async (id: number) => {
       `/admin/order/${id}`,
     )
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载订单详情失败')
+      ElMessage.error(t(data.payload.message || '加载订单详情失败'))
       return
     }
     detail.value = { order: data.payload.order, items: data.payload.items }
   } catch {
-    ElMessage.error('加载订单详情失败')
+    ElMessage.error(t('加载订单详情失败'))
   } finally {
     detailLoading.value = false
   }

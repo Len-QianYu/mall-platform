@@ -1,13 +1,21 @@
 <template>
   <div class="page-heading">
-    <h1 class="page-title">秒杀活动</h1>
+    <h1 class="page-title">{{ t('秒杀活动') }}</h1>
     <div class="heading-actions">
-      <RouterLink :to="{ name: 'seckill' }"><ElButton>查看商城</ElButton></RouterLink>
-      <ElButton type="primary" @click="openDrawer"><i class="bi bi-plus-lg"></i>创建活动</ElButton>
+      <RouterLink :to="{ name: 'seckill' }"
+        ><ElButton>{{ t('查看商城') }}</ElButton></RouterLink
+      >
+      <ElButton type="primary" @click="openDrawer"
+        ><i class="bi bi-plus-lg"></i>{{ t('创建活动') }}</ElButton
+      >
     </div>
   </div>
   <ElAlert
-    title="创建活动时会从商品普通库存划拨秒杀配额；关闭或到期后自动归还剩余配额。活动价和总配额在创建后固定。"
+    :title="
+      t(
+        '创建活动时会从商品普通库存划拨秒杀配额；关闭或到期后自动归还剩余配额。活动价和总配额在创建后固定。',
+      )
+    "
     type="info"
     :closable="false"
     show-icon
@@ -15,17 +23,19 @@
   />
   <ElCard shadow="never">
     <div v-if="error" class="load-error" role="alert">
-      {{ error }} <ElButton @click="fetchActivities">重试</ElButton>
+      {{ t(error) }} <ElButton @click="fetchActivities">{{ t('重试') }}</ElButton>
     </div>
     <ElTable v-loading="loading" :data="activities" border stripe>
       <ElTableColumn prop="id" label="ID" width="80" />
-      <ElTableColumn label="活动 / 商品" min-width="230">
+      <ElTableColumn :label="t('活动 / 商品')" min-width="230">
         <template #default="{ row }">
           <strong>{{ row.title }}</strong>
-          <div class="text-secondary">{{ row.productName }} · 商品 #{{ row.productId }}</div>
+          <div class="text-secondary">
+            {{ row.productName }} {{ t('· 商品 #') }}{{ row.productId }}
+          </div>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="秒杀价" width="120">
+      <ElTableColumn :label="t('秒杀价')" width="120">
         <template #default="{ row }">
           <strong class="seckill-price">{{ formatMoney(row.seckillPrice) }}</strong>
           <div class="text-secondary">
@@ -33,44 +43,46 @@
           </div>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="配额" width="145">
+      <ElTableColumn :label="t('配额')" width="145">
         <template #default="{ row }">
-          剩余 {{ row.stock }} / {{ row.totalStock }}
+          {{ t('剩余') }} {{ row.stock }} / {{ row.totalStock }}
           <div v-if="row.returnedStock" class="text-secondary">
-            已归还 {{ row.returnedStock }} 件
+            {{ t('已归还') }} {{ row.returnedStock }} {{ t('件') }}
           </div>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="限购" width="95"
-        ><template #default="{ row }">每人 {{ row.limitPerUser }} 件</template></ElTableColumn
+      <ElTableColumn :label="t('限购')" width="95"
+        ><template #default="{ row }"
+          >{{ t('每人') }} {{ row.limitPerUser }} {{ t('件') }}</template
+        ></ElTableColumn
       >
-      <ElTableColumn label="活动时间" width="185">
+      <ElTableColumn :label="t('活动时间')" width="185">
         <template #default="{ row }">
           <div>{{ formatDateTime(row.startsAt) }}</div>
-          <div class="text-secondary">至 {{ formatDateTime(row.endsAt) }}</div>
+          <div class="text-secondary">{{ t('至') }} {{ formatDateTime(row.endsAt) }}</div>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="状态" width="110">
+      <ElTableColumn :label="t('状态')" width="110">
         <template #default="{ row }">
           <ElTag :type="SECKILL_PHASE[row.phase as SeckillPhase].type">{{
-            SECKILL_PHASE[row.phase as SeckillPhase].label
+            t(SECKILL_PHASE[row.phase as SeckillPhase].label)
           }}</ElTag>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="操作" width="100" fixed="right">
+      <ElTableColumn :label="t('操作')" width="100" fixed="right">
         <template #default="{ row }">
           <ElPopconfirm
             v-if="row.status === 1"
-            title="关闭活动并归还剩余配额？已有待支付订单仍可支付或取消。"
+            :title="t('关闭活动并归还剩余配额？已有待支付订单仍可支付或取消。')"
             :width="270"
             @confirm="closeActivity(row as SeckillActivity)"
             ><template #reference
-              ><ElButton link type="danger" :loading="closingId === row.id"
-                >关闭活动</ElButton
-              ></template
+              ><ElButton link type="danger" :loading="closingId === row.id">{{
+                t('关闭活动')
+              }}</ElButton></template
             ></ElPopconfirm
           >
-          <span v-else class="text-secondary">已结束</span>
+          <span v-else class="text-secondary">{{ t('已结束') }}</span>
         </template>
       </ElTableColumn>
     </ElTable>
@@ -87,21 +99,27 @@
 
   <ElDrawer
     v-model="drawerVisible"
-    title="创建秒杀活动"
+    :title="t('创建秒杀活动')"
     size="min(560px, 100vw)"
     :close-on-click-modal="!saving"
     :close-on-press-escape="!saving"
     :show-close="!saving"
   >
-    <ElForm ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="saving">
-      <ElFormItem label="活动商品" prop="productId">
+    <ElForm
+      ref="formRef"
+      :model="form"
+      :rules="rules"
+      :label-width="formLabelWidth('100px')"
+      :disabled="saving"
+    >
+      <ElFormItem :label="t('活动商品')" prop="productId">
         <ElSelect
           v-model="form.productId"
           filterable
           remote
           :remote-method="searchProducts"
           :loading="productsLoading"
-          placeholder="输入商品名搜索"
+          :placeholder="t('输入商品名搜索')"
           style="width: 100%"
           @change="selectProduct"
         >
@@ -113,28 +131,29 @@
             :disabled="product.stock < 1 || product.price <= 0.01"
           >
             <span>{{ product.name }}</span>
-            <span class="option-stock">库存 {{ product.stock }}</span>
+            <span class="option-stock">{{ t('库存') }} {{ product.stock }}</span>
           </ElOption>
         </ElSelect>
       </ElFormItem>
-      <ElFormItem v-if="selectedProduct" label="普通库存">
+      <ElFormItem v-if="selectedProduct" :label="t('普通库存')">
         <span
-          >{{ selectedProduct.stock }} 件 · 当前售价 {{ formatMoney(selectedProduct.price) }}</span
+          >{{ selectedProduct.stock }} {{ t('件 · 当前售价') }}
+          {{ formatMoney(selectedProduct.price) }}</span
         >
       </ElFormItem>
-      <ElFormItem label="活动标题" prop="title"
+      <ElFormItem :label="t('活动标题')" prop="title"
         ><ElInput v-model="form.title" maxlength="128" show-word-limit
       /></ElFormItem>
-      <ElFormItem label="秒杀价" prop="seckillPrice">
+      <ElFormItem :label="t('秒杀价')" prop="seckillPrice">
         <ElInputNumber
           v-model="form.seckillPrice"
           :min="0.01"
           :max="selectedProduct ? Number((selectedProduct.price - 0.01).toFixed(2)) : undefined"
           :precision="2"
           controls-position="right"
-        /><span class="form-unit">元</span>
+        /><span class="form-unit">{{ t('元') }}</span>
       </ElFormItem>
-      <ElFormItem label="活动配额" prop="totalStock">
+      <ElFormItem :label="t('活动配额')" prop="totalStock">
         <ElInputNumber
           v-model="form.totalStock"
           :min="1"
@@ -143,7 +162,7 @@
           controls-position="right"
         />
       </ElFormItem>
-      <ElFormItem label="每人限购" prop="limitPerUser">
+      <ElFormItem :label="t('每人限购')" prop="limitPerUser">
         <ElInputNumber
           v-model="form.limitPerUser"
           :min="1"
@@ -152,31 +171,32 @@
           controls-position="right"
         />
       </ElFormItem>
-      <ElFormItem label="开始时间" prop="startsAt"
+      <ElFormItem :label="t('开始时间')" prop="startsAt"
         ><ElDatePicker
           v-model="form.startsAt"
           type="datetime"
           value-format="YYYY-MM-DDTHH:mm:ss"
-          placeholder="选择开始时间"
+          :placeholder="t('选择开始时间')"
           style="width: 100%"
       /></ElFormItem>
-      <ElFormItem label="结束时间" prop="endsAt"
+      <ElFormItem :label="t('结束时间')" prop="endsAt"
         ><ElDatePicker
           v-model="form.endsAt"
           type="datetime"
           value-format="YYYY-MM-DDTHH:mm:ss"
-          placeholder="选择结束时间"
+          :placeholder="t('选择结束时间')"
           style="width: 100%"
       /></ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="saving" @click="drawerVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="save">创建活动</ElButton>
+      <ElButton :disabled="saving" @click="drawerVisible = false">{{ t('取消') }}</ElButton>
+      <ElButton type="primary" :loading="saving" @click="save">{{ t('创建活动') }}</ElButton>
     </template>
   </ElDrawer>
 </template>
 
 <script setup lang="ts">
+import { t, formLabelWidth } from '@/i18n'
 import { nextTick, reactive, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
@@ -242,11 +262,11 @@ const closeActivity = async (activity: SeckillActivity) => {
   closingId.value = activity.id
   try {
     const { data } = await request.post<ApiResult>('/admin/seckill/close', { id: activity.id })
-    if (data.status) ElMessage.success(data.payload.message || '活动已关闭')
-    else ElMessage.error(data.payload.message || '关闭失败')
+    if (data.status) ElMessage.success(t(data.payload.message || '活动已关闭'))
+    else ElMessage.error(t(data.payload.message || '关闭失败'))
     await fetchActivities()
   } catch {
-    ElMessage.error('关闭失败，请刷新列表后确认活动状态')
+    ElMessage.error(t('关闭失败，请刷新列表后确认活动状态'))
   } finally {
     closingId.value = undefined
   }
@@ -269,13 +289,70 @@ const form = reactive({
 })
 const selectedProduct = ref<Product>()
 const rules: FormRules<typeof form> = {
-  productId: [{ required: true, message: '请选择活动商品', trigger: 'change' }],
-  title: [{ required: true, whitespace: true, message: '请输入活动标题', trigger: 'blur' }],
-  seckillPrice: [{ required: true, message: '请输入秒杀价', trigger: 'blur' }],
-  totalStock: [{ required: true, message: '请输入活动配额', trigger: 'blur' }],
-  limitPerUser: [{ required: true, message: '请输入每人限购数量', trigger: 'blur' }],
-  startsAt: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
-  endsAt: [{ required: true, message: '请选择结束时间', trigger: 'change' }],
+  productId: [
+    {
+      required: true,
+      get message() {
+        return t('请选择活动商品')
+      },
+      trigger: 'change',
+    },
+  ],
+  title: [
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('请输入活动标题')
+      },
+      trigger: 'blur',
+    },
+  ],
+  seckillPrice: [
+    {
+      required: true,
+      get message() {
+        return t('请输入秒杀价')
+      },
+      trigger: 'blur',
+    },
+  ],
+  totalStock: [
+    {
+      required: true,
+      get message() {
+        return t('请输入活动配额')
+      },
+      trigger: 'blur',
+    },
+  ],
+  limitPerUser: [
+    {
+      required: true,
+      get message() {
+        return t('请输入每人限购数量')
+      },
+      trigger: 'blur',
+    },
+  ],
+  startsAt: [
+    {
+      required: true,
+      get message() {
+        return t('请选择开始时间')
+      },
+      trigger: 'change',
+    },
+  ],
+  endsAt: [
+    {
+      required: true,
+      get message() {
+        return t('请选择结束时间')
+      },
+      trigger: 'change',
+    },
+  ],
 }
 const searchProducts = async (keyword = '') => {
   const sequence = ++productSequence
@@ -286,7 +363,7 @@ const searchProducts = async (keyword = '') => {
     })
     if (sequence === productSequence && data.status) products.value = data.payload.products
   } catch {
-    ElMessage.error('加载商品失败，请重新搜索')
+    ElMessage.error(t('加载商品失败，请重新搜索'))
   } finally {
     if (sequence === productSequence) productsLoading.value = false
   }
@@ -334,7 +411,7 @@ const save = async () => {
   if (saving.value || !formRef.value) return
   if (!(await formRef.value.validate().catch(() => false))) return
   if (form.startsAt >= form.endsAt) {
-    ElMessage.error('结束时间必须晚于开始时间')
+    ElMessage.error(t('结束时间必须晚于开始时间'))
     return
   }
   saving.value = true
@@ -344,14 +421,14 @@ const save = async () => {
       title: form.title.trim(),
     })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '创建失败')
+      ElMessage.error(t(data.payload.message || '创建失败'))
       return
     }
-    ElMessage.success('秒杀活动已创建，配额已划拨')
+    ElMessage.success(t('秒杀活动已创建，配额已划拨'))
     drawerVisible.value = false
     await fetchActivities()
   } catch {
-    ElMessage.error('创建失败，请刷新活动列表确认结果后再操作')
+    ElMessage.error(t('创建失败，请刷新活动列表确认结果后再操作'))
   } finally {
     saving.value = false
   }

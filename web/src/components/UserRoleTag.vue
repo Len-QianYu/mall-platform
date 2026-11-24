@@ -5,11 +5,12 @@
     :type="role === 'admin' ? 'warning' : role === 'super_admin' ? 'primary' : 'success'"
     :size="size"
   >
-    {{ labels[role] }}
+    {{ t(labels[role]) }}
   </ElTag>
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { ElTag } from 'element-plus'
 import type { UserRole } from '@/stores/user'
 

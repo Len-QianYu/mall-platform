@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount, RouterLinkStub } from '@vue/te
 import type { ApiResult, DashboardData, OrderStatus } from '@/types/api'
 import DashboardView from '@/views/admin/DashboardView.vue'
 import { useTheme } from '@/utils/useTheme'
+import { setLocale } from '@/i18n'
 
 const { getDashboard } = vi.hoisted(() => ({
   getDashboard:
@@ -128,6 +129,24 @@ describe('DashboardView', () => {
       '¥0.00',
       '0',
     ])
+  })
+
+  it('updates chart labels when the language changes without refetching dashboard data', async () => {
+    const wrapper = mountDashboard()
+    await flushPromises()
+    try {
+      setLocale('en')
+      await flushPromises()
+      expect(wrapper.get('h1').text()).toBe('Dashboard')
+      const charts = wrapper.findAllComponents({ name: 'DashboardChart' })
+      expect(charts[0]!.props('option').legend.data).toEqual(['Sales', 'New orders'])
+      expect(
+        charts[1]!.props('option').series[0].data.map((item: { name: string }) => item.name),
+      ).toContain('Awaiting payment')
+      expect(getDashboard).toHaveBeenCalledOnce()
+    } finally {
+      setLocale('zh-CN')
+    }
   })
 
   it('updates chart colors when the shared theme changes', async () => {

@@ -1,47 +1,47 @@
 <template>
   <div class="page-heading users-heading">
-    <h1 class="page-title">用户管理</h1>
-    <ElRadioGroup v-model="viewMode" size="small" aria-label="用户展示方式">
-      <ElRadioButton value="list">列表视图</ElRadioButton>
-      <ElRadioButton value="avatar">头像视图</ElRadioButton>
+    <h1 class="page-title">{{ t('用户管理') }}</h1>
+    <ElRadioGroup v-model="viewMode" size="small" :aria-label="t('用户展示方式')">
+      <ElRadioButton value="list">{{ t('列表视图') }}</ElRadioButton>
+      <ElRadioButton value="avatar">{{ t('头像视图') }}</ElRadioButton>
     </ElRadioGroup>
   </div>
 
   <ElCard shadow="never">
     <!-- 筛选 -->
     <ElForm :model="filter" inline class="filter-form" @submit.prevent="search">
-      <ElFormItem label="关键字">
+      <ElFormItem :label="t('关键字')">
         <ElInput
           v-model="filter.keyword"
-          placeholder="用户名 / 名字 / 手机号"
+          :placeholder="t('用户名 / 名字 / 手机号')"
           clearable
           style="width: 14rem"
         >
           <template #prefix><i class="bi bi-search"></i></template>
         </ElInput>
       </ElFormItem>
-      <ElFormItem label="角色">
-        <ElSelect v-model="filter.role" placeholder="全部" clearable style="width: 8rem">
-          <ElOption label="用户" value="user" />
-          <ElOption label="管理员" value="admin" />
-          <ElOption label="super管理员" value="super_admin" />
+      <ElFormItem :label="t('角色')">
+        <ElSelect v-model="filter.role" :placeholder="t('全部')" clearable style="width: 8rem">
+          <ElOption :label="t('用户')" value="user" />
+          <ElOption :label="t('管理员')" value="admin" />
+          <ElOption :label="t('super管理员')" value="super_admin" />
         </ElSelect>
       </ElFormItem>
-      <ElFormItem label="状态">
-        <ElSelect v-model="filter.status" placeholder="全部" clearable style="width: 8rem">
-          <ElOption label="启用" :value="1" />
-          <ElOption label="禁用" :value="0" />
+      <ElFormItem :label="t('状态')">
+        <ElSelect v-model="filter.status" :placeholder="t('全部')" clearable style="width: 8rem">
+          <ElOption :label="t('启用')" :value="1" />
+          <ElOption :label="t('禁用')" :value="0" />
         </ElSelect>
       </ElFormItem>
       <ElFormItem>
-        <ElButton type="primary" native-type="submit">查询</ElButton>
-        <ElButton @click="resetFilter">重置</ElButton>
+        <ElButton type="primary" native-type="submit">{{ t('查询') }}</ElButton>
+        <ElButton @click="resetFilter">{{ t('重置') }}</ElButton>
       </ElFormItem>
     </ElForm>
 
     <ElTable v-if="viewMode === 'list'" v-loading="loading" :data="users" border stripe>
       <ElTableColumn prop="id" label="ID" width="80" />
-      <ElTableColumn label="用户" min-width="180">
+      <ElTableColumn :label="t('用户')" min-width="180">
         <template #default="{ row }">
           <div class="user-cell">
             <ElAvatar :size="32" :src="assetUrl(row.avatarUrl)">
@@ -49,44 +49,46 @@
             </ElAvatar>
             <div>
               <div>{{ row.username }}</div>
-              <div class="text-secondary">{{ row.name || '未填写名字' }}</div>
+              <div class="text-secondary">{{ row.name || t('未填写名字') }}</div>
             </div>
           </div>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="性别" width="70">
+      <ElTableColumn :label="t('性别')" width="70">
         <template #default="{ row }">
-          {{ row.gender === 'M' ? '男' : row.gender === 'F' ? '女' : '-' }}
+          {{ row.gender === 'M' ? t('男') : row.gender === 'F' ? t('女') : '-' }}
         </template>
       </ElTableColumn>
-      <ElTableColumn label="角色" width="130">
+      <ElTableColumn :label="t('角色')" width="130">
         <template #default="{ row }">
           <UserRoleTag :role="row.role" />
         </template>
       </ElTableColumn>
-      <ElTableColumn label="手机号" min-width="130">
+      <ElTableColumn :label="t('手机号')" min-width="130">
         <template #default="{ row }">{{ row.phone || '-' }}</template>
       </ElTableColumn>
-      <ElTableColumn label="邮箱" min-width="180" show-overflow-tooltip>
+      <ElTableColumn :label="t('邮箱')" min-width="180" show-overflow-tooltip>
         <template #default="{ row }">{{ row.email || '-' }}</template>
       </ElTableColumn>
-      <ElTableColumn label="状态" width="80">
+      <ElTableColumn :label="t('状态')" width="80">
         <template #default="{ row }">
           <ElTag :type="row.status === 1 ? 'success' : 'danger'">
-            {{ row.status === 1 ? '启用' : '禁用' }}
+            {{ row.status === 1 ? t('启用') : t('禁用') }}
           </ElTag>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="注册时间" width="170">
+      <ElTableColumn :label="t('注册时间')" width="170">
         <template #default="{ row }">{{ formatDateTime(row.registeredAt) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="操作" width="130" fixed="right">
+      <ElTableColumn :label="t('操作')" width="130" fixed="right">
         <!-- 表格行是 Element Plus 的 DefaultRow（字段为 any），传给按 User 声明的函数前先断言 -->
         <template #default="{ row }">
-          <ElButton link type="primary" @click="openEdit(row as User)">编辑</ElButton>
+          <ElButton link type="primary" @click="openEdit(row as User)">{{ t('编辑') }}</ElButton>
           <!-- 不能禁用自己，否则当前管理员会被锁在系统外 -->
           <ElPopconfirm
-            :title="row.status === 1 ? '禁用后该用户无法登录，确定禁用吗？' : '确定启用该用户吗？'"
+            :title="
+              row.status === 1 ? t('禁用后该用户无法登录，确定禁用吗？') : t('确定启用该用户吗？')
+            "
             :width="220"
             @confirm="toggleStatus(row as User)"
           >
@@ -96,7 +98,7 @@
                 :type="row.status === 1 ? 'danger' : 'success'"
                 :disabled="isSelf(row.id)"
               >
-                {{ row.status === 1 ? '禁用' : '启用' }}
+                {{ row.status === 1 ? t('禁用') : t('启用') }}
               </ElButton>
             </template>
           </ElPopconfirm>
@@ -116,7 +118,7 @@
             'is-super-admin': user.role === 'super_admin',
           }"
           :title="displayName(user)"
-          :aria-label="`编辑用户 ${displayName(user)}`"
+          :aria-label="t('编辑用户 {name}', { name: displayName(user) })"
           :disabled="loading"
           @click="openEdit(user)"
         >
@@ -131,7 +133,7 @@
           <span class="user-card-name">{{ displayName(user) }}</span>
         </button>
       </div>
-      <ElEmpty v-else description="暂无用户" :image-size="90" />
+      <ElEmpty v-else :description="t('暂无用户')" :image-size="90" />
     </div>
 
     <ElPagination
@@ -148,49 +150,56 @@
   <!-- 编辑抽屉 -->
   <ElDrawer
     v-model="drawerVisible"
-    title="编辑用户"
+    :title="t('编辑用户')"
     size="min(420px, 100vw)"
     :close-on-click-modal="!saving"
     :close-on-press-escape="!saving"
     :show-close="!saving"
   >
-    <ElForm ref="formRef" :model="form" :rules="rules" label-width="70px" :disabled="saving">
-      <ElFormItem label="用户名">
+    <ElForm
+      ref="formRef"
+      :model="form"
+      :rules="rules"
+      :label-width="formLabelWidth('70px')"
+      :disabled="saving"
+    >
+      <ElFormItem :label="t('用户名')">
         <ElInput :model-value="form.username" disabled />
       </ElFormItem>
-      <ElFormItem label="名字" prop="name">
-        <ElInput v-model="form.name" :maxlength="32" placeholder="选填" />
+      <ElFormItem :label="t('名字')" prop="name">
+        <ElInput v-model="form.name" :maxlength="32" :placeholder="t('选填')" />
       </ElFormItem>
-      <ElFormItem label="性别" prop="gender">
+      <ElFormItem :label="t('性别')" prop="gender">
         <ElRadioGroup v-model="form.gender">
-          <ElRadio value="M">男</ElRadio>
-          <ElRadio value="F">女</ElRadio>
-          <ElRadio value="">未设置</ElRadio>
+          <ElRadio value="M">{{ t('男') }}</ElRadio>
+          <ElRadio value="F">{{ t('女') }}</ElRadio>
+          <ElRadio value="">{{ t('未设置') }}</ElRadio>
         </ElRadioGroup>
       </ElFormItem>
-      <ElFormItem label="手机号" prop="phone">
-        <ElInput v-model="form.phone" :maxlength="11" placeholder="选填" />
+      <ElFormItem :label="t('手机号')" prop="phone">
+        <ElInput v-model="form.phone" :maxlength="11" :placeholder="t('选填')" />
       </ElFormItem>
-      <ElFormItem label="邮箱" prop="email">
-        <ElInput v-model="form.email" :maxlength="128" placeholder="选填" />
+      <ElFormItem :label="t('邮箱')" prop="email">
+        <ElInput v-model="form.email" :maxlength="128" :placeholder="t('选填')" />
       </ElFormItem>
-      <ElFormItem label="角色" prop="role">
+      <ElFormItem :label="t('角色')" prop="role">
         <!-- 不能改自己的角色，避免把自己降成普通用户后失去管理权限 -->
         <ElSelect v-model="form.role" :disabled="isSelf(form.id)" style="width: 100%">
-          <ElOption label="用户" value="user" />
-          <ElOption label="管理员" value="admin" />
-          <ElOption label="super管理员" value="super_admin" />
+          <ElOption :label="t('用户')" value="user" />
+          <ElOption :label="t('管理员')" value="admin" />
+          <ElOption :label="t('super管理员')" value="super_admin" />
         </ElSelect>
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="saving" @click="drawerVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
+      <ElButton :disabled="saving" @click="drawerVisible = false">{{ t('取消') }}</ElButton>
+      <ElButton type="primary" :loading="saving" @click="save">{{ t('保存') }}</ElButton>
     </template>
   </ElDrawer>
 </template>
 
 <script setup lang="ts">
+import { t, formLabelWidth } from '@/i18n'
 import { nextTick, reactive, ref, watch } from 'vue'
 import {
   ElAvatar,
@@ -258,13 +267,13 @@ const fetchUsers = async () => {
       },
     )
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载用户列表失败')
+      ElMessage.error(t(data.payload.message || '加载用户列表失败'))
       return
     }
     users.value = data.payload.users
     pagination.total = data.payload.pagination.total
   } catch {
-    ElMessage.error('加载用户列表失败')
+    ElMessage.error(t('加载用户列表失败'))
   } finally {
     loading.value = false
   }
@@ -297,13 +306,13 @@ const toggleStatus = async (row: User) => {
   try {
     const { data } = await request.post<ApiResult>('/admin/user/status', { id: row.id, status })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '操作失败')
+      ElMessage.error(t(data.payload.message || '操作失败'))
       return
     }
     row.status = status
-    ElMessage.success(status === 1 ? '已启用' : '已禁用')
+    ElMessage.success(t(status === 1 ? '已启用' : '已禁用'))
   } catch {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('操作失败'))
   }
 }
 
@@ -323,9 +332,33 @@ const form = reactive({
 })
 
 const rules: FormRules<typeof form> = {
-  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' }],
-  email: [{ type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
+  phone: [
+    {
+      pattern: /^1[3-9]\d{9}$/,
+      get message() {
+        return t('请输入有效的手机号')
+      },
+      trigger: 'blur',
+    },
+  ],
+  email: [
+    {
+      type: 'email',
+      get message() {
+        return t('请输入有效的邮箱地址')
+      },
+      trigger: 'blur',
+    },
+  ],
+  role: [
+    {
+      required: true,
+      get message() {
+        return t('请选择角色')
+      },
+      trigger: 'change',
+    },
+  ],
 }
 
 const openEdit = (row: User) => {
@@ -361,14 +394,14 @@ const save = async () => {
       role: form.role,
     })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '保存失败')
+      ElMessage.error(t(data.payload.message || '保存失败'))
       return
     }
-    ElMessage.success('保存成功')
+    ElMessage.success(t('保存成功'))
     drawerVisible.value = false
     fetchUsers()
   } catch {
-    ElMessage.error('保存失败')
+    ElMessage.error(t('保存失败'))
   } finally {
     saving.value = false
   }

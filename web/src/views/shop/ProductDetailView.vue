@@ -2,14 +2,14 @@
   <div class="shop-container">
     <div class="detail-navigation">
       <ElBreadcrumb v-if="product" class="detail-breadcrumb">
-        <ElBreadcrumbItem :to="{ name: 'index' }">首页</ElBreadcrumbItem>
+        <ElBreadcrumbItem :to="{ name: 'index' }">{{ t('首页') }}</ElBreadcrumbItem>
         <ElBreadcrumbItem :to="{ name: 'products', query: { category: product.category } }">
-          {{ product.category }}
+          {{ t(product.category) }}
         </ElBreadcrumbItem>
         <ElBreadcrumbItem>{{ product.name }}</ElBreadcrumbItem>
       </ElBreadcrumb>
       <ElButton class="detail-return" @click="returnToProducts">
-        <i class="bi bi-arrow-left btn-icon" aria-hidden="true"></i>返回全部商品
+        <i class="bi bi-arrow-left btn-icon" aria-hidden="true"></i>{{ t('返回全部商品') }}
       </ElButton>
     </div>
 
@@ -33,16 +33,16 @@
               <p v-if="product.subtitle" class="detail-subtitle">{{ product.subtitle }}</p>
 
               <div class="price-box">
-                <span class="price-label">售价</span>
+                <span class="price-label">{{ t('售价') }}</span>
                 <span class="price detail-price">{{ formatMoney(product.price) }}</span>
               </div>
 
               <dl class="detail-meta">
-                <dt>销量</dt>
+                <dt>{{ t('销量') }}</dt>
                 <dd>{{ product.sales }}</dd>
-                <dt>库存</dt>
-                <dd>{{ product.stock > 0 ? product.stock : '已售罄' }}</dd>
-                <dt>数量</dt>
+                <dt>{{ t('库存') }}</dt>
+                <dd>{{ product.stock > 0 ? product.stock : t('已售罄') }}</dd>
+                <dt>{{ t('数量') }}</dt>
                 <dd>
                   <ElInputNumber
                     v-model="quantity"
@@ -60,7 +60,7 @@
                   :loading="adding"
                   @click="addToCart"
                 >
-                  <i class="bi bi-cart-plus btn-icon"></i>加入购物车
+                  <i class="bi bi-cart-plus btn-icon"></i>{{ t('加入购物车') }}
                 </ElButton>
                 <ElButton
                   type="primary"
@@ -68,7 +68,7 @@
                   :disabled="product.stock === 0"
                   @click="buyNow"
                 >
-                  立即购买
+                  {{ t('立即购买') }}
                 </ElButton>
                 <FavoriteButton
                   class="detail-favorite"
@@ -81,21 +81,23 @@
         </ElCard>
 
         <ElCard shadow="never" class="description-card">
-          <template #header><span class="card-title">商品详情</span></template>
+          <template #header
+            ><span class="card-title">{{ t('商品详情') }}</span></template
+          >
           <!-- 纯文本展示（不用 v-html），保留换行 -->
-          <p v-if="product.description" class="description">{{ product.description }}</p>
-          <ElEmpty v-else description="暂无详情" :image-size="80" />
+          <p v-if="product.description" class="description">{{ t(product.description) }}</p>
+          <ElEmpty v-else :description="t('暂无详情')" :image-size="80" />
         </ElCard>
       </template>
 
       <ElResult
         v-else-if="!loading"
         icon="warning"
-        title="商品不存在或已下架"
-        sub-title="看看其他商品吧"
+        :title="t('商品不存在或已下架')"
+        :sub-title="t('看看其他商品吧')"
       >
         <template #extra>
-          <ElButton type="primary" @click="returnToProducts">去逛逛</ElButton>
+          <ElButton type="primary" @click="returnToProducts">{{ t('去逛逛') }}</ElButton>
         </template>
       </ElResult>
     </div>
@@ -103,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -153,7 +156,7 @@ const fetchProduct = async (id: string) => {
       product.value = data.payload.product
     }
   } catch {
-    ElMessage.error('加载商品失败')
+    ElMessage.error(t('加载商品失败'))
   } finally {
     loading.value = false
   }
@@ -173,7 +176,7 @@ watch(
 // 加购、购买都要登录；游客先去登录，登录后回到本页
 const requireLogin = (): boolean => {
   if (userStore.logged) return true
-  ElMessage.info('请先登录')
+  ElMessage.info(t('请先登录'))
   router.push({ name: 'login', query: { redirect: route.fullPath } })
   return false
 }
@@ -190,13 +193,13 @@ const addToCart = async () => {
       quantity: quantity.value,
     })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加入购物车失败')
+      ElMessage.error(t(data.payload.message || '加入购物车失败'))
       return
     }
-    ElMessage.success('已加入购物车')
+    ElMessage.success(t('已加入购物车'))
     cartStore.refresh()
   } catch {
-    ElMessage.error('加入购物车失败')
+    ElMessage.error(t('加入购物车失败'))
   } finally {
     adding.value = false
   }

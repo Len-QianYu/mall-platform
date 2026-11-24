@@ -3,22 +3,22 @@
     <section class="seckill-hero" aria-labelledby="seckill-title">
       <div class="hero-copy">
         <span class="hero-eyebrow"
-          ><i class="bi bi-lightning-charge-fill"></i>限时好价 · 限量开抢</span
+          ><i class="bi bi-lightning-charge-fill"></i>{{ t('限时好价 · 限量开抢') }}</span
         >
-        <h1 id="seckill-title">限时秒杀</h1>
+        <h1 id="seckill-title">{{ t('限时秒杀') }}</h1>
       </div>
       <div class="hero-description">
-        <p>把心动好物，带回日常。每一场都有值得期待的好价。</p>
+        <p>{{ t('把心动好物，带回日常。每一场都有值得期待的好价。') }}</p>
         <div class="hero-perks">
-          <span><i class="bi bi-tag"></i>专属秒杀价</span>
-          <span><i class="bi bi-box-seam"></i>限量发售</span>
-          <span><i class="bi bi-shield-check"></i>正品保障</span>
+          <span><i class="bi bi-tag"></i>{{ t('专属秒杀价') }}</span>
+          <span><i class="bi bi-box-seam"></i>{{ t('限量发售') }}</span>
+          <span><i class="bi bi-shield-check"></i>{{ t('正品保障') }}</span>
         </div>
       </div>
     </section>
 
     <div class="activity-toolbar">
-      <div class="activity-tabs" role="tablist" aria-label="秒杀活动状态">
+      <div class="activity-tabs" role="tablist" :aria-label="t('秒杀活动状态')">
         <button
           v-for="tab in tabs"
           :key="tab.value"
@@ -28,18 +28,18 @@
           :class="{ active: filter === tab.value }"
           @click="changeFilter(tab.value)"
         >
-          {{ tab.label }}
+          {{ t(tab.label) }}
         </button>
       </div>
       <ElButton :loading="loading" text @click="fetchActivities()">
-        <i class="bi bi-arrow-clockwise"></i><span>刷新活动</span>
+        <i class="bi bi-arrow-clockwise"></i><span>{{ t('刷新活动') }}</span>
       </ElButton>
     </div>
 
     <div v-if="error" class="activity-error" role="alert">
       <i class="bi bi-exclamation-circle"></i>
-      <span>{{ error }}</span>
-      <ElButton @click="fetchActivities()">重新加载</ElButton>
+      <span>{{ t(error) }}</span>
+      <ElButton @click="fetchActivities()">{{ t('重新加载') }}</ElButton>
     </div>
     <div v-else-if="loading && !activities.length" class="seckill-grid" aria-busy="true">
       <ElSkeleton v-for="index in 4" :key="index" class="activity-skeleton" :rows="5" animated />
@@ -49,7 +49,7 @@
         <RouterLink
           :to="{ name: 'product_detail', params: { id: activity.productId } }"
           class="card-image-link"
-          :aria-label="activity.productName + '商品详情'"
+          :aria-label="t('{name}商品详情', { name: activity.productName })"
         >
           <ElImage
             v-if="activity.productImage"
@@ -61,9 +61,9 @@
           />
           <div v-else class="card-image image-placeholder"><i class="bi bi-image"></i></div>
           <span class="activity-badge" :data-phase="phaseOf(activity)">
-            {{ SECKILL_PHASE[phaseOf(activity)].label }}
+            {{ t(SECKILL_PHASE[phaseOf(activity)].label) }}
           </span>
-          <span class="discount-badge">{{ discount(activity) }}折</span>
+          <span class="discount-badge">{{ discount(activity) }}</span>
         </RouterLink>
         <div class="card-content">
           <p class="activity-title">{{ activity.title }}</p>
@@ -72,33 +72,37 @@
             class="product-title"
             ><h2>{{ activity.productName }}</h2></RouterLink
           >
-          <p class="product-subtitle">{{ activity.productSubtitle || '限量好物，限时享优惠' }}</p>
+          <p class="product-subtitle">
+            {{ activity.productSubtitle || t('限量好物，限时享优惠') }}
+          </p>
           <div class="card-prices">
             <strong>{{ formatMoney(activity.seckillPrice) }}</strong>
             <del>{{ formatMoney(activity.originalPrice) }}</del>
           </div>
           <div class="quota-meta">
-            <span>每人限购 {{ activity.limitPerUser }} 件</span>
+            <span>{{ t('每人限购 {count} 件', { count: activity.limitPerUser }) }}</span>
             <span>{{
-              activity.status === 1 ? '剩余 ' + activity.stock + ' 件' : '活动已结束'
+              activity.status === 1
+                ? t('剩余 {count} 件', { count: activity.stock })
+                : t('活动已结束')
             }}</span>
           </div>
           <progress
             class="quota-progress"
             :value="Math.max(0, activity.totalStock - activity.stock - activity.returnedStock)"
             :max="activity.totalStock"
-            :aria-label="activity.productName + '已抢数量'"
+            :aria-label="t('{name}的已抢数量', { name: activity.productName })"
           ></progress>
           <p class="card-countdown">
             <i class="bi bi-clock"></i>
             <template v-if="phaseOf(activity) === 'UPCOMING'"
-              >距开抢 {{ seckillCountdown(activity.startsAtEpochMs, now) }}</template
+              >{{ t('距开抢') }} {{ seckillCountdown(activity.startsAtEpochMs, now) }}</template
             >
             <template v-else-if="phaseOf(activity) === 'LIVE'"
-              >距结束 {{ seckillCountdown(activity.endsAtEpochMs, now) }}</template
+              >{{ t('距结束') }} {{ seckillCountdown(activity.endsAtEpochMs, now) }}</template
             >
             <template v-else>{{
-              phaseOf(activity) === 'SOLD_OUT' ? '本场配额已抢完' : '期待下一场好价'
+              phaseOf(activity) === 'SOLD_OUT' ? t('本场配额已抢完') : t('期待下一场好价')
             }}</template>
           </p>
           <ElButton
@@ -108,14 +112,16 @@
             :disabled="phaseOf(activity) !== 'LIVE'"
             @click="buy(activity)"
             >{{
-              phaseOf(activity) === 'LIVE' ? '立即抢购' : SECKILL_PHASE[phaseOf(activity)].label
+              t(phaseOf(activity) === 'LIVE' ? '立即抢购' : SECKILL_PHASE[phaseOf(activity)].label)
             }}</ElButton
           >
         </div>
       </article>
     </div>
-    <ElEmpty v-else :description="filter ? '暂无此状态的秒杀活动' : '秒杀好物正在准备中'">
-      <RouterLink :to="{ name: 'products' }"><ElButton>先逛逛全部商品</ElButton></RouterLink>
+    <ElEmpty v-else :description="t(filter ? '暂无此状态的秒杀活动' : '秒杀好物正在准备中')">
+      <RouterLink :to="{ name: 'products' }"
+        ><ElButton>{{ t('先逛逛全部商品') }}</ElButton></RouterLink
+      >
     </ElEmpty>
 
     <ElPagination
@@ -128,12 +134,13 @@
       background
     />
     <p class="seckill-note">
-      活动期间按秒杀价结算。提交订单后请及时支付，取消或支付超时将释放名额。
+      {{ t('活动期间按秒杀价结算。提交订单后请及时支付，取消或支付超时将释放名额。') }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { t, useLocale } from '@/i18n'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ElButton, ElEmpty, ElImage, ElPagination, ElSkeleton } from 'element-plus'
@@ -151,6 +158,7 @@ const tabs: { label: string; value: Filter }[] = [
   { label: '已结束', value: 'ENDED' },
 ]
 const router = useRouter()
+const { locale } = useLocale()
 const filter = ref<Filter>('')
 const page = ref(1)
 const loading = ref(false)
@@ -164,10 +172,13 @@ let clockTimer: ReturnType<typeof setInterval> | undefined
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 const phaseOf = (activity: SeckillActivity) => seckillPhase(activity, now.value)
-const discount = (activity: SeckillActivity) =>
-  activity.originalPrice > 0
-    ? ((activity.seckillPrice / activity.originalPrice) * 10).toFixed(1)
-    : '—'
+const discount = (activity: SeckillActivity) => {
+  if (activity.originalPrice <= 0) return '—'
+  const ratio = activity.seckillPrice / activity.originalPrice
+  return locale.value === 'en'
+    ? `${Math.round((1 - ratio) * 100)}% off`
+    : `${(ratio * 10).toFixed(1)}折`
+}
 
 const fetchActivities = async (background = false) => {
   if (background && loading.value) return

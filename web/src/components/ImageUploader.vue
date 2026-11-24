@@ -17,13 +17,13 @@
           <ElImage v-if="model" class="uploader-image" :src="assetUrl(model)" fit="cover" />
           <div v-else class="uploader-placeholder">
             <i class="bi bi-plus-lg"></i>
-            <span>上传图片</span>
+            <span>{{ t('上传图片') }}</span>
           </div>
         </div>
       </slot>
     </ElUpload>
     <div v-if="showTip" class="uploader-tip text-secondary">
-      支持 JPG、PNG、GIF、WEBP，不超过 5MB
+      {{ t('支持 JPG、PNG、GIF、WEBP，不超过 5MB') }}
       <ElButton
         v-if="model"
         link
@@ -31,13 +31,14 @@
         :disabled="disabled || uploading"
         @click="model = ''"
       >
-        移除
+        {{ t('移除') }}
       </ElButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { computed } from 'vue'
 import { isAxiosError } from 'axios'
 import {
@@ -78,11 +79,11 @@ const uploading = defineModel<boolean>('uploading', { default: false })
 
 const checkFile = (file: UploadRawFile) => {
   if (!ACCEPT.split(',').includes(file.type)) {
-    ElMessage.error('只支持 JPG、PNG、GIF、WEBP 格式的图片')
+    ElMessage.error(t('只支持 JPG、PNG、GIF、WEBP 格式的图片'))
     return false
   }
   if (file.size > MAX_SIZE) {
-    ElMessage.error('图片不能超过 5MB')
+    ElMessage.error(t('图片不能超过 5MB'))
     return false
   }
   return true
@@ -98,7 +99,7 @@ const upload = async ({ file }: UploadRequestOptions) => {
       formData,
     )
     if (!data.status) {
-      ElMessage.error(data.payload.message || '上传失败')
+      ElMessage.error(t(data.payload.message || '上传失败'))
       return
     }
     // 头像已由上传接口保存；商品图片的路径要随商品表单保存
@@ -112,7 +113,7 @@ const upload = async ({ file }: UploadRequestOptions) => {
     if (!message && response?.status === 403) {
       message = '当前账号没有上传权限'
     }
-    ElMessage.error(message || '上传失败，请稍后重试')
+    ElMessage.error(t(message || '上传失败，请稍后重试'))
   } finally {
     uploading.value = false
   }

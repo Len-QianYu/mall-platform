@@ -1,5 +1,5 @@
 /*
- * Mall Platform 初始化数据（在 schema.sql 建表之后、空库上执行）
+ * Prompt Pals 初始化数据（在 schema.sql 建表之后、空库上执行）
  *
  * 约定：
  *   1. 账号密码均为 123456（BCrypt 哈希）；

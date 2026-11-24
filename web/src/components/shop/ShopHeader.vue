@@ -2,12 +2,12 @@
   <header class="shop-header">
     <div class="shop-container header-inner" :class="{ 'is-search-expanded': searchExpanded }">
       <RouterLink class="logo-link" :to="{ name: 'index' }">
-        <img src="@/assets/logo/logo.png" class="logo-img" alt="Mall Platform" />
+        <img src="@/assets/logo/logo.png" class="logo-img" alt="Prompt Pals" />
       </RouterLink>
 
-      <nav class="header-nav" aria-label="商城导航">
+      <nav class="header-nav" :aria-label="t('商城导航')">
         <RouterLink :to="{ name: 'index' }" class="nav-link" exact-active-class="is-active">
-          首页
+          {{ t('首页') }}
         </RouterLink>
         <RouterLink
           :to="{ name: 'products' }"
@@ -22,13 +22,13 @@
           "
           active-class="is-active"
         >
-          商品
+          {{ t('商品') }}
         </RouterLink>
         <RouterLink :to="{ name: 'seckill' }" class="nav-link" active-class="is-active">
-          秒杀
+          {{ t('秒杀') }}
         </RouterLink>
         <RouterLink :to="{ name: 'about' }" class="nav-link" active-class="is-active">
-          关于我们
+          {{ t('关于我们') }}
         </RouterLink>
       </nav>
 
@@ -45,7 +45,7 @@
             ref="searchButton"
             type="button"
             class="search-toggle"
-            :aria-label="searchExpanded ? '搜索商品' : '展开商品搜索'"
+            :aria-label="searchExpanded ? t('搜索商品') : t('展开商品搜索')"
             :aria-expanded="searchExpanded"
             aria-controls="shop-header-search-input"
             @click="onSearchClick"
@@ -58,18 +58,19 @@
             ref="searchInput"
             v-model="keyword"
             class="search-input"
-            placeholder="搜索商品"
-            aria-label="搜索商品"
+            :placeholder="t('搜索商品')"
+            :aria-label="t('搜索商品')"
             clearable
           />
         </form>
 
         <div class="header-right">
+          <LanguageSwitch />
           <!-- 亮色 / 暗色切换：图标表示点击后切换到的模式 -->
           <ElButton
             class="header-btn"
             text
-            :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
+            :aria-label="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
             @click="toggleTheme"
           >
             <i
@@ -82,7 +83,7 @@
           <RouterLink
             :to="{ name: 'notifications' }"
             class="notification-link"
-            aria-label="消息通知"
+            :aria-label="t('消息通知')"
           >
             <ElBadge
               :value="notificationsStore.unreadCount"
@@ -94,7 +95,7 @@
           </RouterLink>
 
           <!-- 购物车：未登录时点击会被路由守卫带去登录页 -->
-          <RouterLink :to="{ name: 'cart' }" class="cart-link" aria-label="购物车">
+          <RouterLink :to="{ name: 'cart' }" class="cart-link" :aria-label="t('购物车')">
             <ElBadge :value="cartStore.count" :hidden="cartStore.count === 0" :max="99">
               <i class="bi bi-cart3 header-icon" aria-hidden="true"></i>
             </ElBadge>
@@ -111,29 +112,29 @@
               <ElDropdownMenu>
                 <ElDropdownItem command="favorites">
                   <i class="bi bi-heart dropdown-icon"></i>
-                  <span>我的收藏</span>
+                  <span>{{ t('我的收藏') }}</span>
                 </ElDropdownItem>
                 <ElDropdownItem command="orders">
                   <i class="bi bi-receipt dropdown-icon"></i>
-                  <span>我的订单</span>
+                  <span>{{ t('我的订单') }}</span>
                 </ElDropdownItem>
                 <ElDropdownItem command="profile">
                   <i class="bi bi-person dropdown-icon"></i>
-                  <span>个人中心</span>
+                  <span>{{ t('个人中心') }}</span>
                 </ElDropdownItem>
                 <ElDropdownItem v-if="userStore.isAdmin" command="admin">
                   <i class="bi bi-speedometer2 dropdown-icon"></i>
-                  <span>管理后台</span>
+                  <span>{{ t('管理后台') }}</span>
                 </ElDropdownItem>
                 <ElDropdownItem command="logout" divided>
                   <i class="bi bi-box-arrow-right dropdown-icon"></i>
-                  <span>退出登录</span>
+                  <span>{{ t('退出登录') }}</span>
                 </ElDropdownItem>
               </ElDropdownMenu>
             </template>
           </ElDropdown>
 
-          <ElButton v-else class="header-btn" text aria-label="登录" @click="toLogin">
+          <ElButton v-else class="header-btn" text :aria-label="t('登录')" @click="toLogin">
             <i class="bi bi-person header-icon" aria-hidden="true"></i>
           </ElButton>
         </div>
@@ -143,6 +144,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
@@ -162,6 +164,7 @@ import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useTheme } from '@/utils/useTheme'
+import LanguageSwitch from '@/components/LanguageSwitch.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -254,7 +257,7 @@ const logout = () => {
     .catch(() => undefined)
     .finally(() => {
       userStore.logout()
-      ElMessage.success('已退出登录')
+      ElMessage.success(t('已退出登录'))
       // 留在需要登录的页面上没有意义，回首页
       if (route.meta.requiresAuth) {
         router.replace({ name: 'index' })
@@ -505,7 +508,7 @@ const logout = () => {
 }
 
 // 窄屏：导航放到第二行，保留全部入口和当前页面指示。
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .header-inner {
     display: flex;
     flex-wrap: wrap;

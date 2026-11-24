@@ -1,5 +1,5 @@
 <template>
-  <ElConfigProvider :locale="zhCn">
+  <ElConfigProvider :locale="elementLocale">
     <div class="shop-layout">
       <ShopHeader />
 
@@ -9,8 +9,8 @@
 
       <footer class="shop-footer">
         <div class="shop-container footer-inner">
-          <span>lyqy &copy; {{ currentYear }} Mall Platform.</span>
-          <span>正品保障 · 极速发货 · 售后无忧</span>
+          <span>lyqy &copy; {{ currentYear }} Prompt Pals.</span>
+          <span>{{ t('正品保障 · 极速发货 · 售后无忧') }}</span>
         </div>
       </footer>
     </div>
@@ -21,8 +21,7 @@
 import { onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
 import { ElConfigProvider, ElNotification } from 'element-plus'
-// Element Plus 默认英文，分页、空状态等文案切换为中文
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { useLocale, t } from '@/i18n'
 import ShopHeader from '@/components/shop/ShopHeader.vue'
 import { useUserStore } from '@/stores/user'
 import { useNotificationsStore } from '@/stores/notifications'
@@ -34,6 +33,7 @@ const currentYear = new Date().getFullYear()
 const userStore = useUserStore()
 const notifications = useNotificationsStore()
 const router = useRouter()
+const { elementLocale } = useLocale()
 
 watch(
   () => userStore.user?.token,
@@ -49,7 +49,7 @@ watch(
   (notification) => {
     if (!notification) return
     ElNotification({
-      title: PRODUCT_NOTIFICATION_LABELS[notification.type],
+      title: t(PRODUCT_NOTIFICATION_LABELS[notification.type]),
       message: notificationDescription(notification),
       type:
         notification.type === 'PRICE_DROP'

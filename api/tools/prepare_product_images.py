@@ -27,7 +27,7 @@ API_ROOT = Path(__file__).resolve().parents[1]
 ROOT = API_ROOT / "demo" / "product-images"
 CACHE = API_ROOT / "target" / "demo-image-cache"
 MANIFEST = ROOT / "manifest.json"
-USER_AGENT = "MallPlatformDemoAssets/1.0 (educational portfolio fixtures; Wikimedia Commons attribution retained)"
+USER_AGENT = "PromptPalsDemoAssets/1.0 (educational portfolio fixtures; Wikimedia Commons attribution retained)"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 BAD_TITLE = re.compile(r"screenshot|diagram|infographic|logo|icon|map of|slide\b|microscop|x-ray|page \d|\.pdf", re.I)
 
@@ -268,7 +268,7 @@ def book_cover(kind, variant):
         "title": f"Original demo cover: {kind['item']} / {variant + 1}",
         "sourceUrl": source_path, "originalUrl": source_path,
         "license": "CC0 1.0", "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-        "author": "Mall Platform contributors", "description": "Original typeset demonstration cover; not an official publisher cover.",
+        "author": "Prompt Pals contributors", "description": "Original typeset demonstration cover; not an official publisher cover.",
         "modifications": "Original SVG cover exported to a white 600x600 WebP canvas; the exact product title is printed on the cover.",
     }
     return source, output.getvalue()

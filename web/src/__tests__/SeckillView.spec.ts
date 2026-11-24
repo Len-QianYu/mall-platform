@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { ApiResult, Pagination, SeckillActivity } from '@/types/api'
 import SeckillView from '@/views/shop/SeckillView.vue'
+import { setLocale } from '@/i18n'
 
 const { getActivities } = vi.hoisted(() => ({
   getActivities:
@@ -79,6 +80,24 @@ describe('seckill activities', () => {
   })
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it('uses percentage discounts in English while keeping product data and purchase state', async () => {
+    const { wrapper } = await mountPage()
+    try {
+      setLocale('en')
+      await flushPromises()
+      expect(wrapper.get('.discount-badge').text()).toBe('70% off')
+      expect(wrapper.get('.quota-meta').text()).toContain('Limit: 2 per customer')
+      expect(wrapper.get('.product-title').text()).toBe('秒杀测试商品')
+      expect(wrapper.get('.buy-button').attributes('disabled')).toBeUndefined()
+      expect(getActivities).toHaveBeenCalledOnce()
+      setLocale('zh-CN')
+      await flushPromises()
+      expect(wrapper.get('.discount-badge').text()).toBe('3.0折')
+    } finally {
+      setLocale('zh-CN')
+    }
   })
 
   it('shows campaign prices and only enables live activities', async () => {

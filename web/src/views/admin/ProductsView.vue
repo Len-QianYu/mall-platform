@@ -1,44 +1,49 @@
 <template>
   <div class="page-heading">
-    <h1 class="page-title">商品管理</h1>
+    <h1 class="page-title">{{ t('商品管理') }}</h1>
     <ElButton type="primary" @click="openDrawer()">
-      <i class="bi bi-plus-lg button-icon"></i>新增商品
+      <i class="bi bi-plus-lg button-icon"></i>{{ t('新增商品') }}
     </ElButton>
   </div>
 
   <ElCard shadow="never">
     <!-- 筛选 -->
     <ElForm :model="filter" inline class="filter-form" @submit.prevent="search">
-      <ElFormItem label="商品名">
-        <ElInput v-model="filter.keyword" placeholder="商品名关键字" clearable style="width: 14rem">
+      <ElFormItem :label="t('商品名')">
+        <ElInput
+          v-model="filter.keyword"
+          :placeholder="t('商品名关键字')"
+          clearable
+          style="width: 14rem"
+        >
           <template #prefix><i class="bi bi-search"></i></template>
         </ElInput>
       </ElFormItem>
-      <ElFormItem label="分类">
-        <ElSelect v-model="filter.category" placeholder="全部" clearable style="width: 10rem">
+      <ElFormItem :label="t('分类')">
+        <ElSelect v-model="filter.category" :placeholder="t('全部')" clearable style="width: 10rem">
           <ElOption
             v-for="category in categories"
             :key="category"
-            :label="category"
+            :label="t(category)"
             :value="category"
           />
         </ElSelect>
       </ElFormItem>
-      <ElFormItem label="状态">
-        <ElSelect v-model="filter.status" placeholder="全部" clearable style="width: 8rem">
-          <ElOption label="上架" :value="1" />
-          <ElOption label="下架" :value="0" />
+      <ElFormItem :label="t('状态')">
+        <ElSelect v-model="filter.status" :placeholder="t('全部')" clearable style="width: 8rem">
+          <ElOption :label="t('上架')" :value="1" />
+          <ElOption :label="t('下架')" :value="0" />
         </ElSelect>
       </ElFormItem>
       <ElFormItem>
-        <ElButton type="primary" native-type="submit">查询</ElButton>
-        <ElButton @click="resetFilter">重置</ElButton>
+        <ElButton type="primary" native-type="submit">{{ t('查询') }}</ElButton>
+        <ElButton @click="resetFilter">{{ t('重置') }}</ElButton>
       </ElFormItem>
     </ElForm>
 
     <ElTable v-loading="loading" :data="products" border stripe>
       <ElTableColumn prop="id" label="ID" width="80" />
-      <ElTableColumn label="商品" min-width="260">
+      <ElTableColumn :label="t('商品')" min-width="260">
         <template #default="{ row }">
           <div class="product-cell">
             <ElImage
@@ -59,42 +64,48 @@
           </div>
         </template>
       </ElTableColumn>
-      <ElTableColumn prop="category" label="分类" width="110" />
-      <ElTableColumn label="售价" width="110">
+      <ElTableColumn prop="category" :label="t('分类')" width="110" />
+      <ElTableColumn :label="t('售价')" width="110">
         <template #default="{ row }">{{ formatMoney(row.price) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="库存" width="90">
+      <ElTableColumn :label="t('库存')" width="90">
         <!-- 库存为 0 标红，提醒补货 -->
         <template #default="{ row }">
           <span :class="{ 'stock-empty': row.stock === 0 }">{{ row.stock }}</span>
         </template>
       </ElTableColumn>
-      <ElTableColumn prop="sales" label="销量" width="90" />
-      <ElTableColumn label="状态" width="80">
+      <ElTableColumn prop="sales" :label="t('销量')" width="90" />
+      <ElTableColumn :label="t('状态')" width="80">
         <template #default="{ row }">
           <ElTag :type="row.status === 1 ? 'success' : 'info'">
-            {{ row.status === 1 ? '上架' : '下架' }}
+            {{ row.status === 1 ? t('上架') : t('下架') }}
           </ElTag>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="更新时间" width="170">
+      <ElTableColumn :label="t('更新时间')" width="170">
         <template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="操作" width="180" fixed="right">
+      <ElTableColumn :label="t('操作')" width="180" fixed="right">
         <!-- 表格行是 Element Plus 的 DefaultRow（字段为 any），传给按 Product 声明的函数前先断言 -->
         <template #default="{ row }">
-          <ElButton link type="primary" @click="openDrawer(row as Product)">编辑</ElButton>
-          <ElButton link type="primary" @click="openStockDialog(row as Product)">库存</ElButton>
+          <ElButton link type="primary" @click="openDrawer(row as Product)">{{
+            t('编辑')
+          }}</ElButton>
+          <ElButton link type="primary" @click="openStockDialog(row as Product)">{{
+            t('库存')
+          }}</ElButton>
           <ElPopconfirm
             :title="
-              row.status === 1 ? '下架后用户将看不到该商品，确定下架吗？' : '确定上架该商品吗？'
+              row.status === 1
+                ? t('下架后用户将看不到该商品，确定下架吗？')
+                : t('确定上架该商品吗？')
             "
             :width="220"
             @confirm="toggleStatus(row as Product)"
           >
             <template #reference>
               <ElButton link :type="row.status === 1 ? 'danger' : 'success'">
-                {{ row.status === 1 ? '下架' : '上架' }}
+                {{ row.status === 1 ? t('下架') : t('上架') }}
               </ElButton>
             </template>
           </ElPopconfirm>
@@ -116,38 +127,44 @@
   <!-- 新增 / 编辑抽屉 -->
   <ElDrawer
     v-model="drawerVisible"
-    :title="form.id === null ? '新增商品' : '编辑商品'"
+    :title="form.id === null ? t('新增商品') : t('编辑商品')"
     size="min(520px, 100vw)"
     :close-on-click-modal="!saving && !imageUploading"
     :close-on-press-escape="!saving && !imageUploading"
     :show-close="!saving && !imageUploading"
   >
-    <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px" :disabled="saving">
-      <ElFormItem label="商品名" prop="name">
+    <ElForm
+      ref="formRef"
+      :model="form"
+      :rules="rules"
+      :label-width="formLabelWidth('80px')"
+      :disabled="saving"
+    >
+      <ElFormItem :label="t('商品名')" prop="name">
         <ElInput v-model="form.name" :maxlength="128" show-word-limit />
       </ElFormItem>
-      <ElFormItem label="副标题" prop="subtitle">
-        <ElInput v-model="form.subtitle" :maxlength="255" placeholder="选填，一句话卖点" />
+      <ElFormItem :label="t('副标题')" prop="subtitle">
+        <ElInput v-model="form.subtitle" :maxlength="255" :placeholder="t('选填，一句话卖点')" />
       </ElFormItem>
-      <ElFormItem label="分类" prop="category">
+      <ElFormItem :label="t('分类')" prop="category">
         <!-- 可以选已有分类，也可以直接输入新分类 -->
         <ElSelect
           v-model="form.category"
           filterable
           allow-create
           default-first-option
-          placeholder="选择或输入分类"
+          :placeholder="t('选择或输入分类')"
           style="width: 100%"
         >
           <ElOption
             v-for="category in categories"
             :key="category"
-            :label="category"
+            :label="t(category)"
             :value="category"
           />
         </ElSelect>
       </ElFormItem>
-      <ElFormItem label="售价" prop="price">
+      <ElFormItem :label="t('售价')" prop="price">
         <ElInputNumber
           v-model="form.price"
           :min="0.01"
@@ -155,9 +172,9 @@
           controls-position="right"
           style="width: 12rem"
         />
-        <span class="form-unit">元</span>
+        <span class="form-unit">{{ t('元') }}</span>
       </ElFormItem>
-      <ElFormItem v-if="form.id === null" label="初始库存" prop="stock">
+      <ElFormItem v-if="form.id === null" :label="t('初始库存')" prop="stock">
         <ElInputNumber
           v-model="form.stock"
           :min="0"
@@ -166,10 +183,10 @@
           style="width: 12rem"
         />
       </ElFormItem>
-      <ElFormItem v-else label="库存">
-        <span class="text-secondary">请通过商品列表中的“库存”操作补货或减少库存。</span>
+      <ElFormItem v-else :label="t('库存')">
+        <span class="text-secondary">{{ t('请通过商品列表中的“库存”操作补货或减少库存。') }}</span>
       </ElFormItem>
-      <ElFormItem label="主图" prop="mainImage">
+      <ElFormItem :label="t('主图')" prop="mainImage">
         <ImageUploader
           v-model="form.mainImage"
           v-model:uploading="imageUploading"
@@ -177,27 +194,29 @@
           :disabled="saving"
         />
       </ElFormItem>
-      <ElFormItem label="商品详情" prop="description">
-        <ElInput v-model="form.description" type="textarea" :rows="5" placeholder="选填" />
+      <ElFormItem :label="t('商品详情')" prop="description">
+        <ElInput v-model="form.description" type="textarea" :rows="5" :placeholder="t('选填')" />
       </ElFormItem>
-      <ElFormItem label="状态" prop="status">
+      <ElFormItem :label="t('状态')" prop="status">
         <ElRadioGroup v-model="form.status">
-          <ElRadio :value="1">上架</ElRadio>
-          <ElRadio :value="0">下架</ElRadio>
+          <ElRadio :value="1">{{ t('上架') }}</ElRadio>
+          <ElRadio :value="0">{{ t('下架') }}</ElRadio>
         </ElRadioGroup>
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="saving || imageUploading" @click="drawerVisible = false">取消</ElButton>
+      <ElButton :disabled="saving || imageUploading" @click="drawerVisible = false">{{
+        t('取消')
+      }}</ElButton>
       <ElButton type="primary" :loading="saving" :disabled="imageUploading" @click="save">
-        保存
+        {{ t('保存') }}
       </ElButton>
     </template>
   </ElDrawer>
 
   <ElDialog
     v-model="stockDialogVisible"
-    title="调整库存"
+    :title="t('调整库存')"
     width="min(440px, 94vw)"
     class="admin-form-dialog"
     align-center
@@ -206,26 +225,33 @@
     :show-close="!stockSaving"
   >
     <p>{{ stockProduct?.name }}</p>
-    <p class="text-secondary">当前可用库存：{{ stockProduct?.stock }}。库存变化以提交时为准。</p>
-    <ElForm label-width="80px" :disabled="stockSaving">
-      <ElFormItem label="操作">
+    <p class="text-secondary">
+      {{ t('当前可用库存：') }}{{ stockProduct?.stock }}{{ t('。库存变化以提交时为准。') }}
+    </p>
+    <ElForm :label-width="formLabelWidth('80px')" :disabled="stockSaving">
+      <ElFormItem :label="t('操作')">
         <ElRadioGroup v-model="stockChange.direction">
-          <ElRadio :value="1">补货</ElRadio>
-          <ElRadio :value="-1">减少</ElRadio>
+          <ElRadio :value="1">{{ t('补货') }}</ElRadio>
+          <ElRadio :value="-1">{{ t('减少') }}</ElRadio>
         </ElRadioGroup>
       </ElFormItem>
-      <ElFormItem label="数量">
+      <ElFormItem :label="t('数量')">
         <ElInputNumber v-model="stockChange.quantity" :min="1" :max="1000000" step-strictly />
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton :disabled="stockSaving" @click="stockDialogVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="stockSaving" @click="saveStock">确认调整</ElButton>
+      <ElButton :disabled="stockSaving" @click="stockDialogVisible = false">{{
+        t('取消')
+      }}</ElButton>
+      <ElButton type="primary" :loading="stockSaving" @click="saveStock">{{
+        t('确认调整')
+      }}</ElButton>
     </template>
   </ElDialog>
 </template>
 
 <script setup lang="ts">
+import { t, formLabelWidth } from '@/i18n'
 import { nextTick, onMounted, reactive, ref, watch } from 'vue'
 import {
   ElButton,
@@ -290,13 +316,13 @@ const fetchProducts = async () => {
       },
     )
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载商品列表失败')
+      ElMessage.error(t(data.payload.message || '加载商品列表失败'))
       return
     }
     products.value = data.payload.products
     pagination.total = data.payload.pagination.total
   } catch {
-    ElMessage.error('加载商品列表失败')
+    ElMessage.error(t('加载商品列表失败'))
   } finally {
     loading.value = false
   }
@@ -345,13 +371,13 @@ const toggleStatus = async (row: Product) => {
       status,
     })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '操作失败')
+      ElMessage.error(t(data.payload.message || '操作失败'))
       return
     }
     row.status = status
-    ElMessage.success(status === 1 ? '已上架' : '已下架')
+    ElMessage.success(t(status === 1 ? '已上架' : '已下架'))
   } catch {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('操作失败'))
   }
 }
 
@@ -370,7 +396,7 @@ const openStockDialog = (product: Product) => {
 const saveStock = async () => {
   if (stockSaving.value || !stockProduct.value) return
   if (!stockChange.quantity || !Number.isInteger(stockChange.quantity)) {
-    ElMessage.error('请输入有效的库存调整数量')
+    ElMessage.error(t('请输入有效的库存调整数量'))
     return
   }
   stockSaving.value = true
@@ -380,14 +406,14 @@ const saveStock = async () => {
       delta: stockChange.direction * stockChange.quantity,
     })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '库存调整失败')
+      ElMessage.error(t(data.payload.message || '库存调整失败'))
       return
     }
-    ElMessage.success('库存已调整')
+    ElMessage.success(t('库存已调整'))
     stockDialogVisible.value = false
     await fetchProducts()
   } catch {
-    ElMessage.error('库存调整失败，请刷新列表确认库存后再操作')
+    ElMessage.error(t('库存调整失败，请刷新列表确认库存后再操作'))
   } finally {
     stockSaving.value = false
   }
@@ -412,13 +438,51 @@ const form = reactive({
 })
 
 const rules: FormRules<typeof form> = {
-  name: [{ required: true, whitespace: true, message: '请输入商品名', trigger: 'blur' }],
-  category: [
-    { required: true, whitespace: true, message: '请选择或输入分类', trigger: 'change' },
-    { max: 32, message: '分类最多32个字符', trigger: 'change' },
+  name: [
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('请输入商品名')
+      },
+      trigger: 'blur',
+    },
   ],
-  price: [{ required: true, message: '请输入售价', trigger: 'blur' }],
-  stock: [{ required: true, message: '请输入库存', trigger: 'blur' }],
+  category: [
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('请选择或输入分类')
+      },
+      trigger: 'change',
+    },
+    {
+      max: 32,
+      get message() {
+        return t('分类最多32个字符')
+      },
+      trigger: 'change',
+    },
+  ],
+  price: [
+    {
+      required: true,
+      get message() {
+        return t('请输入售价')
+      },
+      trigger: 'blur',
+    },
+  ],
+  stock: [
+    {
+      required: true,
+      get message() {
+        return t('请输入库存')
+      },
+      trigger: 'blur',
+    },
+  ],
 }
 
 // 传入商品为编辑，不传为新增
@@ -464,15 +528,15 @@ const save = async () => {
       },
     )
     if (!data.status) {
-      ElMessage.error(data.payload.message || '保存失败')
+      ElMessage.error(t(data.payload.message || '保存失败'))
       return
     }
-    ElMessage.success(creating ? '商品已新增' : '保存成功')
+    ElMessage.success(t(creating ? '商品已新增' : '保存成功'))
     drawerVisible.value = false
     fetchProducts()
     fetchCategories() // 可能新增了分类
   } catch {
-    ElMessage.error('保存失败')
+    ElMessage.error(t('保存失败'))
   } finally {
     saving.value = false
   }

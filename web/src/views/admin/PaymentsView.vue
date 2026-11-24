@@ -1,72 +1,72 @@
 <template>
   <div class="page-heading">
-    <h1 class="page-title">支付流水</h1>
+    <h1 class="page-title">{{ t('支付流水') }}</h1>
   </div>
 
   <ElCard shadow="never">
     <!-- 筛选 -->
     <ElForm :model="filter" inline class="filter-form" @submit.prevent="search">
-      <ElFormItem label="流水号">
+      <ElFormItem :label="t('流水号')">
         <ElInput
           v-model="filter.keyword"
-          placeholder="流水号 / 第三方交易号"
+          :placeholder="t('流水号 / 第三方交易号')"
           clearable
           style="width: 14rem"
         >
           <template #prefix><i class="bi bi-search"></i></template>
         </ElInput>
       </ElFormItem>
-      <ElFormItem label="支付方式">
-        <ElSelect v-model="filter.method" placeholder="全部" clearable style="width: 8rem">
+      <ElFormItem :label="t('支付方式')">
+        <ElSelect v-model="filter.method" :placeholder="t('全部')" clearable style="width: 8rem">
           <ElOption
             v-for="(label, code) in PAYMENT_METHOD"
             :key="code"
-            :label="label"
+            :label="t(label)"
             :value="code"
           />
         </ElSelect>
       </ElFormItem>
-      <ElFormItem label="状态">
-        <ElSelect v-model="filter.status" placeholder="全部" clearable style="width: 8rem">
+      <ElFormItem :label="t('状态')">
+        <ElSelect v-model="filter.status" :placeholder="t('全部')" clearable style="width: 8rem">
           <ElOption
             v-for="(item, code) in PAYMENT_STATUS"
             :key="code"
-            :label="item.label"
+            :label="t(item.label)"
             :value="code"
           />
         </ElSelect>
       </ElFormItem>
       <ElFormItem>
-        <ElButton type="primary" native-type="submit">查询</ElButton>
-        <ElButton @click="resetFilter">重置</ElButton>
+        <ElButton type="primary" native-type="submit">{{ t('查询') }}</ElButton>
+        <ElButton @click="resetFilter">{{ t('重置') }}</ElButton>
       </ElFormItem>
     </ElForm>
 
     <!-- 流水只读：由支付回调写入，管理端不改 -->
     <ElTable v-loading="loading" :data="payments" border stripe>
-      <ElTableColumn prop="paymentNo" label="流水号" min-width="200" />
-      <ElTableColumn label="第三方交易号" min-width="220">
+      <ElTableColumn prop="paymentNo" :label="t('流水号')" min-width="200" />
+      <ElTableColumn :label="t('第三方交易号')" min-width="220">
         <template #default="{ row }">{{ row.tradeNo || '—' }}</template>
       </ElTableColumn>
-      <ElTableColumn prop="orderId" label="订单 ID" width="100" />
-      <ElTableColumn prop="userId" label="用户 ID" width="100" />
-      <ElTableColumn label="金额" width="120">
+      <ElTableColumn prop="orderId" :label="t('订单 ID')" width="100" />
+      <ElTableColumn prop="userId" :label="t('用户 ID')" width="100" />
+      <ElTableColumn :label="t('金额')" width="120">
         <template #default="{ row }">{{ formatMoney(row.amount) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="支付方式" width="110">
-        <template #default="{ row }">{{ PAYMENT_METHOD[row.method] ?? row.method }}</template>
+      <ElTableColumn :label="t('支付方式')" width="110">
+        <template #default="{ row }">{{ t(PAYMENT_METHOD[row.method] ?? row.method) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="状态" width="100">
+      <ElTableColumn :label="t('状态')" width="100">
         <template #default="{ row }">
           <ElTag :type="PAYMENT_STATUS[row.status]?.type ?? 'info'">
-            {{ PAYMENT_STATUS[row.status]?.label ?? row.status }}
+            {{ t(PAYMENT_STATUS[row.status]?.label ?? row.status) }}
           </ElTag>
         </template>
       </ElTableColumn>
-      <ElTableColumn label="支付时间" width="170">
+      <ElTableColumn :label="t('支付时间')" width="170">
         <template #default="{ row }">{{ formatDateTime(row.paidAt) }}</template>
       </ElTableColumn>
-      <ElTableColumn label="创建时间" width="170">
+      <ElTableColumn :label="t('创建时间')" width="170">
         <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
       </ElTableColumn>
     </ElTable>
@@ -84,6 +84,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { reactive, ref, watch } from 'vue'
 import {
   ElButton,
@@ -136,13 +137,13 @@ const fetchPayments = async () => {
       },
     )
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载支付流水失败')
+      ElMessage.error(t(data.payload.message || '加载支付流水失败'))
       return
     }
     payments.value = data.payload.payments
     pagination.total = data.payload.pagination.total
   } catch {
-    ElMessage.error('加载支付流水失败')
+    ElMessage.error(t('加载支付流水失败'))
   } finally {
     loading.value = false
   }

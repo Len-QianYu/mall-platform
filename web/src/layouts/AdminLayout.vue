@@ -1,5 +1,5 @@
 <template>
-  <ElConfigProvider :locale="zhCn">
+  <ElConfigProvider :locale="elementLocale">
     <div class="admin-layout">
       <AdminSidebar :collapsed="collapsed" />
 
@@ -18,8 +18,8 @@
         </main>
 
         <footer class="admin-footer">
-          <span>lyqy &copy; {{ currentYear }} Mall Platform.</span>
-          <span>管理后台</span>
+          <span>lyqy &copy; {{ currentYear }} Prompt Pals.</span>
+          <span>{{ t('管理后台') }}</span>
         </footer>
       </div>
     </div>
@@ -30,8 +30,7 @@
 import { ref } from 'vue'
 import { RouterView } from 'vue-router'
 import { ElConfigProvider } from 'element-plus'
-// Element Plus 默认英文，分页、空表格等文案切换为中文
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { useLocale, t } from '@/i18n'
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
 import AdminHeader from '@/components/admin/AdminHeader.vue'
 // 引入 Bootstrap Icons（侧边栏、顶栏和各管理页面共用）
@@ -40,6 +39,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 const collapsed = ref(false)
 const refreshKey = ref(0)
 const currentYear = new Date().getFullYear()
+const { elementLocale } = useLocale()
 </script>
 
 <style lang="scss" scoped>

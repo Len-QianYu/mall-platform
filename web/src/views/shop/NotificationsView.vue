@@ -2,8 +2,8 @@
   <div class="shop-container">
     <div class="notification-heading">
       <div>
-        <h1 class="section-title"><i class="bi bi-bell"></i>消息通知</h1>
-        <p>收藏商品上架、降价或涨价时，会在这里提醒你。</p>
+        <h1 class="section-title"><i class="bi bi-bell"></i>{{ t('消息通知') }}</h1>
+        <p>{{ t('收藏商品上架、降价或涨价时，会在这里提醒你。') }}</p>
       </div>
       <div class="heading-actions">
         <ElButton
@@ -11,8 +11,8 @@
           circle
           :disabled="loading"
           :aria-busy="loading"
-          aria-label="刷新通知"
-          :title="loading ? '正在刷新通知' : '刷新通知'"
+          :aria-label="t('刷新通知')"
+          :title="loading ? t('正在刷新通知') : t('刷新通知')"
           @click="fetchNotifications"
         >
           <i
@@ -27,12 +27,12 @@
           :loading="markingAll"
           :disabled="notifications.unreadCount === 0"
           @click="markAllRead"
-          >全部已读</ElButton
+          >{{ t('全部已读') }}</ElButton
         >
       </div>
     </div>
 
-    <div class="notification-tabs" role="tablist" aria-label="通知筛选">
+    <div class="notification-tabs" role="tablist" :aria-label="t('通知筛选')">
       <button
         type="button"
         role="tab"
@@ -40,7 +40,7 @@
         :class="{ active: !unreadOnly }"
         @click="setFilter(false)"
       >
-        全部通知
+        {{ t('全部通知') }}
       </button>
       <button
         type="button"
@@ -49,21 +49,23 @@
         :class="{ active: unreadOnly }"
         @click="setFilter(true)"
       >
-        未读通知 <span>{{ notifications.unreadCount }}</span>
+        {{ t('未读通知') }} <span>{{ notifications.unreadCount }}</span>
       </button>
     </div>
 
     <div v-loading="loading" class="notification-list">
       <div v-if="error" class="load-error" role="alert">
-        <span>{{ error }}</span>
-        <ElButton @click="fetchNotifications">重新加载</ElButton>
+        <span>{{ t(error) }}</span>
+        <ElButton @click="fetchNotifications">{{ t('重新加载') }}</ElButton>
       </div>
       <ElEmpty
         v-else-if="!loading && items.length === 0"
-        :description="unreadOnly ? '暂时没有未读通知' : '还没有商品通知，先收藏喜欢的商品吧'"
+        :description="t(unreadOnly ? '暂时没有未读通知' : '还没有商品通知，先收藏喜欢的商品吧')"
       >
-        <ElButton v-if="unreadOnly" @click="setFilter(false)">查看全部通知</ElButton>
-        <RouterLink v-else :to="{ name: 'products' }" class="browse-link">去收藏好物</RouterLink>
+        <ElButton v-if="unreadOnly" @click="setFilter(false)">{{ t('查看全部通知') }}</ElButton>
+        <RouterLink v-else :to="{ name: 'products' }" class="browse-link">{{
+          t('去收藏好物')
+        }}</RouterLink>
       </ElEmpty>
       <template v-else>
         <article
@@ -90,9 +92,9 @@
                       : 'primary'
                 "
                 size="small"
-                >{{ PRODUCT_NOTIFICATION_LABELS[item.type] }}</ElTag
+                >{{ t(PRODUCT_NOTIFICATION_LABELS[item.type]) }}</ElTag
               >
-              <span v-if="item.readAt === null" class="unread-dot" aria-label="未读"></span>
+              <span v-if="item.readAt === null" class="unread-dot" :aria-label="t('未读')"></span>
               <h2>{{ item.productName }}</h2>
             </div>
             <p class="notification-description">{{ notificationDescription(item) }}</p>
@@ -108,18 +110,18 @@
             }}</time>
           </div>
           <div class="notification-actions">
-            <ElButton size="small" :loading="reading.has(item.id)" @click="viewProduct(item)"
-              >查看商品</ElButton
-            >
+            <ElButton size="small" :loading="reading.has(item.id)" @click="viewProduct(item)">{{
+              t('查看商品')
+            }}</ElButton>
             <ElButton
               v-if="item.readAt === null"
               size="small"
               text
               :loading="reading.has(item.id)"
               @click="markRead(item)"
-              >标为已读</ElButton
+              >{{ t('标为已读') }}</ElButton
             >
-            <span v-else class="text-secondary">已读</span>
+            <span v-else class="text-secondary">{{ t('已读') }}</span>
           </div>
         </article>
       </template>
@@ -137,6 +139,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ElButton, ElEmpty, ElImage, ElMessage, ElPagination, ElTag, vLoading } from 'element-plus'
@@ -176,7 +179,7 @@ const fetchNotifications = async () => {
       params: { page: page.value, pageSize: 20, unreadOnly: unreadOnly.value },
     })
     if (current !== sequence || token !== user.user?.token) return
-    if (!data.status) throw new Error(data.payload.message || '加载通知失败')
+    if (!data.status) throw new Error(t(data.payload.message || '加载通知失败'))
     items.value = data.payload.notifications
     pagination.value = data.payload.pagination
     page.value = data.payload.pagination.currentPage
@@ -200,7 +203,7 @@ const markRead = async (item: ProductNotification): Promise<boolean> => {
     await notifications.markRead(item.id)
     return true
   } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : '标记已读失败')
+    ElMessage.error(t(failure instanceof Error ? failure.message : '标记已读失败'))
     return false
   } finally {
     reading.value.delete(item.id)
@@ -216,9 +219,9 @@ const markAllRead = async () => {
   markingAll.value = true
   try {
     await notifications.markAllRead()
-    ElMessage.success('已全部标为已读')
+    ElMessage.success(t('已全部标为已读'))
   } catch (failure) {
-    ElMessage.error(failure instanceof Error ? failure.message : '标记已读失败')
+    ElMessage.error(t(failure instanceof Error ? failure.message : '标记已读失败'))
   } finally {
     markingAll.value = false
   }

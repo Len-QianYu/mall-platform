@@ -5,33 +5,34 @@
       <ElButton
         class="header-btn"
         text
-        :aria-label="collapsed ? '展开侧边栏' : '收起侧边栏'"
+        :aria-label="collapsed ? t('展开侧边栏') : t('收起侧边栏')"
         @click="emit('toggleSidebar')"
       >
         <i :class="collapsed ? 'bi bi-text-indent-left' : 'bi bi-text-indent-right'"></i>
       </ElButton>
 
       <!-- 刷新当前页面 -->
-      <ElButton class="header-btn" text aria-label="刷新" @click="emit('refresh')">
+      <ElButton class="header-btn" text :aria-label="t('刷新')" @click="emit('refresh')">
         <i class="bi bi-arrow-clockwise"></i>
       </ElButton>
 
       <!-- 面包屑：取当前路由 meta 上的 breadcrumbParent / breadcrumbCurrent -->
       <ElBreadcrumb class="header-breadcrumb">
-        <ElBreadcrumbItem :to="{ name: 'admin_dashboard' }">管理后台</ElBreadcrumbItem>
+        <ElBreadcrumbItem :to="{ name: 'admin_dashboard' }">{{ t('管理后台') }}</ElBreadcrumbItem>
         <ElBreadcrumbItem v-if="route.meta.breadcrumbParent">
-          {{ route.meta.breadcrumbParent }}
+          {{ t(String(route.meta.breadcrumbParent ?? '')) }}
         </ElBreadcrumbItem>
-        <ElBreadcrumbItem>{{ route.meta.breadcrumbCurrent }}</ElBreadcrumbItem>
+        <ElBreadcrumbItem>{{ t(String(route.meta.breadcrumbCurrent ?? '')) }}</ElBreadcrumbItem>
       </ElBreadcrumb>
     </div>
 
     <div class="header-right">
+      <LanguageSwitch />
       <!-- 全屏 -->
       <ElButton
         class="header-btn"
         text
-        :aria-label="isFullscreen ? '退出全屏' : '全屏'"
+        :aria-label="isFullscreen ? t('退出全屏') : t('全屏')"
         @click="toggleFullscreen"
       >
         <i :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'"></i>
@@ -41,7 +42,7 @@
       <ElButton
         class="header-btn"
         text
-        :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
+        :aria-label="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
         @click="toggleTheme"
       >
         <i :class="isDark ? 'bi bi-sun' : 'bi bi-moon-stars'"></i>
@@ -60,15 +61,15 @@
           <ElDropdownMenu>
             <ElDropdownItem command="profile">
               <i class="bi bi-person-circle dropdown-icon"></i>
-              <span>个人中心</span>
+              <span>{{ t('个人中心') }}</span>
             </ElDropdownItem>
             <ElDropdownItem command="shop">
               <i class="bi bi-shop dropdown-icon"></i>
-              <span>返回商城</span>
+              <span>{{ t('返回商城') }}</span>
             </ElDropdownItem>
             <ElDropdownItem command="logout" divided>
               <i class="bi bi-box-arrow-right dropdown-icon"></i>
-              <span>退出登录</span>
+              <span>{{ t('退出登录') }}</span>
             </ElDropdownItem>
           </ElDropdownMenu>
         </template>
@@ -78,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -95,6 +97,7 @@ import { assetUrl } from '@/utils/format'
 import { useUserStore } from '@/stores/user'
 import { useTheme } from '@/utils/useTheme'
 import UserRoleTag from '@/components/UserRoleTag.vue'
+import LanguageSwitch from '@/components/LanguageSwitch.vue'
 
 defineProps<{ collapsed: boolean }>()
 
@@ -152,7 +155,7 @@ const logout = () => {
     .catch(() => undefined)
     .finally(() => {
       userStore.logout()
-      ElMessage.success('已退出登录')
+      ElMessage.success(t('已退出登录'))
       router.replace({ name: 'login' })
     })
 }
@@ -188,6 +191,14 @@ const logout = () => {
 
 .header-breadcrumb {
   margin-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .header-breadcrumb,
+  .user-name,
+  :deep(.user-role-tag) {
+    display: none;
+  }
 }
 
 .user-box {

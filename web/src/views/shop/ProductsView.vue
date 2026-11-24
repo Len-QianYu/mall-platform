@@ -3,10 +3,10 @@
     <!-- 筛选：条件都放在地址栏里，刷新、分享链接、浏览器后退都能还原 -->
     <ElCard shadow="never" class="filter-card">
       <div class="filter-row">
-        <span class="filter-label">分类</span>
+        <span class="filter-label">{{ t('分类') }}</span>
         <div class="filter-options">
           <ElCheckTag :checked="!query.category" @change="updateQuery({ category: undefined })">
-            全部
+            {{ t('全部') }}
           </ElCheckTag>
           <ElCheckTag
             v-for="category in categories"
@@ -14,24 +14,24 @@
             :checked="query.category === category"
             @change="updateQuery({ category })"
           >
-            {{ category }}
+            {{ t(category) }}
           </ElCheckTag>
         </div>
       </div>
       <div class="filter-row">
-        <span class="filter-label">排序</span>
+        <span class="filter-label">{{ t('排序') }}</span>
         <ElRadioGroup
           :model-value="query.sort"
           size="small"
           @change="(sort) => updateQuery({ sort: sort as ProductSort })"
         >
           <ElRadioButton v-for="(label, sort) in SORT_OPTIONS" :key="sort" :value="sort">
-            {{ label }}
+            {{ t(label) }}
           </ElRadioButton>
         </ElRadioGroup>
       </div>
       <div v-if="query.keyword" class="filter-row">
-        <span class="filter-label">搜索</span>
+        <span class="filter-label">{{ t('搜索') }}</span>
         <ElTag closable @close="updateQuery({ keyword: undefined })">{{ query.keyword }}</ElTag>
       </div>
     </ElCard>
@@ -40,7 +40,7 @@
       <div v-if="products.length" class="product-grid">
         <ProductCard v-for="product in products" :key="product.id" :product="product" />
       </div>
-      <ElEmpty v-else-if="!loading" description="没有找到相关商品" />
+      <ElEmpty v-else-if="!loading" :description="t('没有找到相关商品')" />
     </div>
 
     <ElPagination
@@ -57,6 +57,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -153,13 +154,13 @@ const fetchProducts = async () => {
       },
     )
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载商品失败')
+      ElMessage.error(t(data.payload.message || '加载商品失败'))
       return
     }
     products.value = data.payload.products
     total.value = data.payload.pagination.total
   } catch {
-    ElMessage.error('加载商品失败')
+    ElMessage.error(t('加载商品失败'))
   } finally {
     loading.value = false
   }

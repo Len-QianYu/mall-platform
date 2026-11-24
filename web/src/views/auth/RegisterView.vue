@@ -14,8 +14,8 @@
 
           <!-- 文字描述 -->
           <div class="description-text">
-            <div class="title-text">AI 伙伴商城</div>
-            <div class="introduce-text">把想象抱进怀里，让陪伴触手可及</div>
+            <div class="title-text">{{ t('AI 伙伴商城') }}</div>
+            <div class="introduce-text">{{ t('把想象抱进怀里，让陪伴触手可及') }}</div>
           </div>
         </div>
       </div>
@@ -26,10 +26,11 @@
       <div class="register-form-box">
         <!-- 主题切换按钮：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
         <div class="theme-toggle-button_box">
+          <LanguageSwitch />
           <button
             class="change-theme"
             @click="toggleTheme"
-            :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
+            :aria-label="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
           >
             <i v-if="isDark" class="bi bi-brightness-high sun-icon"></i>
             <i v-else class="bi bi-moon-stars moon-icon"></i>
@@ -42,25 +43,25 @@
           :disabled="submitting"
           @submit.prevent="register"
           :rules="rules"
-          label-width="80"
+          :label-width="formLabelWidth('80')"
           label-position="left"
         >
-          <h2 class="form-title">创建商城账号</h2>
-          <p class="welcome-text">注册后即可使用这个账号登录商城</p>
+          <h2 class="form-title">{{ t('创建商城账号') }}</h2>
+          <p class="welcome-text">{{ t('注册后即可使用这个账号登录商城') }}</p>
           <ElAlert
             v-if="submitError"
             class="register-alert"
-            :title="submitError"
+            :title="t(submitError)"
             type="error"
             :closable="false"
             show-icon
             role="alert"
           />
-          <ElFormItem prop="username" label="用户名">
+          <ElFormItem prop="username" :label="t('用户名')">
             <ElInput
               v-model="model.username"
               type="text"
-              placeholder="2–16个字符"
+              :placeholder="t('2–16个字符')"
               autocomplete="username"
               :maxlength="16"
             >
@@ -70,11 +71,11 @@
             </ElInput>
           </ElFormItem>
 
-          <ElFormItem prop="password" label="密码">
+          <ElFormItem prop="password" :label="t('密码')">
             <ElInput
               v-model="model.password"
               type="password"
-              placeholder="6–32个字符"
+              :placeholder="t('6–32个字符')"
               autocomplete="new-password"
               :maxlength="32"
               show-password
@@ -95,16 +96,16 @@
                 </div>
               </div>
               <p class="strength-reminder-text">
-                密码需6–32个字符，建议使用至少8位并混合字母、数字和符号
+                {{ t('密码需6–32个字符，建议使用至少8位并混合字母、数字和符号') }}
               </p>
             </div>
           </ElFormItem>
 
-          <ElFormItem prop="confirmPassword" label="确认密码">
+          <ElFormItem prop="confirmPassword" :label="t('确认密码')">
             <ElInput
               v-model="model.confirmPassword"
               type="password"
-              placeholder="请再次输入密码"
+              :placeholder="t('请再次输入密码')"
               autocomplete="new-password"
               :maxlength="32"
               show-password
@@ -123,20 +124,20 @@
               :disabled="submitting"
               style="width: 100%"
             >
-              {{ submitting ? '正在注册…' : '注册' }}
+              {{ submitting ? t('正在注册…') : t('注册') }}
             </ElButton>
           </ElFormItem>
 
           <!-- 登录链接 -->
           <div class="login-link-wrapper">
-            已经有账号了?
-            <RouterLink :to="{ name: 'login' }" class="login-link">去登录</RouterLink>
+            {{ t('已经有账号了?') }}
+            <RouterLink :to="{ name: 'login' }" class="login-link">{{ t('去登录') }}</RouterLink>
           </div>
         </ElForm>
 
         <!-- 底部信息 -->
         <footer class="register-footer">
-          <div>lyqy &copy; {{ currentYear }} Mall Platform.</div>
+          <div>lyqy &copy; {{ currentYear }} Prompt Pals.</div>
         </footer>
       </div>
     </div>
@@ -144,6 +145,8 @@
 </template>
 
 <script setup lang="ts">
+import { t, formLabelWidth } from '@/i18n'
+import LanguageSwitch from '@/components/LanguageSwitch.vue'
 import { ref, reactive, computed, watch } from 'vue'
 import { isAxiosError } from 'axios'
 import {
@@ -210,19 +213,53 @@ const getStrengthClass = (index: number) => {
 
 const rules: FormRules<typeof model> = {
   username: [
-    { required: true, whitespace: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, max: 16, message: '用户名需2–16个字符', trigger: ['blur', 'change'] },
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('请输入用户名')
+      },
+      trigger: 'blur',
+    },
+    {
+      min: 2,
+      max: 16,
+      get message() {
+        return t('用户名需2–16个字符')
+      },
+      trigger: ['blur', 'change'],
+    },
   ],
   password: [
-    { required: true, whitespace: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 32, message: '密码需6–32个字符', trigger: ['blur', 'change'] },
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('请输入密码')
+      },
+      trigger: 'blur',
+    },
+    {
+      min: 6,
+      max: 32,
+      get message() {
+        return t('密码需6–32个字符')
+      },
+      trigger: ['blur', 'change'],
+    },
   ],
   confirmPassword: [
-    { required: true, message: '请再次输入密码', trigger: 'blur' },
+    {
+      required: true,
+      get message() {
+        return t('请再次输入密码')
+      },
+      trigger: 'blur',
+    },
     {
       validator: (_rule, value, callback) => {
         if (value !== model.password) {
-          callback(new Error('两次输入密码不一致'))
+          callback(new Error(t('两次输入密码不一致')))
         } else {
           callback()
         }
@@ -269,7 +306,7 @@ const register = async () => {
       return
     }
 
-    ElMessage.success('注册成功，请登录')
+    ElMessage.success(t('注册成功，请登录'))
     await router.replace({ name: 'login', query: { username: model.username } })
   } catch (error) {
     if (isAxiosError<RegistrationResponse>(error)) {
@@ -399,6 +436,9 @@ const register = async () => {
 
 /* 主题切换按钮 */
 .theme-toggle-button_box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   position: absolute;
   top: 0;
   right: 0;

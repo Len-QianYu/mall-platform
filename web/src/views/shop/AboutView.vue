@@ -2,51 +2,66 @@
   <div class="shop-container about-page">
     <section class="about-intro" aria-labelledby="about-title">
       <p class="about-brand">Prompt Pals</p>
-      <h1 id="about-title">关于我们</h1>
-      <p class="about-tagline">小小玩偶，大大陪伴。</p>
+      <h1 id="about-title">{{ t('关于我们') }}</h1>
+      <p class="about-tagline">{{ t('小小玩偶，大大陪伴。') }}</p>
       <p>
-        Prompt Pals 是一个以 AI 玩偶为主题的线上商城。你可以在这里发现 Claude、DeepSeek、GPT 与 Grok
-        系列玩偶，把喜欢的 AI 伙伴带进日常。我们把商品浏览、收藏、购物车和订单管理汇集在一起，
-        希望让你从挑选心仪玩偶到完成购买，都能拥有清晰、顺手的体验。
+        {{
+          t(
+            'Prompt Pals 是一个以 AI 玩偶为主题的线上商城。你可以在这里发现 Claude、DeepSeek、GPT 与 Grok 系列玩偶，把喜欢的 AI 伙伴带进日常。我们把商品浏览、收藏、购物车和订单管理汇集在一起， 希望让你从挑选心仪玩偶到完成购买，都能拥有清晰、顺手的体验。',
+          )
+        }}
       </p>
     </section>
 
-    <article class="about-content" aria-label="网站介绍">
+    <article class="about-content" :aria-label="t('网站介绍')">
       <section class="about-section">
-        <h2>从这里，发现你的下一位伙伴</h2>
+        <h2>{{ t('从这里，发现你的下一位伙伴') }}</h2>
         <p>
-          在首页通过玩偶分类与热销榜单发现喜欢的伙伴，或进入“全部商品”，通过分类、关键词和排序找到适合自己的选择。
-          商品详情展示价格、库存和商品介绍，方便你了解每件商品，再决定是否加入购物车。
+          {{
+            t(
+              '在首页通过玩偶分类与热销榜单发现喜欢的伙伴，或进入“全部商品”，通过分类、关键词和排序找到适合自己的选择。 商品详情展示价格、库存和商品介绍，方便你了解每件商品，再决定是否加入购物车。',
+            )
+          }}
         </p>
         <p>
-          如果你喜欢关注优惠，“限时秒杀”会集中展示活动商品、活动时间和剩余名额，让每一次挑选都有更多可能。
+          {{
+            t(
+              '如果你喜欢关注优惠，“限时秒杀”会集中展示活动商品、活动时间和剩余名额，让每一次挑选都有更多可能。',
+            )
+          }}
         </p>
       </section>
 
       <section class="about-section">
-        <h2>把喜欢留在身边，把购物安排妥当</h2>
+        <h2>{{ t('把喜欢留在身边，把购物安排妥当') }}</h2>
         <p>
-          登录后，你可以收藏感兴趣的商品，在商品上架或价格变化时收到提醒。
-          购物车帮你整理待购清单，订单页面方便你查看购买记录和订单状态，个人中心则可以管理账号信息与收货地址。
+          {{
+            t(
+              '登录后，你可以收藏感兴趣的商品，在商品上架或价格变化时收到提醒。 购物车帮你整理待购清单，订单页面方便你查看购买记录和订单状态，个人中心则可以管理账号信息与收货地址。',
+            )
+          }}
         </p>
-        <p>无论是先收藏、再考虑，还是选好后直接购买，都可以按照自己的节奏来。</p>
+        <p>{{ t('无论是先收藏、再考虑，还是选好后直接购买，都可以按照自己的节奏来。') }}</p>
       </section>
 
       <section class="about-section">
-        <h2>简单的界面，持续完善的体验</h2>
+        <h2>{{ t('简单的界面，持续完善的体验') }}</h2>
         <p>
-          我们重视清楚的商品信息、便捷的页面导航和顺畅的购物流程，也提供亮色与暗色模式，
-          让你在不同的使用环境下都能舒适浏览。网站会持续完善功能与细节，让日常购物更加轻松。
+          {{
+            t(
+              '我们重视清楚的商品信息、便捷的页面导航和顺畅的购物流程，也提供亮色与暗色模式， 让你在不同的使用环境下都能舒适浏览。网站会持续完善功能与细节，让日常购物更加轻松。',
+            )
+          }}
         </p>
-        <p>感谢你的到访。希望你能在这里找到喜欢的商品，也享受挑选的过程。</p>
+        <p>{{ t('感谢你的到访。希望你能在这里找到喜欢的商品，也享受挑选的过程。') }}</p>
       </section>
 
       <div class="about-links">
         <RouterLink :to="{ name: 'products' }">
-          逛逛全部商品 <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          {{ t('逛逛全部商品') }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
         </RouterLink>
         <RouterLink :to="{ name: 'seckill' }">
-          看看限时秒杀 <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          {{ t('看看限时秒杀') }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
         </RouterLink>
       </div>
     </article>
@@ -54,6 +69,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { RouterLink } from 'vue-router'
 </script>
 

@@ -1,4 +1,4 @@
-# Mall Platform（电商平台）
+# Prompt Pals（电商平台）
 
 个人全栈项目：**Java 后端 + Vue 3 前端**的电商平台，并接入 Python 智能体服务（电商智能客服、电商问数 Text2SQL），为其提供业务数据与工具接口。
 
@@ -16,6 +16,8 @@
 - **前端**：Vue 3 · TypeScript · Vite · Pinia · Vue Router
 - **数据与基础设施**：MyBatis-Plus · MySQL · Druid（连接池）· Redis（商品缓存）· RocketMQ（消息队列）· RustFS（S3 兼容对象存储）
 - **智能体（规划中）**：Python · FastAPI · LangGraph · Milvus
+
+界面支持中英文切换，商城与管理端顶部工具栏、登录注册页均提供语言按钮。切换会即时更新页面文案及 Element Plus 组件，保留当前表单输入，并在刷新后恢复所选语言。翻译字典位于 `web/src/i18n/`，商品名称、用户资料等业务内容保留原文。
 
 ## 快速开始
 

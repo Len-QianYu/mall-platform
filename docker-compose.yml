@@ -1,4 +1,4 @@
-# Mall Platform 本地开发依赖：Redis + RocketMQ + RustFS（MySQL 用本机安装的，不在这里）
+# Prompt Pals 本地开发依赖：Redis + RocketMQ + RustFS（MySQL 用本机安装的，不在这里）
 #
 # 常用命令（在仓库根目录执行，需先启动 Docker Desktop）：
 #   docker compose up -d                  # 后台启动全部服务（首次会拉取镜像）

@@ -1,9 +1,9 @@
 <template>
   <div class="shop-container">
     <div class="checkout-heading">
-      <h1 class="section-title"><i class="bi bi-bag-check"></i>确认订单</h1>
+      <h1 class="section-title"><i class="bi bi-bag-check"></i>{{ t('确认订单') }}</h1>
       <ElButton class="checkout-back" :disabled="submitting" @click="returnToSource">
-        <i class="bi bi-arrow-left back-icon" aria-hidden="true"></i>返回商品详情页面
+        <i class="bi bi-arrow-left back-icon" aria-hidden="true"></i>{{ t('返回商品详情页面') }}
       </ElButton>
     </div>
 
@@ -12,38 +12,40 @@
         <ElCard shadow="never" class="checkout-card">
           <template #header>
             <div class="card-header">
-              <span class="card-title">收货信息</span>
+              <span class="card-title">{{ t('收货信息') }}</span>
               <RouterLink
                 :to="{ name: 'profile', query: { redirect: route.fullPath } }"
                 class="address-link"
               >
-                管理收货地址
+                {{ t('管理收货地址') }}
               </RouterLink>
             </div>
           </template>
           <div v-if="shippingAddress" class="saved-address">
             <p class="receiver-contact">
-              <strong>{{ shippingAddress.receiverName || '收货人未填写' }}</strong>
-              <span>{{ shippingAddress.receiverPhone || '手机号未填写' }}</span>
+              <strong>{{ shippingAddress.receiverName || t('收货人未填写') }}</strong>
+              <span>{{ shippingAddress.receiverPhone || t('手机号未填写') }}</span>
             </p>
             <p class="receiver-address">
-              {{ shippingAddress.receiverAddress || '尚未设置收货地址' }}
+              {{ shippingAddress.receiverAddress || t('尚未设置收货地址') }}
             </p>
           </div>
           <div v-if="addressError" class="address-error" role="alert">
-            <span>{{ addressError }}</span>
-            <ElButton :loading="addressLoading" @click="fetchShippingAddress">重试</ElButton>
+            <span>{{ t(addressError) }}</span>
+            <ElButton :loading="addressLoading" @click="fetchShippingAddress">{{
+              t('重试')
+            }}</ElButton>
           </div>
           <p v-else-if="!addressLoading && !hasShippingAddress" class="address-hint">
-            请先在个人中心完善名字、手机号和收货地址。
+            {{ t('请先在个人中心完善名字、手机号和收货地址。') }}
           </p>
-          <ElForm label-width="80px" class="remark-form">
-            <ElFormItem label="备注">
+          <ElForm :label-width="formLabelWidth('80px')" class="remark-form">
+            <ElFormItem :label="t('备注')">
               <ElInput
                 v-model="remark"
                 maxlength="255"
                 show-word-limit
-                placeholder="选填，给商家的留言"
+                :placeholder="t('选填，给商家的留言')"
               />
             </ElFormItem>
           </ElForm>
@@ -51,14 +53,16 @@
 
         <ElCard shadow="never" class="checkout-card">
           <template #header>
-            <span class="card-title">{{ seckillActivity ? '秒杀商品清单' : '商品清单' }}</span>
+            <span class="card-title">{{
+              seckillActivity ? t('秒杀商品清单') : t('商品清单')
+            }}</span>
           </template>
           <p v-if="seckillActivity" class="seckill-checkout-hint">
-            {{ seckillActivity.title }} · 本次按秒杀价结算，每人限购
-            {{ seckillActivity.limitPerUser }} 件。
+            {{ seckillActivity.title }} {{ t('· 本次按秒杀价结算，每人限购') }}
+            {{ seckillActivity.limitPerUser }} {{ t('件。') }}
           </p>
           <ElTable :data="items">
-            <ElTableColumn label="商品" min-width="280">
+            <ElTableColumn :label="t('商品')" min-width="280">
               <template #default="{ row }">
                 <div class="product-cell">
                   <ElImage
@@ -74,11 +78,11 @@
                 </div>
               </template>
             </ElTableColumn>
-            <ElTableColumn label="单价" width="120">
+            <ElTableColumn :label="t('单价')" width="120">
               <template #default="{ row }">{{ formatMoney(row.price) }}</template>
             </ElTableColumn>
-            <ElTableColumn prop="quantity" label="数量" width="80" />
-            <ElTableColumn label="小计" width="120">
+            <ElTableColumn prop="quantity" :label="t('数量')" width="80" />
+            <ElTableColumn :label="t('小计')" width="120">
               <template #default="{ row }">{{ formatMoney(row.price * row.quantity) }}</template>
             </ElTableColumn>
           </ElTable>
@@ -86,7 +90,7 @@
 
         <div class="submit-bar">
           <span>
-            共 {{ totalQuantity }} 件，应付：
+            {{ t('共') }} {{ totalQuantity }} {{ t('件，应付：') }}
             <span class="price total-amount">{{ formatMoney(totalAmount) }}</span>
           </span>
           <ElButton
@@ -97,17 +101,17 @@
             :disabled="loading || addressLoading || !hasShippingAddress"
             @click="submit"
           >
-            提交订单
+            {{ t('提交订单') }}
           </ElButton>
         </div>
       </template>
 
-      <ElEmpty v-else-if="!loading" description="没有可结算的商品">
+      <ElEmpty v-else-if="!loading" :description="t('没有可结算的商品')">
         <ElButton
           type="primary"
           @click="router.push({ name: seckillActivityId ? 'seckill' : 'cart' })"
         >
-          {{ seckillActivityId ? '返回秒杀活动' : '返回购物车' }}
+          {{ seckillActivityId ? t('返回秒杀活动') : t('返回购物车') }}
         </ElButton>
       </ElEmpty>
     </div>
@@ -115,6 +119,7 @@
 </template>
 
 <script setup lang="ts">
+import { t, formLabelWidth } from '@/i18n'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
@@ -199,12 +204,12 @@ const totalQuantity = computed(() => items.value.reduce((sum, item) => sum + ite
 const fetchBuyNowItem = async () => {
   const { data } = await request.get<ApiResult<{ product: Product }>>(`/product/${buyNowProductId}`)
   if (!data.status) {
-    ElMessage.error(data.payload.message || '商品不存在或已下架')
+    ElMessage.error(t(data.payload.message || '商品不存在或已下架'))
     return
   }
   const product = data.payload.product
   if (product.stock < buyNowQuantity) {
-    ElMessage.error('库存不足')
+    ElMessage.error(t('库存不足'))
     return
   }
   items.value = [
@@ -224,19 +229,19 @@ const fetchSeckillItem = async () => {
     !Number.isSafeInteger(Number(seckillActivityId)) ||
     !Number.isInteger(buyNowQuantity)
   ) {
-    ElMessage.error('秒杀活动或购买数量不正确')
+    ElMessage.error(t('秒杀活动或购买数量不正确'))
     return
   }
   const { data } = await request.get<ApiResult<{ activity: SeckillActivity }>>(
     '/seckill/' + seckillActivityId,
   )
   if (!data.status) {
-    ElMessage.error(data.payload.message || '秒杀活动不存在')
+    ElMessage.error(t(data.payload.message || '秒杀活动不存在'))
     return
   }
   const activity = data.payload.activity
   if (buyNowQuantity > activity.limitPerUser) {
-    ElMessage.error('超过本场活动的限购数量')
+    ElMessage.error(t('超过本场活动的限购数量'))
     return
   }
   // 即使配额刚好售罄，也允许携带原请求号确认丢失响应的订单；新下单由服务端校验。
@@ -255,7 +260,7 @@ const fetchSeckillItem = async () => {
 const fetchCartItems = async () => {
   const { data } = await request.get<ApiResult<{ items: CartItem[] }>>('/cart')
   if (!data.status) {
-    ElMessage.error(data.payload.message || '加载购物车失败')
+    ElMessage.error(t(data.payload.message || '加载购物车失败'))
     return
   }
   items.value = data.payload.items.filter(isSettleable).map((item) => ({
@@ -309,7 +314,7 @@ onMounted(async () => {
       fetchShippingAddress(),
     ])
   } catch {
-    ElMessage.error('加载商品失败')
+    ElMessage.error(t('加载商品失败'))
   } finally {
     loading.value = false
   }
@@ -352,7 +357,7 @@ const submit = async () => {
   if (loading.value || addressLoading.value || submitting.value || !items.value.length) return
   const receiver = shippingAddress.value
   if (!receiver || !hasShippingAddress.value) {
-    ElMessage.warning('请先在个人中心完善收货信息')
+    ElMessage.warning(t('请先在个人中心完善收货信息'))
     return
   }
 
@@ -373,7 +378,7 @@ const submit = async () => {
       ...fields,
     })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '下单失败')
+      ElMessage.error(t(data.payload.message || '下单失败'))
       return
     }
     if (!buyNowProductId && !seckillActivityId) {
@@ -389,7 +394,7 @@ const submit = async () => {
       }
     }
   } catch {
-    ElMessage.error('下单失败')
+    ElMessage.error(t('下单失败'))
   } finally {
     submitting.value = false
   }

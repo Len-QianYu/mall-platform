@@ -1,5 +1,5 @@
 /*
- * Mall Platform 业务库建表
+ * Prompt Pals 业务库建表
  * 库：mall_platform —— 11 张表：用户、商品、交易、秒杀，以及收藏、通知事件和通知记录
  *
  * 约定：

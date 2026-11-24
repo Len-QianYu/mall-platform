@@ -1,9 +1,9 @@
 <template>
   <div :class="admin ? 'admin-profile' : 'shop-container'">
     <div v-if="admin" class="page-heading">
-      <h1 class="page-title">个人中心</h1>
+      <h1 class="page-title">{{ t('个人中心') }}</h1>
     </div>
-    <h1 v-else class="section-title"><i class="bi bi-person"></i>个人中心</h1>
+    <h1 v-else class="section-title"><i class="bi bi-person"></i>{{ t('个人中心') }}</h1>
 
     <div v-loading="loading" class="profile-body">
       <ElCard shadow="never" class="profile-side">
@@ -21,69 +21,69 @@
               v-loading="uploading"
               class="avatar-trigger"
               :class="{ 'is-disabled': disabled }"
-              title="支持 JPG、PNG、GIF、WEBP，不超过 5MB"
+              :title="t('支持 JPG、PNG、GIF、WEBP，不超过 5MB')"
             >
               <ElAvatar :size="88" :src="assetUrl(form.avatarUrl)">
                 <span class="avatar-letter">{{ userStore.name.charAt(0).toUpperCase() }}</span>
               </ElAvatar>
-              <span class="avatar-action">更换头像</span>
+              <span class="avatar-action">{{ t('更换头像') }}</span>
             </div>
           </template>
         </ImageUploader>
-        <div class="avatar-tip text-secondary">点击头像更换</div>
+        <div class="avatar-tip text-secondary">{{ t('点击头像更换') }}</div>
         <div class="side-name">{{ form.name || userStore.name }}</div>
         <div class="text-secondary">@{{ userStore.name }}</div>
         <div v-if="registeredAt" class="text-secondary side-meta">
-          注册于 {{ formatDateTime(registeredAt) }}
+          {{ t('注册于') }} {{ formatDateTime(registeredAt) }}
         </div>
         <div v-if="!admin" class="side-links">
           <ElButton @click="router.push({ name: 'orders' })">
-            <i class="bi bi-receipt btn-icon"></i>我的订单
+            <i class="bi bi-receipt btn-icon"></i>{{ t('我的订单') }}
           </ElButton>
           <ElButton @click="router.push({ name: 'cart' })">
-            <i class="bi bi-cart3 btn-icon"></i>购物车
+            <i class="bi bi-cart3 btn-icon"></i>{{ t('购物车') }}
           </ElButton>
         </div>
       </ElCard>
 
       <ElCard shadow="never" class="profile-main">
         <ElTabs v-model="activeTab">
-          <ElTabPane label="基本资料" name="profile">
+          <ElTabPane :label="t('基本资料')" name="profile">
             <ElForm
               ref="profileFormRef"
               :model="form"
               :rules="profileRules"
               :disabled="loading || saving || changingPassword || avatarUploading || !loaded"
-              label-width="80px"
+              :label-width="formLabelWidth('80px')"
               class="profile-form"
             >
-              <ElFormItem label="用户名">
+              <ElFormItem :label="t('用户名')">
                 <ElInput :model-value="userStore.name" disabled />
               </ElFormItem>
-              <ElFormItem label="名字" prop="name">
-                <ElInput v-model="form.name" maxlength="32" placeholder="选填" />
+              <ElFormItem :label="t('名字')" prop="name">
+                <ElInput v-model="form.name" maxlength="32" :placeholder="t('选填')" />
               </ElFormItem>
-              <ElFormItem label="性别" prop="gender">
+              <ElFormItem :label="t('性别')" prop="gender">
                 <ElRadioGroup v-model="form.gender">
-                  <ElRadio value="M">男</ElRadio>
-                  <ElRadio value="F">女</ElRadio>
-                  <ElRadio value="">保密</ElRadio>
+                  <ElRadio value="M">{{ t('男') }}</ElRadio>
+                  <ElRadio value="F">{{ t('女') }}</ElRadio>
+                  <ElRadio value="">{{ t('保密') }}</ElRadio>
                 </ElRadioGroup>
               </ElFormItem>
-              <ElFormItem label="邮箱" prop="email">
-                <ElInput v-model="form.email" maxlength="128" placeholder="选填" />
+              <ElFormItem :label="t('邮箱')" prop="email">
+                <ElInput v-model="form.email" maxlength="128" :placeholder="t('选填')" />
               </ElFormItem>
-              <ElFormItem label="手机号" prop="phone">
+              <ElFormItem :label="t('手机号')" prop="phone">
                 <ElInput
                   v-model="form.phone"
                   maxlength="11"
-                  :placeholder="admin ? '选填' : '选填，用于收货联系'"
+                  :placeholder="t(admin ? '选填' : '选填，用于收货联系')"
                 />
               </ElFormItem>
-              <ElFormItem label="省份" prop="province">
+              <ElFormItem :label="t('省份')" prop="province">
                 <ElSelect
                   v-model="form.province"
-                  placeholder="请选择省份（选填）"
+                  :placeholder="t('请选择省份（选填）')"
                   filterable
                   clearable
                   @change="form.city = ''"
@@ -91,15 +91,15 @@
                   <ElOption
                     v-for="province in provinceList"
                     :key="province.value"
-                    :label="province.label"
+                    :label="t(province.label)"
                     :value="province.value"
                   />
                 </ElSelect>
               </ElFormItem>
-              <ElFormItem label="城市" prop="city">
+              <ElFormItem :label="t('城市')" prop="city">
                 <ElSelect
                   v-model="form.city"
-                  :placeholder="form.province ? '请选择城市（选填）' : '请先选择省份'"
+                  :placeholder="t(form.province ? '请选择城市（选填）' : '请先选择省份')"
                   :disabled="cityList.length === 0"
                   filterable
                   clearable
@@ -107,52 +107,52 @@
                   <ElOption
                     v-for="city in cityList"
                     :key="city.value"
-                    :label="city.label"
+                    :label="t(city.label)"
                     :value="city.value"
                   />
                 </ElSelect>
               </ElFormItem>
-              <ElFormItem label="收货地址" prop="receiverAddress">
+              <ElFormItem :label="t('收货地址')" prop="receiverAddress">
                 <ElInput
                   v-model="form.receiverAddress"
                   type="textarea"
                   :rows="3"
                   maxlength="255"
                   show-word-limit
-                  placeholder="省 / 市 / 区 / 街道 / 门牌号"
+                  :placeholder="t('省 / 市 / 区 / 街道 / 门牌号')"
                   autocomplete="shipping street-address"
                 />
-                <div class="address-note">下单时使用上方的名字、手机号和此地址。</div>
+                <div class="address-note">{{ t('下单时使用上方的名字、手机号和此地址。') }}</div>
               </ElFormItem>
               <ElFormItem>
                 <ElButton type="primary" :loading="saving" @click="saveProfile">
-                  {{ returnToCheckout ? '保存并返回下单' : '保存' }}
+                  {{ returnToCheckout ? t('保存并返回下单') : t('保存') }}
                 </ElButton>
               </ElFormItem>
             </ElForm>
           </ElTabPane>
 
-          <ElTabPane label="修改密码" name="password">
+          <ElTabPane :label="t('修改密码')" name="password">
             <ElForm
               ref="passwordFormRef"
               :model="passwordForm"
               :rules="passwordRules"
               :disabled="loading || saving || changingPassword || avatarUploading || !loaded"
-              label-width="80px"
+              :label-width="formLabelWidth('80px')"
               class="profile-form"
             >
-              <ElFormItem label="当前密码" prop="oldPassword">
+              <ElFormItem :label="t('当前密码')" prop="oldPassword">
                 <ElInput v-model="passwordForm.oldPassword" type="password" show-password />
               </ElFormItem>
-              <ElFormItem label="新密码" prop="newPassword">
+              <ElFormItem :label="t('新密码')" prop="newPassword">
                 <ElInput v-model="passwordForm.newPassword" type="password" show-password />
               </ElFormItem>
-              <ElFormItem label="确认密码" prop="confirmPassword">
+              <ElFormItem :label="t('确认密码')" prop="confirmPassword">
                 <ElInput v-model="passwordForm.confirmPassword" type="password" show-password />
               </ElFormItem>
               <ElFormItem>
                 <ElButton type="primary" :loading="changingPassword" @click="changePassword">
-                  修改密码
+                  {{ t('修改密码') }}
                 </ElButton>
               </ElFormItem>
             </ElForm>
@@ -164,6 +164,7 @@
 </template>
 
 <script setup lang="ts">
+import { t, formLabelWidth } from '@/i18n'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -227,11 +228,51 @@ const profileFormRef = ref<FormInstance>()
 
 // 与后端 UserEntity 的校验规则一致
 const profileRules: FormRules = {
-  email: [{ type: 'email', message: '请输入有效的邮箱', trigger: 'blur' }],
-  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' }],
-  province: [{ max: 50, message: '省份最多50个字符', trigger: 'change' }],
-  city: [{ max: 50, message: '城市最多50个字符', trigger: 'change' }],
-  receiverAddress: [{ max: 255, message: '收货地址最多255个字符', trigger: 'blur' }],
+  email: [
+    {
+      type: 'email',
+      get message() {
+        return t('请输入有效的邮箱')
+      },
+      trigger: 'blur',
+    },
+  ],
+  phone: [
+    {
+      pattern: /^1[3-9]\d{9}$/,
+      get message() {
+        return t('请输入有效的手机号')
+      },
+      trigger: 'blur',
+    },
+  ],
+  province: [
+    {
+      max: 50,
+      get message() {
+        return t('省份最多50个字符')
+      },
+      trigger: 'change',
+    },
+  ],
+  city: [
+    {
+      max: 50,
+      get message() {
+        return t('城市最多50个字符')
+      },
+      trigger: 'change',
+    },
+  ],
+  receiverAddress: [
+    {
+      max: 255,
+      get message() {
+        return t('收货地址最多255个字符')
+      },
+      trigger: 'blur',
+    },
+  ],
 }
 
 // 本地存的是登录时的快照，进页面以服务端为准
@@ -240,7 +281,7 @@ onMounted(async () => {
   try {
     const { data } = await request.get<ApiResult<{ user: User }>>('/user/profile')
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载资料失败')
+      ElMessage.error(t(data.payload.message || '加载资料失败'))
       return
     }
     const user = data.payload.user
@@ -255,7 +296,7 @@ onMounted(async () => {
     registeredAt.value = user.registeredAt
     loaded.value = true
   } catch {
-    ElMessage.error('加载资料失败')
+    ElMessage.error(t('加载资料失败'))
   } finally {
     loading.value = false
   }
@@ -266,7 +307,7 @@ const saving = ref(false)
 const onAvatarUploaded = (avatarUrl: string) => {
   form.avatarUrl = avatarUrl
   userStore.updateUser({ avatarUrl })
-  ElMessage.success('头像已更新')
+  ElMessage.success(t('头像已更新'))
 }
 
 const saveProfile = async () => {
@@ -289,17 +330,17 @@ const saveProfile = async () => {
   try {
     const { data } = await request.post<ApiResult>('/user/update', fields)
     if (!data.status) {
-      ElMessage.error(data.payload.message || '保存失败')
+      ElMessage.error(t(data.payload.message || '保存失败'))
       return
     }
     // 同步本地登录信息，刷新页面后仍能恢复最新资料
     userStore.updateUser(fields)
-    ElMessage.success('保存成功')
+    ElMessage.success(t('保存成功'))
     if (returnToCheckout.value) {
       void router.replace(returnToCheckout.value)
     }
   } catch {
-    ElMessage.error('保存失败')
+    ElMessage.error(t('保存失败'))
   } finally {
     saving.value = false
   }
@@ -314,17 +355,45 @@ const passwordForm = reactive({
 })
 
 const passwordRules: FormRules = {
-  oldPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  oldPassword: [
+    {
+      required: true,
+      get message() {
+        return t('请输入当前密码')
+      },
+      trigger: 'blur',
+    },
+  ],
   newPassword: [
-    { required: true, whitespace: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, max: 32, message: '密码需6–32个字符', trigger: 'blur' },
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('请输入新密码')
+      },
+      trigger: 'blur',
+    },
+    {
+      min: 6,
+      max: 32,
+      get message() {
+        return t('密码需6–32个字符')
+      },
+      trigger: 'blur',
+    },
   ],
   confirmPassword: [
-    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      required: true,
+      get message() {
+        return t('请再次输入新密码')
+      },
+      trigger: 'blur',
+    },
     {
       validator: (_rule, value, callback) => {
         if (value !== passwordForm.newPassword) {
-          callback(new Error('两次输入的密码不一致'))
+          callback(new Error(t('两次输入的密码不一致')))
         } else {
           callback()
         }
@@ -349,16 +418,16 @@ const changePassword = async () => {
       newPassword: passwordForm.newPassword,
     })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '修改密码失败')
+      ElMessage.error(t(data.payload.message || '修改密码失败'))
       return
     }
-    ElMessage.success('密码已修改，请重新登录')
+    ElMessage.success(t('密码已修改，请重新登录'))
     // 先记下用户名再登出，登录页预填
     const username = userStore.name
     userStore.logout()
     router.replace({ name: 'login', query: { username } })
   } catch {
-    ElMessage.error('修改密码失败')
+    ElMessage.error(t('修改密码失败'))
   } finally {
     changingPassword.value = false
   }

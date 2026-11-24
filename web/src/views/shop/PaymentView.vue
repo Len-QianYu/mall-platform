@@ -6,22 +6,22 @@
           <div class="pay-summary">
             <i class="bi bi-check-circle-fill summary-icon"></i>
             <div>
-              <div class="summary-title">订单提交成功，请尽快支付</div>
-              <div class="text-secondary">订单号：{{ order.orderNo }}</div>
+              <div class="summary-title">{{ t('订单提交成功，请尽快支付') }}</div>
+              <div class="text-secondary">{{ t('订单号：') }}{{ order.orderNo }}</div>
             </div>
             <div class="summary-amount">
-              <span class="text-secondary">应付金额</span>
+              <span class="text-secondary">{{ t('应付金额') }}</span>
               <span class="price amount">{{ formatMoney(order.totalAmount) }}</span>
             </div>
           </div>
 
           <div class="receiver-line text-secondary">
-            收货信息：{{ order.receiverName }}，{{ order.receiverPhone }}，{{
+            {{ t('收货信息：') }}{{ order.receiverName }}，{{ order.receiverPhone }}，{{
               order.receiverAddress
             }}
           </div>
 
-          <h3 class="method-title">选择支付方式</h3>
+          <h3 class="method-title">{{ t('选择支付方式') }}</h3>
           <ElRadioGroup v-model="method" class="method-list" :disabled="paying || querying">
             <ElRadio
               v-for="option in METHOD_OPTIONS"
@@ -33,30 +33,36 @@
             >
               <i :class="option.icon" class="method-icon"></i>
               {{
-                option.value === 'ALIPAY' && alipaySandbox
-                  ? '支付宝（沙箱）'
-                  : PAYMENT_METHOD[option.value]
+                t(
+                  option.value === 'ALIPAY' && alipaySandbox
+                    ? '支付宝（沙箱）'
+                    : PAYMENT_METHOD[option.value],
+                )
               }}
               <span v-if="methodDisabled(option.value)" class="text-secondary">
-                {{ option.value === 'WECHAT' ? '（暂未接入）' : '（暂不可用）' }}
+                {{ option.value === 'WECHAT' ? t('（暂未接入）') : t('（暂不可用）') }}
               </span>
             </ElRadio>
           </ElRadioGroup>
           <p v-if="method === 'ALIPAY' && alipaySandbox" class="payment-hint text-secondary">
-            请使用支付宝沙箱买家账号付款。
+            {{ t('请使用支付宝沙箱买家账号付款。') }}
           </p>
           <ElAlert
             v-if="pendingAlipay"
             class="payment-notice"
             type="info"
-            title="已发起支付宝支付。完成付款后可查询支付结果，或继续前往收银台。"
+            :title="t('已发起支付宝支付。完成付款后可查询支付结果，或继续前往收银台。')"
             :closable="false"
             show-icon
           />
-          <p v-if="!enabledMethods.length" class="payment-hint">暂无可用支付方式，请稍后重试。</p>
+          <p v-if="!enabledMethods.length" class="payment-hint">
+            {{ t('暂无可用支付方式，请稍后重试。') }}
+          </p>
 
           <div class="pay-actions">
-            <ElButton size="large" @click="router.push({ name: 'orders' })">稍后支付</ElButton>
+            <ElButton size="large" @click="router.push({ name: 'orders' })">{{
+              t('稍后支付')
+            }}</ElButton>
             <ElButton
               v-if="pendingAlipay"
               class="query-payment"
@@ -65,7 +71,7 @@
               :disabled="paying"
               @click="queryPayment"
             >
-              查询支付结果
+              {{ t('查询支付结果') }}
             </ElButton>
             <ElButton
               class="confirm-payment"
@@ -75,7 +81,7 @@
               :disabled="querying || methodDisabled(method)"
               @click="pay"
             >
-              {{ method === 'ALIPAY' ? '前往支付宝支付' : '确认支付' }}
+              {{ method === 'ALIPAY' ? t('前往支付宝支付') : t('确认支付') }}
               {{ formatMoney(order.totalAmount) }}
             </ElButton>
           </div>
@@ -84,24 +90,28 @@
         <ElResult
           v-else
           :icon="isPaid ? 'success' : 'info'"
-          :title="'订单' + (ORDER_STATUS[order.status]?.label ?? order.status)"
-          sub-title="该订单当前无需支付"
+          :title="
+            t('订单{status}', { status: t(ORDER_STATUS[order.status]?.label ?? order.status) })
+          "
+          :sub-title="t('该订单当前无需支付')"
         >
           <template #extra>
             <ElButton
               type="primary"
               @click="router.replace({ name: 'order_detail', params: { id: order.id } })"
             >
-              查看订单
+              {{ t('查看订单') }}
             </ElButton>
           </template>
         </ElResult>
       </template>
 
-      <ElResult v-else-if="!loading" icon="warning" :title="loadError || '订单不存在'">
+      <ElResult v-else-if="!loading" icon="warning" :title="t(loadError || '订单不存在')">
         <template #extra>
-          <ElButton v-if="orderId" class="load-retry" @click="load">重试</ElButton>
-          <ElButton type="primary" @click="router.push({ name: 'orders' })">我的订单</ElButton>
+          <ElButton v-if="orderId" class="load-retry" @click="load">{{ t('重试') }}</ElButton>
+          <ElButton type="primary" @click="router.push({ name: 'orders' })">{{
+            t('我的订单')
+          }}</ElButton>
         </template>
       </ElResult>
     </div>
@@ -109,6 +119,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -201,7 +212,7 @@ const load = async () => {
     method.value = pendingAlipay.value ? 'ALIPAY' : (enabledMethods.value[0] ?? 'ALIPAY')
     // 同步返回的 URL 参数不代表支付成功，只有后端查询确认后才展示成功。
     if (route.name === 'order_pay_return' && queryResponse.data.payload.paid) {
-      ElMessage.success('支付成功')
+      ElMessage.success(t('支付成功'))
       showOrder()
     }
   } catch {
@@ -223,19 +234,19 @@ const queryPayment = async () => {
     })
     if (order.value?.id !== id) return
     if (!data.status) {
-      ElMessage.error(data.payload.message || '查询支付结果失败')
+      ElMessage.error(t(data.payload.message || '查询支付结果失败'))
       return
     }
     order.value = data.payload.order
     payment.value = data.payload.payment
     if (data.payload.paid) {
-      ElMessage.success('支付成功')
+      ElMessage.success(t('支付成功'))
       showOrder()
     } else if (order.value.status === 'PENDING_PAYMENT') {
-      ElMessage.warning('尚未查询到支付成功，请完成付款后重试')
+      ElMessage.warning(t('尚未查询到支付成功，请完成付款后重试'))
     }
   } catch {
-    ElMessage.error('查询支付结果失败，请稍后重试')
+    ElMessage.error(t('查询支付结果失败，请稍后重试'))
   } finally {
     querying.value = false
   }
@@ -252,21 +263,21 @@ const pay = async () => {
     })
     if (order.value?.id !== id) return
     if (!data.status) {
-      ElMessage.error(data.payload.message || '支付失败')
+      ElMessage.error(t(data.payload.message || '支付失败'))
       return
     }
     payment.value = data.payload.payment
     if (payment.value.status === 'SUCCESS') {
-      ElMessage.success('支付成功')
+      ElMessage.success(t('支付成功'))
       showOrder()
     } else if (payment.value.method === 'ALIPAY' && data.payload.payUrl) {
       // 同一标签页打开，付款后由 return-url 回到当前商城；不依赖弹窗权限。
       window.open(data.payload.payUrl, '_self')
     } else {
-      ElMessage.error('获取支付链接失败，请重试')
+      ElMessage.error(t('获取支付链接失败，请重试'))
     }
   } catch {
-    ElMessage.error('发起支付失败，请稍后重试')
+    ElMessage.error(t('发起支付失败，请稍后重试'))
   } finally {
     paying.value = false
   }

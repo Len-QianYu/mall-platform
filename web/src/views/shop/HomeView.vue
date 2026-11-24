@@ -3,15 +3,15 @@
     <!-- 横幅 -->
     <section class="hero">
       <div class="hero-text">
-        <h1 class="hero-title">品质好物，一站购齐</h1>
-        <p class="hero-desc">精选全品类商品，下单即享极速发货与无忧售后</p>
+        <h1 class="hero-title">{{ t('品质好物，一站购齐') }}</h1>
+        <p class="hero-desc">{{ t('精选全品类商品，下单即享极速发货与无忧售后') }}</p>
       </div>
       <div class="hero-actions">
         <ElButton type="primary" size="large" @click="router.push({ name: 'products' })">
-          去逛逛 <i class="bi bi-arrow-right hero-btn-icon"></i>
+          {{ t('去逛逛') }} <i class="bi bi-arrow-right hero-btn-icon"></i>
         </ElButton>
         <ElButton type="danger" plain size="large" @click="router.push({ name: 'seckill' })">
-          <i class="bi bi-lightning-charge hero-btn-icon"></i>限时秒杀
+          <i class="bi bi-lightning-charge hero-btn-icon"></i>{{ t('限时秒杀') }}
         </ElButton>
       </div>
     </section>
@@ -20,12 +20,12 @@
       <div class="section-heading">
         <div>
           <h2 id="categories-title" class="section-title">
-            商品分类 <i class="bi bi-stars" aria-hidden="true"></i>
+            {{ t('商品分类') }} <i class="bi bi-stars" aria-hidden="true"></i>
           </h2>
-          <p class="section-description">找到与你合拍的 AI 伙伴</p>
+          <p class="section-description">{{ t('找到与你合拍的 AI 伙伴') }}</p>
         </div>
         <RouterLink class="more-link" :to="{ name: 'products' }">
-          查看全部 <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          {{ t('查看全部') }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
         </RouterLink>
       </div>
       <div class="category-grid">
@@ -35,20 +35,20 @@
           class="category-card"
           :class="category.key"
           :to="{ name: 'products', query: { category: category.name } }"
-          :aria-label="'浏览' + category.title"
+          :aria-label="t('浏览{collection}', { collection: t(category.title) })"
         >
           <div class="category-art">
             <img
               :src="categoryImages[category.key]"
-              :alt="category.title + '系列玩偶'"
+              :alt="t('{collection}系列', { collection: t(category.title) })"
               class="category-image"
               loading="lazy"
               decoding="async"
             />
           </div>
           <div class="category-info">
-            <h3>{{ category.title }}</h3>
-            <p>{{ category.description }}</p>
+            <h3>{{ t(category.title) }}</h3>
+            <p>{{ t(category.description) }}</p>
             <i class="bi bi-arrow-right category-arrow" aria-hidden="true"></i>
           </div>
         </RouterLink>
@@ -59,15 +59,15 @@
       <div class="section-heading">
         <div>
           <h2 id="hot-title" class="section-title">
-            热销榜单 <i class="bi bi-stars" aria-hidden="true"></i>
+            {{ t('热销榜单') }} <i class="bi bi-stars" aria-hidden="true"></i>
           </h2>
-          <p class="section-description">看看大家喜欢的 AI 伙伴</p>
+          <p class="section-description">{{ t('看看大家喜欢的 AI 伙伴') }}</p>
         </div>
         <RouterLink class="more-link" :to="{ name: 'products', query: { sort: 'sales' } }">
-          查看全部 <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          {{ t('查看全部') }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
         </RouterLink>
       </div>
-      <div v-if="loadingHot" class="hot-grid" aria-busy="true" aria-label="正在加载热销玩偶">
+      <div v-if="loadingHot" class="hot-grid" aria-busy="true" :aria-label="t('正在加载热销玩偶')">
         <ElSkeleton v-for="index in 4" :key="index" class="hot-skeleton" :rows="5" animated />
       </div>
       <div v-else-if="hotProducts.length" class="hot-grid">
@@ -75,27 +75,31 @@
       </div>
       <div v-else class="hot-empty" :role="hotError ? 'alert' : undefined">
         <i class="bi bi-box2-heart" aria-hidden="true"></i>
-        <h3>{{ hotError || '热销玩偶正在准备中' }}</h3>
-        <p v-if="!hotError">暂时还没有在售玩偶，先看看你喜欢的系列吧。</p>
-        <ElButton v-if="hotError" @click="fetchHotProducts">重新加载</ElButton>
+        <h3>{{ t(hotError || '热销玩偶正在准备中') }}</h3>
+        <p v-if="!hotError">{{ t('暂时还没有在售玩偶，先看看你喜欢的系列吧。') }}</p>
+        <ElButton v-if="hotError" @click="fetchHotProducts">{{ t('重新加载') }}</ElButton>
         <RouterLink v-else class="more-link" :to="{ name: 'products' }">
-          浏览全部玩偶 <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          {{ t('浏览全部玩偶') }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
         </RouterLink>
       </div>
     </section>
 
     <section class="brand-banner" aria-labelledby="brand-title">
       <div class="brand-visual">
-        <img :src="brandImage" alt="五只玩偶并排坐在一起" loading="lazy" decoding="async" />
+        <img :src="brandImage" :alt="t('五只玩偶并排坐在一起')" loading="lazy" decoding="async" />
       </div>
       <div class="brand-copy">
         <span class="brand-kicker"><i class="bi bi-heart" aria-hidden="true"></i> PROMPT PALS</span>
-        <h2 id="brand-title">小小玩偶，大大陪伴</h2>
+        <h2 id="brand-title">{{ t('小小玩偶，大大陪伴') }}</h2>
         <p>
-          在 Prompt Pals，发现 Claude、DeepSeek、GPT 与 Grok 玩偶， 把喜欢的 AI 伙伴带进你的日常。
+          {{
+            t(
+              '在 Prompt Pals，发现 Claude、DeepSeek、GPT 与 Grok 玩偶， 把喜欢的 AI 伙伴带进你的日常。',
+            )
+          }}
         </p>
         <RouterLink class="brand-link" :to="{ name: 'about' }">
-          了解我们 <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          {{ t('了解我们') }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
         </RouterLink>
       </div>
     </section>
@@ -103,6 +107,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ElButton, ElSkeleton } from 'element-plus'

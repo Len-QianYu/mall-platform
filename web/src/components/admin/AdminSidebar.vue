@@ -2,7 +2,7 @@
   <aside class="admin-sidebar" :class="{ 'is-collapsed': collapsed }">
     <!-- 左上角 Logo -->
     <RouterLink class="logo-link" :to="{ name: 'admin_dashboard' }">
-      <img src="@/assets/logo/logo.png" class="logo-img" alt="Mall Platform" />
+      <img src="@/assets/logo/logo.png" class="logo-img" alt="Prompt Pals" />
     </RouterLink>
 
     <!-- 菜单：index 即路由路径，router 模式下点击直接跳转 -->
@@ -16,36 +16,36 @@
     >
       <ElMenuItem index="/admin">
         <i class="bi bi-speedometer2 menu-icon"></i>
-        <template #title>仪表盘</template>
+        <template #title>{{ t('仪表盘') }}</template>
       </ElMenuItem>
 
       <ElMenuItem index="/admin/users">
         <i class="bi bi-people menu-icon"></i>
-        <template #title>用户管理</template>
+        <template #title>{{ t('用户管理') }}</template>
       </ElMenuItem>
 
       <ElMenuItem index="/admin/products">
         <i class="bi bi-box-seam menu-icon"></i>
-        <template #title>商品管理</template>
+        <template #title>{{ t('商品管理') }}</template>
       </ElMenuItem>
 
       <ElMenuItem index="/admin/seckill">
         <i class="bi bi-lightning-charge menu-icon"></i>
-        <template #title>秒杀活动</template>
+        <template #title>{{ t('秒杀活动') }}</template>
       </ElMenuItem>
 
       <ElSubMenu index="trade">
         <template #title>
           <i class="bi bi-wallet2 menu-icon"></i>
-          <span>交易管理</span>
+          <span>{{ t('交易管理') }}</span>
         </template>
         <ElMenuItem index="/admin/orders">
           <i class="bi bi-receipt menu-icon"></i>
-          <template #title>订单管理</template>
+          <template #title>{{ t('订单管理') }}</template>
         </ElMenuItem>
         <ElMenuItem index="/admin/payments">
           <i class="bi bi-credit-card menu-icon"></i>
-          <template #title>支付流水</template>
+          <template #title>{{ t('支付流水') }}</template>
         </ElMenuItem>
       </ElSubMenu>
     </ElMenu>
@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { RouterLink, useRoute } from 'vue-router'
 import { ElMenu, ElMenuItem, ElSubMenu } from 'element-plus'
 

@@ -1,5 +1,6 @@
 import type { ProductNotification, ProductNotificationType } from '@/types/api'
 import { formatMoney } from '@/utils/format'
+import { t } from '@/i18n'
 
 export const PRODUCT_NOTIFICATION_LABELS: Record<ProductNotificationType, string> = {
   LISTED: '商品上架',
@@ -9,9 +10,17 @@ export const PRODUCT_NOTIFICATION_LABELS: Record<ProductNotificationType, string
 
 export const notificationDescription = (notification: ProductNotification): string => {
   if (notification.type === 'LISTED')
-    return `你收藏的「${notification.productName}」已上架，当前售价 ${formatMoney(notification.newPrice)}`
+    return t('你收藏的「{name}」已上架，当前售价 {newPrice}', {
+      name: notification.productName,
+      newPrice: formatMoney(notification.newPrice),
+    })
   const change = notification.type === 'PRICE_DROP' ? '降价' : '涨价'
-  return `你收藏的「${notification.productName}」${change}了，从 ${formatMoney(notification.oldPrice)} 变为 ${formatMoney(notification.newPrice)}`
+  return t('你收藏的「{name}」{change}了，从 {oldPrice} 变为 {newPrice}', {
+    name: notification.productName,
+    change: t(change),
+    oldPrice: formatMoney(notification.oldPrice),
+    newPrice: formatMoney(notification.newPrice),
+  })
 }
 
 export const notificationSocketUrl = (ticket: string): string => {

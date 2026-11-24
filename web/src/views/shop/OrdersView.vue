@@ -1,9 +1,9 @@
 <template>
   <div class="shop-container">
-    <h1 class="section-title"><i class="bi bi-receipt"></i>我的订单</h1>
+    <h1 class="section-title"><i class="bi bi-receipt"></i>{{ t('我的订单') }}</h1>
 
     <ElTabs v-model="activeTab" class="status-tabs">
-      <ElTabPane v-for="tab in TABS" :key="tab.name" :label="tab.label" :name="tab.name" />
+      <ElTabPane v-for="tab in TABS" :key="tab.name" :label="t(tab.label)" :name="tab.name" />
     </ElTabs>
 
     <div v-loading="loading" class="orders-body">
@@ -12,9 +12,9 @@
           <template #header>
             <div class="order-header">
               <span class="text-secondary">{{ formatDateTime(order.createdAt) }}</span>
-              <span class="text-secondary">订单号：{{ order.orderNo }}</span>
+              <span class="text-secondary">{{ t('订单号：') }}{{ order.orderNo }}</span>
               <ElTag :type="ORDER_STATUS[order.status]?.type ?? 'info'" class="order-status">
-                {{ ORDER_STATUS[order.status]?.label ?? order.status }}
+                {{ t(ORDER_STATUS[order.status]?.label ?? order.status) }}
               </ElTag>
             </div>
           </template>
@@ -41,7 +41,8 @@
 
             <div class="order-side">
               <div>
-                实付 <span class="price order-amount">{{ formatMoney(order.totalAmount) }}</span>
+                {{ t('实付') }}
+                <span class="price order-amount">{{ formatMoney(order.totalAmount) }}</span>
               </div>
               <div class="order-actions">
                 <template v-if="order.status === 'PENDING_PAYMENT'">
@@ -50,33 +51,33 @@
                     size="small"
                     @click="router.push({ name: 'order_pay', params: { id: order.id } })"
                   >
-                    去支付
+                    {{ t('去支付') }}
                   </ElButton>
                   <ElPopconfirm
-                    title="确定取消该订单吗？"
+                    :title="t('确定取消该订单吗？')"
                     @confirm="changeStatus(order.id, 'cancel')"
                   >
                     <template #reference>
-                      <ElButton size="small">取消订单</ElButton>
+                      <ElButton size="small">{{ t('取消订单') }}</ElButton>
                     </template>
                   </ElPopconfirm>
                 </template>
                 <ElPopconfirm
                   v-if="order.status === 'PAID'"
-                  title="商品还没发货，确定退款吗？"
+                  :title="t('商品还没发货，确定退款吗？')"
                   @confirm="changeStatus(order.id, 'refund')"
                 >
                   <template #reference>
-                    <ElButton size="small">申请退款</ElButton>
+                    <ElButton size="small">{{ t('申请退款') }}</ElButton>
                   </template>
                 </ElPopconfirm>
                 <ElPopconfirm
                   v-if="order.status === 'SHIPPED'"
-                  title="确认已收到商品吗？"
+                  :title="t('确认已收到商品吗？')"
                   @confirm="changeStatus(order.id, 'confirm')"
                 >
                   <template #reference>
-                    <ElButton type="primary" size="small">确认收货</ElButton>
+                    <ElButton type="primary" size="small">{{ t('确认收货') }}</ElButton>
                   </template>
                 </ElPopconfirm>
                 <ElButton
@@ -85,7 +86,7 @@
                   size="small"
                   @click="router.push({ name: 'order_detail', params: { id: order.id } })"
                 >
-                  订单详情
+                  {{ t('订单详情') }}
                 </ElButton>
               </div>
             </div>
@@ -93,8 +94,10 @@
         </ElCard>
       </template>
 
-      <ElEmpty v-else-if="!loading" description="暂无相关订单">
-        <ElButton type="primary" @click="router.push({ name: 'products' })">去逛逛</ElButton>
+      <ElEmpty v-else-if="!loading" :description="t('暂无相关订单')">
+        <ElButton type="primary" @click="router.push({ name: 'products' })">{{
+          t('去逛逛')
+        }}</ElButton>
       </ElEmpty>
     </div>
 
@@ -111,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -167,13 +171,13 @@ const fetchOrders = async () => {
       },
     })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载订单失败')
+      ElMessage.error(t(data.payload.message || '加载订单失败'))
       return
     }
     orders.value = data.payload.orders
     pagination.total = data.payload.pagination.total
   } catch {
-    ElMessage.error('加载订单失败')
+    ElMessage.error(t('加载订单失败'))
   } finally {
     loading.value = false
   }

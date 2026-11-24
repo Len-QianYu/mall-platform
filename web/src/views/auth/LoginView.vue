@@ -10,12 +10,12 @@
           </div>
 
           <!-- svg中心图标 -->
-          <ModerationIcon class="moderation-icon" />
+          <ModerationIcon class="moderation-icon" :aria-label="t('商城购物袋')" />
 
           <!-- 文字描述 -->
           <div class="description-text">
-            <div class="title-text">AI 伙伴商城</div>
-            <div class="introduce-text">把想象抱进怀里，让陪伴触手可及</div>
+            <div class="title-text">{{ t('AI 伙伴商城') }}</div>
+            <div class="introduce-text">{{ t('把想象抱进怀里，让陪伴触手可及') }}</div>
           </div>
         </div>
       </div>
@@ -26,10 +26,11 @@
       <div class="login-form-box">
         <!-- 主题切换按钮：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
         <div class="theme-toggle-button_box">
+          <LanguageSwitch />
           <button
             class="change-theme"
             @click="toggleTheme"
-            :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
+            :aria-label="isDark ? t('切换到亮色模式') : t('切换到暗色模式')"
           >
             <i v-if="isDark" class="bi bi-brightness-high sun-icon"></i>
             <i v-else class="bi bi-moon-stars moon-icon"></i>
@@ -41,22 +42,22 @@
           :model="model"
           @submit.prevent="login"
           :rules="rules"
-          label-width="80"
+          :label-width="formLabelWidth('80')"
           label-position="left"
         >
-          <h2 class="form-title">欢迎回来🤖</h2>
-          <p class="welcome-text">请输入账号信息，登录商城</p>
+          <h2 class="form-title">{{ t('欢迎回来🤖') }}</h2>
+          <p class="welcome-text">{{ t('请输入账号信息，登录商城') }}</p>
 
-          <ElFormItem prop="username" label="用户名">
-            <ElInput v-model="model.username" type="text" placeholder="请输入用户名">
+          <ElFormItem prop="username" :label="t('用户名')">
+            <ElInput v-model="model.username" type="text" :placeholder="t('请输入用户名')">
               <template v-slot:suffix>
                 <i class="bi bi-person-fill icon-suffix"></i>
               </template>
             </ElInput>
           </ElFormItem>
 
-          <ElFormItem prop="password" label="密码">
-            <ElInput v-model="model.password" type="password" placeholder="请输入密码">
+          <ElFormItem prop="password" :label="t('密码')">
+            <ElInput v-model="model.password" type="password" :placeholder="t('请输入密码')">
               <template v-slot:suffix>
                 <i class="bi bi-lock-fill icon-suffix"></i>
               </template>
@@ -72,25 +73,29 @@
                 v-model="rememberAccount"
                 class="checkbox-input"
               />
-              <label for="remember-account" class="checkbox-label">记住账号</label>
+              <label for="remember-account" class="checkbox-label">{{ t('记住账号') }}</label>
             </div>
-            <span class="forgot-password-link">忘记密码?</span>
+            <span class="forgot-password-link">{{ t('忘记密码?') }}</span>
           </div>
 
           <ElFormItem>
-            <ElButton type="primary" native-type="submit" style="width: 100%">登录</ElButton>
+            <ElButton type="primary" native-type="submit" style="width: 100%">{{
+              t('登录')
+            }}</ElButton>
           </ElFormItem>
 
           <!-- 创建账号链接 -->
           <div class="signup-link-wrapper">
-            还没有账号?
-            <RouterLink :to="{ name: 'register' }" class="signup-link">创建账号</RouterLink>
+            {{ t('还没有账号?') }}
+            <RouterLink :to="{ name: 'register' }" class="signup-link">{{
+              t('创建账号')
+            }}</RouterLink>
           </div>
         </ElForm>
 
         <!-- 底部信息 -->
         <footer class="login-footer">
-          <div>lyqy &copy; {{ currentYear }} Mall Platform.</div>
+          <div>lyqy &copy; {{ currentYear }} Prompt Pals.</div>
         </footer>
       </div>
     </div>
@@ -99,7 +104,7 @@
       class="login-role-switch"
       :class="{ 'is-hidden': !roleSwitchVisible }"
       role="group"
-      aria-label="登录方式"
+      :aria-label="t('登录方式')"
       @mouseenter="onRoleSwitchMouseEnter"
       @mouseleave="onRoleSwitchMouseLeave"
       @focusin="showRoleSwitch"
@@ -108,37 +113,31 @@
       <button
         type="button"
         class="role-switch-button"
-        title="用户登录"
-        aria-label="用户登录"
+        :title="t('用户登录')"
+        :aria-label="t('用户登录')"
         :aria-pressed="model.role === 'user'"
         @click="switchLoginRole('user')"
       >
-        <span>用户登录</span>
+        <span>{{ t('用户登录') }}</span>
       </button>
       <button
         type="button"
         class="role-switch-button"
-        title="管理员登录"
-        aria-label="管理员登录"
+        :title="t('管理员登录')"
+        :aria-label="t('管理员登录')"
         :aria-pressed="model.role === 'admin'"
         @click="switchLoginRole('admin')"
       >
-        <span>管理员登录</span>
+        <span>{{ t('管理员登录') }}</span>
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { t, formLabelWidth } from '@/i18n'
 import { ref, reactive, onMounted, onUnmounted, watch, watchEffect } from 'vue'
-import {
-  ElForm,
-  ElFormItem,
-  ElInput,
-  ElButton,
-  ElMessage,
-  type FormInstance,
-} from 'element-plus'
+import { ElForm, ElFormItem, ElInput, ElButton, ElMessage, type FormInstance } from 'element-plus'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import request from '@/utils/request'
 import { useUserStore, type LoginResult, type LoginRole } from '@/stores/user'
@@ -150,6 +149,7 @@ import {
   saveRememberedAccount,
 } from '@/utils/rememberAccount'
 import ModerationIcon from '@/assets/svg/moderation-icon.svg?component'
+import LanguageSwitch from '@/components/LanguageSwitch.vue'
 // npm install bootstrap-icons
 // 引入 Bootstrap Icons
 import 'bootstrap-icons/font/bootstrap-icons.css'
@@ -235,17 +235,47 @@ const switchLoginRole = (role: LoginRole) => {
   if (model.role === role) return
 
   model.role = role
-  ElMessage.success(`切换成功，当前为${role === 'admin' ? '管理员' : '用户'}登录`)
+  ElMessage.success(
+    t('切换成功，当前为{role}登录', { role: role === 'admin' ? t('管理员') : t('用户') }),
+  )
 }
 
 const rules = reactive({
   username: [
-    { required: true, whitespace: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, max: 16, message: '用户名需2–16个字符', trigger: 'change' },
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('请输入用户名')
+      },
+      trigger: 'blur',
+    },
+    {
+      min: 2,
+      max: 16,
+      get message() {
+        return t('用户名需2–16个字符')
+      },
+      trigger: 'change',
+    },
   ],
   password: [
-    { required: true, whitespace: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 32, message: '密码需6–32个字符', trigger: 'change' },
+    {
+      required: true,
+      whitespace: true,
+      get message() {
+        return t('请输入密码')
+      },
+      trigger: 'blur',
+    },
+    {
+      min: 6,
+      max: 32,
+      get message() {
+        return t('密码需6–32个字符')
+      },
+      trigger: 'change',
+    },
   ],
 })
 
@@ -289,11 +319,11 @@ const login = () => {
             } else {
               // 显示后端返回的错误消息
               const message = response.data.payload?.message || '登录失败。'
-              ElMessage.error(message)
+              ElMessage.error(t(message))
             }
           })
           .catch(() => {
-            ElMessage.error('登录失败。')
+            ElMessage.error(t('登录失败。'))
           })
       }
     })
@@ -412,6 +442,9 @@ onUnmounted(() => {
 
 /* 主题切换按钮 */
 .theme-toggle-button_box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   position: absolute;
   top: 0rem;
   right: 0;

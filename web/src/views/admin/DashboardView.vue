@@ -2,17 +2,17 @@
   <section class="dashboard">
     <div class="page-heading dashboard-heading">
       <div>
-        <h1 class="page-title">仪表盘</h1>
+        <h1 class="page-title">{{ t('仪表盘') }}</h1>
       </div>
       <div class="heading-actions">
-        <span v-if="updatedAt" class="updated-at">更新于 {{ updatedAt }}</span>
+        <span v-if="updatedAt" class="updated-at">{{ t('更新于') }} {{ updatedAt }}</span>
         <ElButton
           class="refresh-button"
           circle
           :disabled="loading"
           :aria-busy="loading"
-          aria-label="刷新数据"
-          :title="loading ? '正在刷新数据' : '刷新数据'"
+          :aria-label="t('刷新数据')"
+          :title="loading ? t('正在刷新数据') : t('刷新数据')"
           @click="fetchDashboard"
         >
           <i
@@ -26,7 +26,7 @@
 
     <ElAlert
       v-if="error"
-      :title="error"
+      :title="t(error)"
       type="error"
       show-icon
       :closable="false"
@@ -39,9 +39,9 @@
           <i :class="card.icon"></i>
         </div>
         <div class="stat-content">
-          <div class="stat-label">{{ card.label }}</div>
+          <div class="stat-label">{{ t(card.label) }}</div>
           <div class="stat-value">{{ card.value }}</div>
-          <div class="stat-description">{{ card.description }}</div>
+          <div class="stat-description">{{ t(card.description) }}</div>
         </div>
       </ElCard>
     </div>
@@ -51,29 +51,29 @@
         <template #header>
           <div class="card-header trend-header">
             <div>
-              <span>销售与订单趋势</span>
+              <span>{{ t('销售与订单趋势') }}</span>
               <p class="chart-caption">{{ dateRange }}</p>
             </div>
             <ElRadioGroup
               v-model="days"
               size="small"
               :disabled="loading"
-              aria-label="趋势统计时间范围"
+              :aria-label="t('趋势统计时间范围')"
               @change="fetchDashboard"
             >
-              <ElRadioButton :value="7">近 7 天</ElRadioButton>
-              <ElRadioButton :value="30">近 30 天</ElRadioButton>
+              <ElRadioButton :value="7">{{ t('近 7 天') }}</ElRadioButton>
+              <ElRadioButton :value="30">{{ t('近 30 天') }}</ElRadioButton>
             </ElRadioGroup>
           </div>
         </template>
 
         <div class="trend-summary">
           <div>
-            <span class="summary-label">期间销售额</span>
+            <span class="summary-label">{{ t('期间销售额') }}</span>
             <strong>{{ dashboard ? formatMoney(periodSummary.salesAmount) : '-' }}</strong>
           </div>
           <div>
-            <span class="summary-label">期间新增订单</span>
+            <span class="summary-label">{{ t('期间新增订单') }}</span>
             <strong>{{
               dashboard ? periodSummary.orderCount.toLocaleString('zh-CN') : '-'
             }}</strong>
@@ -82,62 +82,70 @@
         <DashboardChart
           v-if="dashboard"
           :option="trendOption"
-          :label="`近 ${displayedDays} 天销售额和新增订单趋势`"
+          :label="t('近 {displayedDays} 天销售额和新增订单趋势', { displayedDays: displayedDays })"
         />
         <ElSkeleton v-else :rows="6" animated class="chart-placeholder" />
-        <p class="chart-note">销售额按支付日期统计，已退款订单不计入；订单量按下单日期统计。</p>
+        <p class="chart-note">
+          {{ t('销售额按支付日期统计，已退款订单不计入；订单量按下单日期统计。') }}
+        </p>
       </ElCard>
 
       <ElCard v-loading="loading" shadow="never" class="chart-card status-card">
         <template #header>
           <div class="card-header">
             <div>
-              <span>订单状态分布</span>
-              <p class="chart-caption">全部订单的当前状态</p>
+              <span>{{ t('订单状态分布') }}</span>
+              <p class="chart-caption">{{ t('全部订单的当前状态') }}</p>
             </div>
-            <ElTag type="info" effect="plain" size="small">全部订单</ElTag>
+            <ElTag type="info" effect="plain" size="small">{{ t('全部订单') }}</ElTag>
           </div>
         </template>
 
         <DashboardChart
           v-if="dashboard && statusTotal > 0"
           :option="statusOption"
-          label="全部订单的当前状态分布"
+          :label="t('全部订单的当前状态分布')"
           class="status-chart"
         />
         <ElEmpty
           v-else-if="dashboard"
-          description="暂无订单数据"
+          :description="t('暂无订单数据')"
           :image-size="90"
           class="empty-chart"
         />
         <ElSkeleton v-else :rows="6" animated class="chart-placeholder" />
-        <p class="chart-note">悬停查看各状态的订单数量与占比。</p>
+        <p class="chart-note">{{ t('悬停查看各状态的订单数量与占比。') }}</p>
       </ElCard>
     </div>
 
     <ElCard shadow="never">
       <template #header>
         <div class="card-header">
-          <span>最近订单</span>
-          <RouterLink :to="{ name: 'admin_orders' }" class="more-link">查看全部</RouterLink>
+          <span>{{ t('最近订单') }}</span>
+          <RouterLink :to="{ name: 'admin_orders' }" class="more-link">{{
+            t('查看全部')
+          }}</RouterLink>
         </div>
       </template>
 
-      <ElTable v-loading="loading" :data="dashboard?.recentOrders ?? []" empty-text="暂无订单">
-        <ElTableColumn prop="orderNo" label="订单号" min-width="200" />
-        <ElTableColumn prop="receiverName" label="收货人" min-width="100" />
-        <ElTableColumn label="订单金额" min-width="110">
+      <ElTable
+        v-loading="loading"
+        :data="dashboard?.recentOrders ?? []"
+        :empty-text="t('暂无订单')"
+      >
+        <ElTableColumn prop="orderNo" :label="t('订单号')" min-width="200" />
+        <ElTableColumn prop="receiverName" :label="t('收货人')" min-width="100" />
+        <ElTableColumn :label="t('订单金额')" min-width="110">
           <template #default="{ row }">{{ formatMoney(row.totalAmount) }}</template>
         </ElTableColumn>
-        <ElTableColumn label="状态" width="100">
+        <ElTableColumn :label="t('状态')" width="100">
           <template #default="{ row }">
             <ElTag :type="ORDER_STATUS[row.status]?.type ?? 'info'">
-              {{ ORDER_STATUS[row.status]?.label ?? row.status }}
+              {{ t(ORDER_STATUS[row.status]?.label ?? row.status) }}
             </ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="下单时间" width="180">
+        <ElTableColumn :label="t('下单时间')" width="180">
           <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
         </ElTableColumn>
       </ElTable>
@@ -146,6 +154,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
@@ -197,7 +206,9 @@ const dateRange = computed(() => {
   const trend = dashboard.value?.trend ?? []
   const start = trend[0]?.date
   const end = trend[trend.length - 1]?.date
-  return start && end ? `${start} — ${end}` : `最近 ${displayedDays.value} 天（含今天）`
+  return start && end
+    ? `${start} — ${end}`
+    : t('最近 {displayedDays} 天（含今天）', { displayedDays: displayedDays.value })
 })
 
 // 统计还没加载出来时显示占位符

@@ -11,21 +11,22 @@
       <div v-else class="card-image image-placeholder">
         <i class="bi bi-image"></i>
       </div>
-      <span v-if="product.stock === 0" class="sold-out">已售罄</span>
+      <span v-if="product.stock === 0" class="sold-out">{{ t('已售罄') }}</span>
     </div>
 
     <div class="card-body">
       <div class="card-name" :title="product.name">{{ product.name }}</div>
-      <div class="card-subtitle text-secondary">{{ product.subtitle || product.category }}</div>
+      <div class="card-subtitle text-secondary">{{ product.subtitle || t(product.category) }}</div>
       <div class="card-footer">
         <span class="price">{{ formatMoney(product.price) }}</span>
-        <span class="text-secondary">已售 {{ product.sales }}</span>
+        <span class="text-secondary">{{ t('已售 {count}', { count: product.sales }) }}</span>
       </div>
     </div>
   </RouterLink>
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { RouterLink } from 'vue-router'
 import { ElImage } from 'element-plus'
 import type { Product } from '@/types/api'

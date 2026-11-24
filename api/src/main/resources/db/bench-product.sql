@@ -1,5 +1,5 @@
 /*
- * Mall Platform 压测数据：往 product 追加 10 万件商品（在 schema.sql、data.sql 之后执行）
+ * Prompt Pals 压测数据：往 product 追加 10 万件商品（在 schema.sql、data.sql 之后执行）
  *
  * 约定：
  *   1. 主键固定为 1001 ~ 101000，1000 以内留给 data.sql 和管理端新建的商品；执行时先删掉这一段再插，可重复执行；

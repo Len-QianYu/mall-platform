@@ -1,6 +1,7 @@
 import type { EChartsOption } from 'echarts'
 import type { DashboardTrendPoint, OrderStatus, OrderStatusCount } from '@/types/api'
 import { ORDER_STATUS, formatMoney } from '@/utils/format'
+import { formatNumber, t, useLocale } from '@/i18n'
 
 const palette = (dark: boolean) => ({
   text: dark ? '#cfd3dc' : '#606266',
@@ -11,15 +12,18 @@ const palette = (dark: boolean) => ({
   green: dark ? '#5cc9b5' : '#2fb39b',
 })
 
-const compactNumber = (value: number) =>
-  Math.abs(value) >= 10000 ? `${(value / 10000).toFixed(1)}万` : value.toLocaleString('zh-CN')
+const compactNumber = (value: number) => {
+  if (useLocale().locale.value === 'en')
+    return formatNumber(value, { notation: 'compact', maximumFractionDigits: 1 })
+  return Math.abs(value) >= 10000 ? `${(value / 10000).toFixed(1)}万` : formatNumber(value)
+}
 
 export function buildTrendChart(points: DashboardTrendPoint[], dark: boolean): EChartsOption {
   const colors = palette(dark)
   return {
     animationDuration: 350,
     textStyle: { color: colors.text, fontFamily: 'system-ui, sans-serif' },
-    aria: { enabled: true, label: { description: '按天展示销售额和新增订单数的趋势图' } },
+    aria: { enabled: true, label: { description: t('按天展示销售额和新增订单数的趋势图') } },
     tooltip: {
       trigger: 'axis',
       confine: true,
@@ -31,7 +35,7 @@ export function buildTrendChart(points: DashboardTrendPoint[], dark: boolean): E
     legend: {
       top: 0,
       right: 0,
-      data: ['销售额', '新增订单'],
+      data: [t('销售额'), t('新增订单')],
       textStyle: { color: colors.text },
       itemWidth: 16,
       itemHeight: 8,
@@ -51,7 +55,7 @@ export function buildTrendChart(points: DashboardTrendPoint[], dark: boolean): E
     yAxis: [
       {
         type: 'value',
-        name: '销售额（元）',
+        name: t('销售额（元）'),
         min: 0,
         nameTextStyle: { color: colors.muted },
         axisLabel: { color: colors.muted, formatter: compactNumber },
@@ -59,7 +63,7 @@ export function buildTrendChart(points: DashboardTrendPoint[], dark: boolean): E
       },
       {
         type: 'value',
-        name: '订单量（笔）',
+        name: t('订单量（笔）'),
         min: 0,
         minInterval: 1,
         nameTextStyle: { color: colors.muted },
@@ -69,7 +73,7 @@ export function buildTrendChart(points: DashboardTrendPoint[], dark: boolean): E
     ],
     series: [
       {
-        name: '销售额',
+        name: t('销售额'),
         type: 'line',
         yAxisIndex: 0,
         data: points.map((point) => point.salesAmount),
@@ -96,13 +100,15 @@ export function buildTrendChart(points: DashboardTrendPoint[], dark: boolean): E
         z: 2,
       },
       {
-        name: '新增订单',
+        name: t('新增订单'),
         type: 'bar',
         yAxisIndex: 1,
         data: points.map((point) => point.orderCount),
         barMaxWidth: 18,
         itemStyle: { color: colors.green, opacity: 0.65, borderRadius: [4, 4, 0, 0] },
-        tooltip: { valueFormatter: (value) => `${Number(value).toLocaleString('zh-CN')} 笔` },
+        tooltip: {
+          valueFormatter: (value) => t('{count} 笔', { count: formatNumber(Number(value)) }),
+        },
       },
     ],
   }
@@ -120,7 +126,7 @@ export function buildStatusChart(counts: OrderStatusCount[], dark: boolean): ECh
   }
   const total = counts.reduce((sum, item) => sum + item.count, 0)
   const data = counts.map((item) => ({
-    name: ORDER_STATUS[item.status]?.label ?? item.status,
+    name: t(ORDER_STATUS[item.status]?.label ?? item.status),
     value: item.count,
     itemStyle: { color: statusColors[item.status] },
   }))
@@ -128,14 +134,14 @@ export function buildStatusChart(counts: OrderStatusCount[], dark: boolean): ECh
   return {
     animationDuration: 350,
     textStyle: { color: colors.text, fontFamily: 'system-ui, sans-serif' },
-    aria: { enabled: true, label: { description: '全部订单的当前状态分布环形图' } },
+    aria: { enabled: true, label: { description: t('全部订单的当前状态分布环形图') } },
     tooltip: {
       trigger: 'item',
       confine: true,
       backgroundColor: colors.background,
       borderColor: colors.border,
       textStyle: { color: colors.text },
-      formatter: '{b}<br />{c} 笔 · {d}%',
+      formatter: t('{b}<br />{c} 笔 · {d}%'),
     },
     legend: {
       bottom: 0,
@@ -153,7 +159,7 @@ export function buildStatusChart(counts: OrderStatusCount[], dark: boolean): ECh
         left: 'center',
         top: '34%',
         style: {
-          text: total.toLocaleString('zh-CN'),
+          text: formatNumber(total),
           fill: colors.text,
           fontSize: 28,
           fontWeight: 600,
@@ -165,7 +171,7 @@ export function buildStatusChart(counts: OrderStatusCount[], dark: boolean): ECh
         type: 'text',
         left: 'center',
         top: '46%',
-        style: { text: '订单总数', fill: colors.muted, fontSize: 12 },
+        style: { text: t('订单总数'), fill: colors.muted, fontSize: 12 },
         silent: true,
       },
     ],

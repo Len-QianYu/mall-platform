@@ -1,6 +1,6 @@
 <template>
   <div class="shop-container">
-    <h1 class="section-title"><i class="bi bi-cart3"></i>购物车</h1>
+    <h1 class="section-title"><i class="bi bi-cart3"></i>{{ t('购物车') }}</h1>
 
     <div v-loading="loading" class="cart-body">
       <template v-if="items.length">
@@ -23,7 +23,7 @@
                 />
               </template>
             </ElTableColumn>
-            <ElTableColumn label="商品" min-width="280">
+            <ElTableColumn :label="t('商品')" min-width="280">
               <template #default="{ row }">
                 <RouterLink
                   class="product-cell"
@@ -40,18 +40,20 @@
                   </div>
                   <div class="product-text">
                     <span class="product-name">{{ row.productName }}</span>
-                    <ElTag v-if="row.productStatus !== 1" type="info" size="small">已下架</ElTag>
+                    <ElTag v-if="row.productStatus !== 1" type="info" size="small">{{
+                      t('已下架')
+                    }}</ElTag>
                     <ElTag v-else-if="row.stock < row.quantity" type="danger" size="small">
-                      库存不足（剩 {{ row.stock }}）
+                      {{ t('库存不足（剩 {count}）', { count: row.stock }) }}
                     </ElTag>
                   </div>
                 </RouterLink>
               </template>
             </ElTableColumn>
-            <ElTableColumn label="单价" width="120">
+            <ElTableColumn :label="t('单价')" width="120">
               <template #default="{ row }">{{ formatMoney(row.price) }}</template>
             </ElTableColumn>
-            <ElTableColumn label="数量" width="160">
+            <ElTableColumn :label="t('数量')" width="160">
               <template #default="{ row }">
                 <ElInputNumber
                   :model-value="row.quantity"
@@ -63,16 +65,16 @@
                 />
               </template>
             </ElTableColumn>
-            <ElTableColumn label="小计" width="120">
+            <ElTableColumn :label="t('小计')" width="120">
               <template #default="{ row }">
                 <span class="price">{{ formatMoney(row.price * row.quantity) }}</span>
               </template>
             </ElTableColumn>
-            <ElTableColumn label="操作" width="80">
+            <ElTableColumn :label="t('操作')" width="80">
               <template #default="{ row }">
-                <ElPopconfirm title="确定从购物车删除吗？" @confirm="removeItems([row.id])">
+                <ElPopconfirm :title="t('确定从购物车删除吗？')" @confirm="removeItems([row.id])">
                   <template #reference>
-                    <ElButton link type="danger">删除</ElButton>
+                    <ElButton link type="danger">{{ t('删除') }}</ElButton>
                   </template>
                 </ElPopconfirm>
               </template>
@@ -83,17 +85,18 @@
         <!-- 结算栏：吸底，长列表滚动时也能看到合计 -->
         <div class="settle-bar">
           <ElPopconfirm
-            title="确定删除选中的商品吗？"
+            :title="t('确定删除选中的商品吗？')"
             :disabled="!checkedItems.length"
             @confirm="removeItems(checkedItems.map((item) => item.id))"
           >
             <template #reference>
-              <ElButton link :disabled="!checkedItems.length">删除选中</ElButton>
+              <ElButton link :disabled="!checkedItems.length">{{ t('删除选中') }}</ElButton>
             </template>
           </ElPopconfirm>
           <div class="settle-right">
             <span>
-              已选 <b class="settle-count">{{ settleItems.length }}</b> 种商品，合计：
+              {{ t('已选') }} <b class="settle-count">{{ settleItems.length }}</b>
+              {{ t('种商品，合计：') }}
               <span class="price settle-amount">{{ formatMoney(settleAmount) }}</span>
             </span>
             <ElButton
@@ -102,20 +105,23 @@
               :disabled="!settleItems.length"
               @click="router.push({ name: 'checkout' })"
             >
-              去结算
+              {{ t('去结算') }}
             </ElButton>
           </div>
         </div>
       </template>
 
-      <ElEmpty v-else-if="!loading" description="购物车还是空的">
-        <ElButton type="primary" @click="router.push({ name: 'products' })">去逛逛</ElButton>
+      <ElEmpty v-else-if="!loading" :description="t('购物车还是空的')">
+        <ElButton type="primary" @click="router.push({ name: 'products' })">{{
+          t('去逛逛')
+        }}</ElButton>
       </ElEmpty>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import {
@@ -166,13 +172,13 @@ const fetchItems = async (silent = false) => {
   try {
     const { data } = await request.get<ApiResult<{ items: CartItem[] }>>('/cart')
     if (!data.status) {
-      ElMessage.error(data.payload.message || '加载购物车失败')
+      ElMessage.error(t(data.payload.message || '加载购物车失败'))
       return
     }
     items.value = data.payload.items
     cartStore.count = items.value.length
   } catch {
-    ElMessage.error('加载购物车失败')
+    ElMessage.error(t('加载购物车失败'))
   } finally {
     loading.value = false
   }
@@ -183,10 +189,10 @@ const updateItem = async (id: number, changes: { quantity?: number; checked?: nu
   try {
     const { data } = await request.post<ApiResult>('/cart/update', { id, ...changes })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '更新失败')
+      ElMessage.error(t(data.payload.message || '更新失败'))
     }
   } catch {
-    ElMessage.error('更新失败')
+    ElMessage.error(t('更新失败'))
   }
   fetchItems(true)
 }
@@ -195,10 +201,10 @@ const checkAll = async (checked: boolean) => {
   try {
     const { data } = await request.post<ApiResult>('/cart/check-all', { checked: checked ? 1 : 0 })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '操作失败')
+      ElMessage.error(t(data.payload.message || '操作失败'))
     }
   } catch {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('操作失败'))
   }
   fetchItems(true)
 }
@@ -207,13 +213,13 @@ const removeItems = async (ids: number[]) => {
   try {
     const { data } = await request.post<ApiResult>('/cart/delete', { ids })
     if (!data.status) {
-      ElMessage.error(data.payload.message || '删除失败')
+      ElMessage.error(t(data.payload.message || '删除失败'))
       return
     }
-    ElMessage.success('已删除')
+    ElMessage.success(t('已删除'))
     fetchItems(true)
   } catch {
-    ElMessage.error('删除失败')
+    ElMessage.error(t('删除失败'))
   }
 }
 

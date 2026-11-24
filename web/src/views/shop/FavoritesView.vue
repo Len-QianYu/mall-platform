@@ -2,21 +2,21 @@
   <div class="shop-container">
     <div class="favorites-heading">
       <div>
-        <h1 class="section-title"><i class="bi bi-heart"></i>我的收藏</h1>
-        <p>喜欢的好物留在这里，上架、降价和涨价都会提醒你。</p>
+        <h1 class="section-title"><i class="bi bi-heart"></i>{{ t('我的收藏') }}</h1>
+        <p>{{ t('喜欢的好物留在这里，上架、降价和涨价都会提醒你。') }}</p>
       </div>
-      <RouterLink :to="{ name: 'notifications' }">查看消息通知</RouterLink>
+      <RouterLink :to="{ name: 'notifications' }">{{ t('查看消息通知') }}</RouterLink>
     </div>
     <div v-loading="loading" class="favorites-list">
       <div v-if="error" role="alert" class="load-error">
-        <span>{{ error }}</span
-        ><ElButton @click="fetchFavorites">重新加载</ElButton>
+        <span>{{ t(error) }}</span
+        ><ElButton @click="fetchFavorites">{{ t('重新加载') }}</ElButton>
       </div>
       <ElEmpty
         v-else-if="!loading && items.length === 0"
-        description="还没有收藏，点商品详情页上的爱心即可收藏"
+        :description="t('还没有收藏，点商品详情页上的爱心即可收藏')"
       >
-        <RouterLink :to="{ name: 'products' }" class="browse-link">去逛逛</RouterLink>
+        <RouterLink :to="{ name: 'products' }" class="browse-link">{{ t('去逛逛') }}</RouterLink>
       </ElEmpty>
       <div v-else class="product-grid">
         <article v-for="item in items" :key="item.productId" class="favorite-card">
@@ -24,7 +24,7 @@
             type="button"
             class="favorite-open"
             :disabled="item.productStatus !== 1"
-            :aria-label="`查看${item.productName}`"
+            :aria-label="t('查看{productName}', { productName: item.productName })"
             @click="router.push({ name: 'product_detail', params: { id: item.productId } })"
           >
             <div class="favorite-image-wrap">
@@ -36,12 +36,14 @@
                 lazy
               />
               <div v-else class="favorite-image image-placeholder"><i class="bi bi-image"></i></div>
-              <span v-if="item.productStatus !== 1" class="product-state">已下架 · 上架后提醒</span>
-              <span v-else-if="item.stock === 0" class="product-state">已售罄</span>
+              <span v-if="item.productStatus !== 1" class="product-state">{{
+                t('已下架 · 上架后提醒')
+              }}</span>
+              <span v-else-if="item.stock === 0" class="product-state">{{ t('已售罄') }}</span>
             </div>
             <div class="favorite-body">
               <h2>{{ item.productName }}</h2>
-              <span class="text-secondary">{{ item.category }}</span>
+              <span class="text-secondary">{{ t(item.category) }}</span>
               <strong class="price">{{ formatMoney(item.price) }}</strong>
             </div>
           </button>
@@ -65,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from '@/i18n'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ElButton, ElEmpty, ElImage, ElPagination, vLoading } from 'element-plus'
@@ -97,7 +100,7 @@ const fetchFavorites = async () => {
       params: { page: page.value, pageSize: 12 },
     })
     if (current !== sequence || token !== user.user?.token) return
-    if (!data.status) throw new Error(data.payload.message || '加载收藏失败')
+    if (!data.status) throw new Error(t(data.payload.message || '加载收藏失败'))
     items.value = data.payload.favorites
     pagination.value = data.payload.pagination
     page.value = data.payload.pagination.currentPage
