@@ -153,7 +153,7 @@
                 <ElImage
                   v-if="row.productImage"
                   class="product-image"
-                  :src="row.productImage"
+                  :src="assetUrl(row.productImage)"
                   fit="cover"
                 />
                 <div v-else class="product-image image-placeholder">
@@ -206,7 +206,7 @@ import {
 } from 'element-plus'
 import request from '@/utils/request'
 import type { ApiResult, Order, OrderItem, OrderStatus, Pagination } from '@/types/api'
-import { ORDER_STATUS, formatDateTime, formatMoney } from '@/utils/format'
+import { ORDER_STATUS, assetUrl, formatDateTime, formatMoney } from '@/utils/format'
 
 const loading = ref(false)
 const orders = ref<Order[]>([])
