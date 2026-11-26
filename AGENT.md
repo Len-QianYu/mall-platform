@@ -80,4 +80,10 @@ docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注
 
 用户角色编码为 `user` / `admin` / `super_admin`，显示为用户 / 管理员 / super管理员。super管理员使用管理员登录入口并拥有管理端权限；前端保存后端返回的真实角色。现有“千羽”账号的角色升级 SQL 为 `api/src/main/resources/db/upgrade-super-admin.sql`。
 
+仪表盘用户总数右侧按管理员、用户、超级管理员分别显示全部账号人数（包含禁用账号），由 `stats.userRoleCounts` 返回。分类销量曲线按 `web/src/assets/ai-pals/` 图片主题固定配色：Claude 陶橙、DeepSeek 靛蓝、Gemini 玫紫、GPT 灰紫，亮色与深色模式的色值共用 `PLUSH_CATEGORIES.chartColors`；其他分类按名称分配颜色，曲线、数据点和图例颜色一致。左侧分类名称与销量所在行使用对应主题色的浅色背景及颜色侧边标记，表格与曲线共用 `getCategorySalesColors`，悬停和深色模式同步调整。超级管理员不可禁用、不可降级，管理端仍可编辑其资料；提升为超级管理员时自动启用。用户管理不提供删除入口或删除接口，超级管理员不可删除。
+
 登录页“记住账号”保存用户名和登录方式，自成功登录起 7 天有效；再次打开登录页时恢复，过期或取消勾选时清除。注册后跳转携带的用户名优先填入，并使用用户登录方式。
+
+仪表盘顶部统计卡片采用原来的桌面四列布局，窗口宽度不超过 1200px 时两列、不超过 600px 时一列，总数右侧以小字展示分类：商品按上架/下架（`stats.productStatusCounts`）；订单总数统计全部订单，明细仅展示待支付/已支付/已发货（复用 `orderStatuses`）；累计销售额按已支付/已发货/已完成（`stats.salesAmountsByStatus`）拆分。销售额总计与明细来自同一次数据库汇总，退款、取消和待支付均不计入；卡片统计为全部历史数据，不随图表的 7/30 天范围改变。
+
+邮箱认证：个人中心使用当前密码和邮件验证码绑定唯一邮箱，登录页提供用户名/邮箱两种方式与“忘记密码”表单；`/login` 的 `username` / `email` 二选一，用户角色入口规则相同。旧资料邮箱默认未验证，不用于登录或找回密码；绑定邮箱必须走 `/account/email/code` 与 `/account/email/bind`，普通资料编辑不修改已绑定邮箱。匿名找回接口为 `/account/password-reset/code` 和 `/account/password-reset`。验证码在 Redis 中保存 HMAC，10 分钟有效、60 秒重发间隔、最多 5 次错误，按用途/账号/版本隔离；每小时每邮箱 5 次、每 IP 20 次。QQ SMTP 配置为 `MAIL_*`，授权码只放在 `api/.env`，不记录验证码或授权码。已有库执行 `upgrade-email-auth.sql`；`email_verified`、`auth_version` 和生成列 `login_email` 的唯一索引保留未验证历史邮箱。修改密码/绑定邮箱递增登录版本，JWT 和通知连接校验当前版本；绑定成功更新当前登录令牌，重置成功重新登录。“记住账号”仍有效 7 天，邮箱方式同时保存登录方式。`EMAIL_AUTH_INTEGRATION_TESTS=true` 验证真实数据库/Redis且不发送外部邮件，`SMTP_CONNECTION_TESTS=true` 仅检查 SMTP 连接与认证。

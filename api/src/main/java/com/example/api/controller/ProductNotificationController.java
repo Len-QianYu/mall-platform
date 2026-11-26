@@ -67,6 +67,8 @@ public class ProductNotificationController {
 
     @PostMapping("/socket-ticket")
     public ResultTemplate socketTicket(@AuthenticationPrincipal Jwt jwt) {
-        return new ResultTemplate().putPayload("ticket", this.tickets.issue(CurrentUser.id(jwt), jwt.getExpiresAt()));
+        Number version = jwt.getClaim("authVersion");
+        return new ResultTemplate().putPayload("ticket", this.tickets.issue(CurrentUser.id(jwt), jwt.getExpiresAt(),
+            version == null ? 0L : version.longValue()));
     }
 }

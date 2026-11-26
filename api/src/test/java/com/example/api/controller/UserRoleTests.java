@@ -159,6 +159,92 @@ class UserRoleTests {
         verify(this.users, never()).update(any(UserEntity.class));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = { "admin", "super_admin" })
+    void cannotDisableAnotherSuperAdminEvenWithASpoofedRequestRole(String callerRole) throws Exception {
+        authenticate(callerRole, 1);
+        when(this.users.fetchById(10)).thenReturn(Optional.of(account("super_admin")));
+
+        this.mvc.perform(post("/admin/user/status").header(HttpHeaders.AUTHORIZATION, "Bearer role-token")
+            .contentType(MediaType.APPLICATION_JSON).content("""
+                {"id":10,"status":0,"role":"user"}
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value(false))
+            .andExpect(jsonPath("$.payload.message").value("超级管理员不可禁用"));
+        verify(this.users, never()).updateStatus(any(), any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "user", "admin" })
+    void cannotDemoteAnotherSuperAdminToBypassProtection(String requestedRole) throws Exception {
+        authenticate("admin", 1);
+        when(this.users.fetchById(10)).thenReturn(Optional.of(account("super_admin")));
+
+        this.mvc.perform(post("/admin/user/update").header(HttpHeaders.AUTHORIZATION, "Bearer role-token")
+            .contentType(MediaType.APPLICATION_JSON).content(editBody(requestedRole)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value(false))
+            .andExpect(jsonPath("$.payload.message").value("不能修改超级管理员的角色"));
+        verify(this.users, never()).update(any(UserEntity.class));
+    }
+
+    @Test
+    void canStillEditAnotherSuperAdminsProfile() throws Exception {
+        authenticate("admin", 1);
+        when(this.users.fetchById(10)).thenReturn(Optional.of(account("super_admin")));
+        when(this.users.update(any(UserEntity.class))).thenReturn(1);
+
+        this.mvc.perform(post("/admin/user/update").header(HttpHeaders.AUTHORIZATION, "Bearer role-token")
+            .contentType(MediaType.APPLICATION_JSON).content(editBody("super_admin")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value(true));
+        verify(this.users).update(any(UserEntity.class));
+    }
+
+    @Test
+    void canStillDisableAnOrdinaryAccount() throws Exception {
+        authenticate("admin", 1);
+        when(this.users.fetchById(10)).thenReturn(Optional.of(account("user")));
+        when(this.users.updateStatus(10, 0)).thenReturn(1);
+
+        this.mvc.perform(post("/admin/user/status").header(HttpHeaders.AUTHORIZATION, "Bearer role-token")
+            .contentType(MediaType.APPLICATION_JSON).content("""
+                {"id":10,"status":0}
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value(true))
+            .andExpect(jsonPath("$.payload.message").value("已禁用"));
+        verify(this.users).updateStatus(10, 0);
+    }
+
+    @Test
+    void canEnableASuperAdminThatWasDisabledPreviously() throws Exception {
+        authenticate("admin", 1);
+        when(this.users.updateStatus(10, 1)).thenReturn(1);
+
+        this.mvc.perform(post("/admin/user/status").header(HttpHeaders.AUTHORIZATION, "Bearer role-token")
+            .contentType(MediaType.APPLICATION_JSON).content("""
+                {"id":10,"status":1}
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value(true));
+        verify(this.users).updateStatus(10, 1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "admin", "super_admin" })
+    void userDeletionIsUnavailableForBothAdminRoles(String callerRole) throws Exception {
+        authenticate(callerRole, 1);
+
+        this.mvc.perform(post("/admin/user/delete").header(HttpHeaders.AUTHORIZATION, "Bearer role-token")
+            .contentType(MediaType.APPLICATION_JSON).content("""
+                {"id":10}
+                """))
+            .andExpect(status().isNotFound());
+        verifyNoInteractions(this.users);
+    }
+
     @Test
     void registrationCannotAssignTheSuperAdminRole() throws Exception {
         when(this.users.fetchByUsername("新用户")).thenReturn(Optional.empty());

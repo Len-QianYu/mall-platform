@@ -49,6 +49,8 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(authorize -> {
                 // 允许登录和注册接口无需认证（放行）
                 authorize.requestMatchers("/login", "/register","/logout").permitAll();
+                authorize.requestMatchers(HttpMethod.POST,
+                    "/account/password-reset/code", "/account/password-reset").permitAll();
                 // 放行错误页：否则匿名请求出错（如 500）转发到 /error 时会被拦成 401，掩盖真实错误
                 authorize.requestMatchers("/error").permitAll();
                 // 放行静态与上传的公开资源（<img> 标签不会带 Authorization）

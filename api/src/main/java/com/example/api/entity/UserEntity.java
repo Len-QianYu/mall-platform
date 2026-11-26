@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.example.api.validator.UserValidateGroup;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
@@ -103,6 +104,13 @@ public class UserEntity {
         UserValidateGroup.Update.class
     })
     private String email;
+
+    // 验证过的邮箱才能用于登录与找回密码；旧资料邮箱默认未验证。
+    private Boolean emailVerified = false;
+
+    // 修改密码或绑定邮箱时递增，用于撤销之前签发的登录凭据。
+    @JsonIgnore
+    private Long authVersion = 0L;
 
     // 与前端校验规则一致：大陆手机号
     @Pattern(

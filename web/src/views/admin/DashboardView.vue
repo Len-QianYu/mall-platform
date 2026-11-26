@@ -34,7 +34,13 @@
     />
 
     <div class="stat-grid">
-      <ElCard v-for="card in statCards" :key="card.label" shadow="never" class="stat-card">
+      <ElCard
+        v-for="card in statCards"
+        :key="card.label"
+        shadow="never"
+        class="stat-card"
+        :class="{ 'user-stat-card': card.label === '用户总数' }"
+      >
         <div class="stat-icon" :class="card.tone">
           <i :class="card.icon"></i>
         </div>
@@ -43,6 +49,12 @@
           <div class="stat-value">{{ card.value }}</div>
           <div class="stat-description">{{ t(card.description) }}</div>
         </div>
+        <dl class="stat-breakdown">
+          <div v-for="detail in card.breakdown" :key="detail.label" class="stat-role-row">
+            <dt>{{ t(detail.label) }}</dt>
+            <dd>{{ detail.value }}</dd>
+          </div>
+        </dl>
       </ElCard>
     </div>
 
@@ -68,11 +80,11 @@
         </template>
 
         <div class="trend-summary">
-          <div>
+          <div class="summary-sales">
             <span class="summary-label">{{ t('期间销售额') }}</span>
             <strong>{{ dashboard ? formatMoney(periodSummary.salesAmount) : '-' }}</strong>
           </div>
-          <div>
+          <div class="summary-orders">
             <span class="summary-label">{{ t('期间新增订单') }}</span>
             <strong>{{
               dashboard ? periodSummary.orderCount.toLocaleString('zh-CN') : '-'
@@ -118,6 +130,66 @@
       </ElCard>
     </div>
 
+    <ElCard v-loading="loading" shadow="never" class="category-sales-card">
+      <template #header>
+        <div class="card-header category-sales-header">
+          <div>
+            <span>{{ t('分类销量') }}</span>
+            <p class="chart-caption">{{ dateRange }}</p>
+          </div>
+          <ElRadioGroup
+            v-model="days"
+            size="small"
+            :disabled="loading"
+            :aria-label="t('分类销量统计时间范围')"
+            @change="fetchDashboard"
+          >
+            <ElRadioButton :value="7">{{ t('近 7 天') }}</ElRadioButton>
+            <ElRadioButton :value="30">{{ t('近 30 天') }}</ElRadioButton>
+          </ElRadioGroup>
+        </div>
+      </template>
+
+      <div class="category-sales-total">
+        <span class="summary-label">{{ t('期间售出件数') }}</span>
+        <strong>{{
+          dashboard ? t('{count} 件', { count: formatNumber(categorySoldTotal) }) : '-'
+        }}</strong>
+      </div>
+      <div v-if="dashboard && categorySales.length" class="category-sales-content">
+        <ElTable
+          :data="categorySales"
+          :max-height="320"
+          :fit="false"
+          :row-style="
+            ({ row }) => ({ '--category-sales-color': categorySalesColors.get(row.category) })
+          "
+          class="category-sales-table"
+        >
+          <ElTableColumn :label="t('分类')" width="128" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.category ?? t('未分类') }}</template>
+          </ElTableColumn>
+          <ElTableColumn :label="t('销量（件）')" width="96" align="left">
+            <template #default="{ row }">{{ formatNumber(row.soldQuantity) }}</template>
+          </ElTableColumn>
+        </ElTable>
+        <DashboardChart
+          :option="categorySalesOption"
+          :label="t('近 {days} 天各分类每日销量', { days: displayedDays })"
+          class="category-sales-chart"
+        />
+      </div>
+      <ElEmpty v-else-if="dashboard" :description="t('暂无分类商品')" :image-size="90" />
+      <ElSkeleton v-else :rows="6" animated class="chart-placeholder" />
+      <p v-if="dashboard && categorySales.length && categorySoldTotal === 0" class="chart-note">
+        {{ t('所选时间范围暂无销量') }}
+      </p>
+      <p class="chart-note">
+        {{ t('销量按支付日期统计售出件数，仅计已支付且未退款的订单；分类以商品当前分类为准。') }}
+        {{ t('点击图例可显示或隐藏分类，悬停查看每日售出件数。') }}
+      </p>
+    </ElCard>
+
     <ElCard shadow="never">
       <template #header>
         <div class="card-header">
@@ -154,7 +226,7 @@
 </template>
 
 <script setup lang="ts">
-import { t } from '@/i18n'
+import { formatNumber, t } from '@/i18n'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
@@ -173,13 +245,47 @@ import {
 import request from '@/utils/request'
 import DashboardChart from '@/components/admin/DashboardChart.vue'
 import type { ApiResult, DashboardData } from '@/types/api'
-import { buildStatusChart, buildTrendChart } from '@/utils/dashboardCharts'
+import {
+  buildCategorySalesChart,
+  buildStatusChart,
+  buildTrendChart,
+  getCategorySalesColors,
+} from '@/utils/dashboardCharts'
 import { ORDER_STATUS, formatDateTime, formatMoney } from '@/utils/format'
 import { useTheme } from '@/utils/useTheme'
 
 const loading = ref(false)
 const dashboard = ref<DashboardData | null>(null)
 const stats = computed(() => dashboard.value?.stats)
+const userRoleCounts = computed(() =>
+  [
+    { label: '管理员', value: stats.value?.userRoleCounts?.admin },
+    { label: '用户', value: stats.value?.userRoleCounts?.user },
+    { label: '超级管理员', value: stats.value?.userRoleCounts?.super_admin },
+  ].map((role) => ({ ...role, value: role.value === undefined ? '-' : formatNumber(role.value) })),
+)
+const productStatusCounts = computed(() =>
+  [
+    { label: '上架', value: stats.value?.productStatusCounts?.onSale },
+    { label: '下架', value: stats.value?.productStatusCounts?.offSale },
+  ].map((item) => ({ ...item, value: item.value === undefined ? '-' : formatNumber(item.value) })),
+)
+const orderStatusCounts = computed(() =>
+  (['PENDING_PAYMENT', 'PAID', 'SHIPPED'] as const).map((status) => ({
+    label: ORDER_STATUS[status]?.label ?? status,
+    value: dashboard.value
+      ? formatNumber(
+          dashboard.value.orderStatuses.find((item) => item.status === status)?.count ?? 0,
+        )
+      : '-',
+  })),
+)
+const salesAmountsByStatus = computed(() =>
+  (['PAID', 'SHIPPED', 'COMPLETED'] as const).map((status) => ({
+    label: ORDER_STATUS[status]?.label ?? status,
+    value: formatMoney(stats.value?.salesAmountsByStatus?.[status]),
+  })),
+)
 const days = ref(30)
 const displayedDays = ref(30)
 const updatedAt = ref('')
@@ -190,6 +296,16 @@ let requestId = 0
 const trendOption = computed(() => buildTrendChart(dashboard.value?.trend ?? [], isDark.value))
 const statusOption = computed(() =>
   buildStatusChart(dashboard.value?.orderStatuses ?? [], isDark.value),
+)
+const categorySales = computed(() => dashboard.value?.categorySales ?? [])
+const categorySalesColors = computed(() =>
+  getCategorySalesColors(categorySales.value, isDark.value),
+)
+const categorySoldTotal = computed(() =>
+  categorySales.value.reduce((total, item) => total + item.soldQuantity, 0),
+)
+const categorySalesOption = computed(() =>
+  buildCategorySalesChart(categorySales.value, isDark.value),
 )
 const statusTotal = computed(() =>
   (dashboard.value?.orderStatuses ?? []).reduce((total, item) => total + item.count, 0),
@@ -216,9 +332,10 @@ const statCards = computed(() => [
   {
     label: '用户总数',
     icon: 'bi bi-people',
-    tone: 'tone-primary',
+    tone: 'tone-info',
     value: stats.value?.userCount.toLocaleString() ?? '-',
     description: '全部注册账号',
+    breakdown: userRoleCounts.value,
   },
   {
     label: '商品总数',
@@ -226,6 +343,7 @@ const statCards = computed(() => [
     tone: 'tone-success',
     value: stats.value?.productCount.toLocaleString() ?? '-',
     description: '含上架和下架商品',
+    breakdown: productStatusCounts.value,
   },
   {
     label: '订单总数',
@@ -233,13 +351,15 @@ const statCards = computed(() => [
     tone: 'tone-warning',
     value: stats.value?.orderCount.toLocaleString() ?? '-',
     description: '包含所有订单状态',
+    breakdown: orderStatusCounts.value,
   },
   {
     label: '累计销售额',
     icon: 'bi bi-currency-yen',
-    tone: 'tone-danger',
+    tone: 'tone-primary',
     value: formatMoney(stats.value?.salesAmount),
     description: '已支付且未退款的订单',
+    breakdown: salesAmountsByStatus.value,
   },
 ])
 
@@ -336,7 +456,48 @@ onBeforeUnmount(() => requestId++)
 }
 
 .stat-content {
+  flex: 1;
   min-width: 0;
+}
+
+.user-stat-card {
+  :deep(.el-card__body) {
+    gap: 0.625rem;
+  }
+
+  .stat-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+.stat-breakdown {
+  display: grid;
+  flex-shrink: 0;
+  gap: 0.375rem;
+  margin: 0 0 0 auto;
+  padding-left: 0.625rem;
+  border-left: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
+  font-size: 0.6875rem;
+}
+
+.stat-role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  dt {
+    white-space: nowrap;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--el-text-color-primary);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .stat-icon {
@@ -364,9 +525,9 @@ onBeforeUnmount(() => requestId++)
     color: var(--el-color-warning);
   }
 
-  &.tone-danger {
-    background-color: var(--el-color-danger-light-9);
-    color: var(--el-color-danger);
+  &.tone-info {
+    background-color: var(--el-color-info-light-9);
+    color: var(--el-color-info);
   }
 }
 
@@ -399,6 +560,65 @@ onBeforeUnmount(() => requestId++)
   min-width: 0;
 }
 
+.category-sales-card {
+  margin-bottom: 1rem;
+}
+
+.category-sales-total {
+  margin-bottom: 1rem;
+
+  strong {
+    display: block;
+    margin-top: 0.375rem;
+    color: var(--el-color-primary-dark-2);
+    font-size: 1.375rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.category-sales-content {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.category-sales-table {
+  width: 240px;
+  max-width: 100%;
+
+  :deep(.el-table__row) {
+    --el-table-tr-bg-color: color-mix(
+      in srgb,
+      var(--category-sales-color) 14%,
+      var(--el-bg-color-overlay)
+    );
+    --el-table-row-hover-bg-color: color-mix(
+      in srgb,
+      var(--category-sales-color) 22%,
+      var(--el-bg-color-overlay)
+    );
+  }
+
+  :deep(.el-table__body td.el-table__cell) {
+    background-color: var(--el-table-tr-bg-color);
+  }
+
+  :deep(.el-table__body tr.hover-row > td.el-table__cell) {
+    background-color: var(--el-table-row-hover-bg-color);
+  }
+
+  :deep(.el-table__body td.el-table__cell:first-child) {
+    box-shadow: inset 3px 0 0 var(--category-sales-color);
+  }
+}
+
+.category-sales-table,
+.category-sales-chart {
+  min-width: 0;
+}
+
 .chart-caption {
   margin: 0.5rem 0 0;
   font-weight: normal;
@@ -423,6 +643,14 @@ onBeforeUnmount(() => requestId++)
 .summary-label {
   color: var(--el-text-color-secondary);
   font-size: 0.75rem;
+}
+
+.summary-sales strong {
+  color: var(--el-color-primary-dark-2);
+}
+
+.summary-orders strong {
+  color: var(--el-color-warning-dark-2);
 }
 
 .status-chart {
@@ -484,9 +712,16 @@ onBeforeUnmount(() => requestId++)
   }
 }
 
+@media (max-width: 900px) {
+  .category-sales-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 600px) {
   .dashboard-heading,
-  .trend-header {
+  .trend-header,
+  .category-sales-header {
     flex-wrap: wrap;
     gap: 1rem;
   }

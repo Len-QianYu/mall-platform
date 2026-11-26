@@ -1,6 +1,7 @@
 package com.example.api.controller;
 
 import java.util.Optional;
+import java.util.Objects;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +21,7 @@ import com.example.api.exception.ValidateFailedException;
 import com.example.api.service.UserService;
 import com.example.api.utils.CurrentUser;
 import com.example.api.utils.ResultTemplate;
+import com.example.api.utils.EmailAddresses;
 import com.example.api.validator.UserValidateGroup;
 
 @RestController
@@ -104,6 +106,13 @@ public class UserController {
             throw new ValidateFailedException("资料不符合要求");
         }
 
+        Optional<UserEntity> storedUser = this.userService.fetchById(CurrentUser.id(jwt));
+        if (storedUser.filter(user -> Boolean.TRUE.equals(user.getEmailVerified())
+            && !Objects.equals(EmailAddresses.normalize(user.getEmail()), EmailAddresses.normalize(fields.email()))).isPresent()) {
+            result.setStatus(false);
+            return result.putPayload("message", "修改已绑定邮箱需要重新验证邮箱");
+        }
+
         if (this.userService.updateProfile(CurrentUser.id(jwt), fields) == 0) {
             result.setStatus(false);
             result.putPayload("message", "用户不存在");
@@ -114,7 +123,7 @@ public class UserController {
         return result;
     }
 
-    // 改密码：先核对当前密码。已签发的 JWT 在过期前仍然有效，前端改密成功后会主动退出登录
+    // 改密码：先核对当前密码，递增登录版本使旧 JWT 失效，前端改密成功后退出登录。
     @PostMapping("/password")
     public ResultTemplate password(
         @RequestBody @Validated ProfileRequests.Password fields,

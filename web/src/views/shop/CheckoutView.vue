@@ -41,7 +41,7 @@
             }}</ElButton>
           </div>
           <p v-else-if="!addressLoading && !hasShippingAddress" class="address-hint">
-            {{ t('请先在个人中心完善名字、手机号和收货地址。') }}
+            {{ t('请先在个人中心完善手机号和收货地址。') }}
           </p>
           <ElForm :label-width="formLabelWidth('80px')" class="remark-form">
             <ElFormItem :label="t('备注')">
@@ -292,11 +292,12 @@ const fetchShippingAddress = async () => {
     }
     const user = data.payload.user
     shippingAddress.value = {
-      receiverName: user.name?.trim() ?? '',
+      receiverName: user.username.trim(),
       receiverPhone: user.phone?.trim() ?? '',
       receiverAddress: user.receiverAddress?.trim() ?? '',
     }
     userStore.updateUser({
+      username: user.username,
       name: user.name,
       phone: user.phone,
       receiverAddress: user.receiverAddress,

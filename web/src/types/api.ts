@@ -5,7 +5,7 @@ import type { UserRole } from '@/stores/user'
 // 统一响应（对应 ResultTemplate）：status 为 false 时 payload 里只有 message
 export type ApiResult<T = object> =
   | { status: true; payload: T & { message?: string } }
-  | { status: false; payload: { message?: string } }
+  | { status: false; payload: { message?: string; retryAfterSeconds?: number } }
 
 // 分页信息（对应 Pagination）
 export interface Pagination {
@@ -22,6 +22,7 @@ export interface User {
   name: string | null
   gender: 'F' | 'M' | null
   email: string | null
+  emailVerified?: boolean
   phone: string | null
   province: string | null
   city: string | null
@@ -199,9 +200,12 @@ export interface PaymentMethodsResult {
 // 仪表盘统计
 export interface DashboardStats {
   userCount: number
+  userRoleCounts: Record<UserRole, number> // 各角色的全部注册账号，包含禁用账号
   productCount: number
+  productStatusCounts: { onSale: number; offSale: number }
   orderCount: number
   salesAmount: number // 已支付、已发货、已完成订单的金额合计
+  salesAmountsByStatus: Record<'PAID' | 'SHIPPED' | 'COMPLETED', number>
 }
 
 export interface DashboardTrendPoint {
@@ -215,11 +219,18 @@ export interface OrderStatusCount {
   count: number
 }
 
+export interface CategorySales {
+  category: string | null // 商品当前分类；商品缺失或分类为空时为 null
+  soldQuantity: number // 期间已支付且未退款的售出件数
+  trend: { date: string; soldQuantity: number }[] // 按支付日期统计，零销量日期也返回
+}
+
 export interface DashboardData {
   stats: DashboardStats
   recentOrders: Order[]
   trend: DashboardTrendPoint[]
   orderStatuses: OrderStatusCount[]
+  categorySales: CategorySales[]
 }
 
 /*

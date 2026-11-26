@@ -71,7 +71,21 @@
                 </ElRadioGroup>
               </ElFormItem>
               <ElFormItem :label="t('邮箱')" prop="email">
-                <ElInput v-model="form.email" maxlength="128" :placeholder="t('选填')" />
+                <div class="profile-email-field">
+                  <ElInput
+                    v-model="form.email"
+                    maxlength="128"
+                    :disabled="emailVerified"
+                    :placeholder="t('选填')"
+                  />
+                  <ElTag v-if="emailVerified" type="success" effect="plain">{{
+                    t('已绑定')
+                  }}</ElTag>
+                  <ElButton @click="emailBindingVisible = true">{{
+                    t(emailVerified ? '修改绑定邮箱' : '绑定邮箱')
+                  }}</ElButton>
+                </div>
+                <div class="address-note">{{ t('验证邮箱后可使用邮箱登录和找回密码。') }}</div>
               </ElFormItem>
               <ElFormItem :label="t('手机号')" prop="phone">
                 <ElInput
@@ -160,6 +174,11 @@
         </ElTabs>
       </ElCard>
     </div>
+    <EmailBindingDialog
+      v-model="emailBindingVisible"
+      :initial-email="form.email"
+      @bound="onEmailBound"
+    />
   </div>
 </template>
 
@@ -180,6 +199,7 @@ import {
   ElRadioGroup,
   ElSelect,
   ElTabPane,
+  ElTag,
   ElTabs,
   vLoading,
   type FormInstance,
@@ -189,8 +209,9 @@ import request from '@/utils/request'
 import type { ApiResult, User } from '@/types/api'
 import { assetUrl, formatDateTime } from '@/utils/format'
 import { getCitiesByProvince, getProvinceList } from '@/utils/regions'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, type LoginResult } from '@/stores/user'
 import ImageUploader from '@/components/ImageUploader.vue'
+import EmailBindingDialog from '@/components/auth/EmailBindingDialog.vue'
 
 withDefaults(defineProps<{ admin?: boolean }>(), { admin: false })
 const route = useRoute()
@@ -208,6 +229,14 @@ const loading = ref(false)
 const loaded = ref(false)
 const avatarUploading = ref(false)
 const registeredAt = ref<string | null>(null)
+const emailVerified = ref(false)
+const emailBindingVisible = ref(false)
+
+const onEmailBound = (account: LoginResult) => {
+  form.email = account.user.email ?? ''
+  emailVerified.value = Boolean(account.user.emailVerified)
+  userStore.login(account)
+}
 
 // 表单里空值统一用 ''，提交时再转回 null
 const form = reactive({
@@ -288,6 +317,7 @@ onMounted(async () => {
     form.name = user.name ?? ''
     form.gender = user.gender ?? ''
     form.email = user.email ?? ''
+    emailVerified.value = Boolean(user.emailVerified)
     form.phone = user.phone ?? ''
     form.province = user.province ?? ''
     form.city = user.city ?? ''
@@ -435,6 +465,18 @@ const changePassword = async () => {
 </script>
 
 <style lang="scss" scoped>
+.profile-email-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+
+  .el-input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .profile-body {
   display: flex;
   align-items: flex-start;

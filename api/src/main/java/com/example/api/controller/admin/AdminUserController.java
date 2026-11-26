@@ -1,6 +1,8 @@
 package com.example.api.controller.admin;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Objects;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,6 +20,7 @@ import com.example.api.exception.ValidateFailedException;
 import com.example.api.service.UserService;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.ResultTemplate;
+import com.example.api.utils.EmailAddresses;
 import com.example.api.validator.UserValidateGroup;
 
 // 管理端用户管理（/admin/** 只允许管理员访问，见 SecurityConfiguration）
@@ -72,6 +75,14 @@ public class AdminUserController {
             return result;
         }
 
+        // 以数据库角色为准，不能通过请求体伪造角色来禁用超级管理员。
+        if (fields.getStatus() == 0 && this.userService.fetchById(fields.getId())
+            .filter(user -> "super_admin".equals(user.getRole())).isPresent()) {
+            result.setStatus(false);
+            result.putPayload("message", "超级管理员不可禁用");
+            return result;
+        }
+
         if (this.userService.updateStatus(fields.getId(), fields.getStatus()) == 0) {
             result.setStatus(false);
             result.putPayload("message", "用户不存在");
@@ -96,11 +107,26 @@ public class AdminUserController {
         }
 
         // 不能改自己的角色；以数据库中的身份为准，super管理员也能保存自己的资料。
-        if (fields.getId().equals(this.currentUserId(jwt)) && this.userService.fetchById(fields.getId())
+        Optional<UserEntity> storedUser = this.userService.fetchById(fields.getId());
+        if (fields.getId().equals(this.currentUserId(jwt)) && storedUser
             .filter(user -> !fields.getRole().equals(user.getRole())).isPresent()) {
             result.setStatus(false);
             result.putPayload("message", "不能修改自己的角色");
             return result;
+        }
+
+        // 保留超级管理员身份，防止先降级再禁用来绕过账号保护。
+        if (!"super_admin".equals(fields.getRole()) && storedUser
+            .filter(user -> "super_admin".equals(user.getRole())).isPresent()) {
+            result.setStatus(false);
+            result.putPayload("message", "不能修改超级管理员的角色");
+            return result;
+        }
+
+        if (storedUser.filter(user -> Boolean.TRUE.equals(user.getEmailVerified())
+            && !Objects.equals(EmailAddresses.normalize(user.getEmail()), EmailAddresses.normalize(fields.getEmail()))).isPresent()) {
+            result.setStatus(false);
+            return result.putPayload("message", "修改已绑定邮箱需要重新验证邮箱");
         }
 
         if (this.userService.update(fields) == 0) {

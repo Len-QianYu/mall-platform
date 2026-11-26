@@ -23,6 +23,10 @@ CREATE TABLE `user` (
   `password`      VARCHAR(512)  NOT NULL                COMMENT '密码（BCrypt 哈希）',
   `gender`        CHAR(1)       NULL                    COMMENT '性别【F:女;M:男】',
   `email`         VARCHAR(128)  NULL                    COMMENT '邮箱',
+  `email_verified` TINYINT      NOT NULL DEFAULT 0      COMMENT '邮箱是否已验证',
+  `auth_version`  BIGINT UNSIGNED NOT NULL DEFAULT 0    COMMENT '登录凭据版本',
+  `login_email`   VARCHAR(128) GENERATED ALWAYS AS
+                    (CASE WHEN email_verified = 1 THEN LOWER(TRIM(email)) ELSE NULL END) STORED,
   `phone`         VARCHAR(20)   NULL                    COMMENT '手机号',
   `province`      VARCHAR(50)   NULL                    COMMENT '省份',
   `city`          VARCHAR(50)   NULL                    COMMENT '城市',
@@ -33,7 +37,8 @@ CREATE TABLE `user` (
   `registered_at` DATETIME      NOT NULL                COMMENT '注册于',
   `updated_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_username` (`username`)
+  UNIQUE KEY `uk_username` (`username`),
+  UNIQUE KEY `uk_user_login_email` (`login_email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '用户表';
 
 /* ---------- 2. 商品 ---------- */

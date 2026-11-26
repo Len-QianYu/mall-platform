@@ -15,6 +15,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class NotificationHandshakeInterceptor implements HandshakeInterceptor {
     public static final String USER_ID = "notificationUserId";
     public static final String TOKEN_EXPIRES_AT = "notificationTokenExpiresAt";
+    public static final String AUTH_VERSION = "notificationAuthVersion";
 
     private final NotificationSocketTickets tickets;
 
@@ -31,6 +32,7 @@ public class NotificationHandshakeInterceptor implements HandshakeInterceptor {
         }
         attributes.put(USER_ID, ticket.get().userId());
         attributes.put(TOKEN_EXPIRES_AT, ticket.get().tokenExpiresAt());
+        attributes.put(AUTH_VERSION, ticket.get().authVersion());
         return true;
     }
 

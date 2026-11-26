@@ -14,7 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Component
 public class NotificationSocketTickets {
-    public record Ticket(Integer userId, Instant tokenExpiresAt, Instant expiresAt) { }
+    public record Ticket(Integer userId, Instant tokenExpiresAt, Instant expiresAt, long authVersion) { }
 
     private final ConcurrentHashMap<String, Ticket> tickets = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
@@ -26,6 +26,10 @@ public class NotificationSocketTickets {
 
     // 浏览器的 WebSocket 不能加 Bearer 头，先用 JWT 换取一次性短票，URL 中不携带 JWT。
     public String issue(Integer userId, Instant tokenExpiresAt) {
+        return this.issue(userId, tokenExpiresAt, 0L);
+    }
+
+    public String issue(Integer userId, Instant tokenExpiresAt, long authVersion) {
         Instant now = this.clock.instant();
         if (userId == null || userId < 1 || tokenExpiresAt == null || !tokenExpiresAt.isAfter(now)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
@@ -33,7 +37,7 @@ public class NotificationSocketTickets {
         byte[] bytes = new byte[32];
         this.random.nextBytes(bytes);
         String value = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        this.tickets.put(value, new Ticket(userId, tokenExpiresAt, now.plusSeconds(30)));
+        this.tickets.put(value, new Ticket(userId, tokenExpiresAt, now.plusSeconds(30), authVersion));
         return value;
     }
 

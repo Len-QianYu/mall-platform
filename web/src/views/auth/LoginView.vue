@@ -47,8 +47,33 @@
           <h2 class="form-title">{{ t('欢迎回来🤖') }}</h2>
           <p class="welcome-text">{{ t('请输入账号信息，登录商城') }}</p>
 
-          <ElFormItem prop="username" :label="t('用户名')">
-            <ElInput v-model="model.username" type="text" :placeholder="t('请输入用户名')">
+          <div class="login-method-switch" role="group" :aria-label="t('账号登录方式')">
+            <button
+              type="button"
+              :aria-pressed="loginMethod === 'username'"
+              :disabled="logging"
+              @click="switchLoginMethod('username')"
+            >
+              {{ t('用户名登录') }}
+            </button>
+            <button
+              type="button"
+              :aria-pressed="loginMethod === 'email'"
+              :disabled="logging"
+              @click="switchLoginMethod('email')"
+            >
+              {{ t('邮箱登录') }}
+            </button>
+          </div>
+
+          <ElFormItem prop="username" :label="t(loginMethod === 'email' ? '邮箱' : '用户名')">
+            <ElInput
+              v-model="model.username"
+              :type="loginMethod === 'email' ? 'email' : 'text'"
+              :maxlength="loginMethod === 'email' ? 128 : 16"
+              autocomplete="username"
+              :placeholder="t(loginMethod === 'email' ? '请输入已绑定邮箱' : '请输入用户名')"
+            >
               <template v-slot:suffix>
                 <i class="bi bi-person-fill icon-suffix"></i>
               </template>
@@ -74,13 +99,25 @@
               />
               <label for="remember-account" class="checkbox-label">{{ t('记住账号') }}</label>
             </div>
-            <span class="forgot-password-link">{{ t('忘记密码?') }}</span>
+            <button
+              type="button"
+              class="forgot-password-link"
+              :disabled="logging"
+              @click="forgotPasswordVisible = true"
+            >
+              {{ t('忘记密码?') }}
+            </button>
           </div>
 
           <ElFormItem>
-            <ElButton type="primary" native-type="submit" style="width: 100%">{{
-              t('登录')
-            }}</ElButton>
+            <ElButton
+              type="primary"
+              native-type="submit"
+              :loading="logging"
+              :disabled="logging"
+              style="width: 100%"
+              >{{ t('登录') }}</ElButton
+            >
           </ElFormItem>
 
           <!-- 创建账号链接 -->
@@ -98,6 +135,14 @@
         </footer>
       </div>
     </div>
+
+    <ElDialog v-model="forgotPasswordVisible" :title="t('找回密码')" width="min(460px, 94vw)">
+      <PasswordResetForm
+        v-if="forgotPasswordVisible"
+        :initial-email="loginMethod === 'email' ? model.username : ''"
+        @success="onPasswordReset"
+      />
+    </ElDialog>
 
     <div
       class="login-role-switch"
@@ -135,8 +180,17 @@
 
 <script setup lang="ts">
 import { t, formLabelWidth } from '@/i18n'
-import { ref, reactive, onMounted, onUnmounted, watch, watchEffect } from 'vue'
-import { ElForm, ElFormItem, ElInput, ElButton, ElMessage, type FormInstance } from 'element-plus'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
+import {
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElButton,
+  ElDialog,
+  ElMessage,
+  type FormInstance,
+  type FormRules,
+} from 'element-plus'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import request from '@/utils/request'
 import { useUserStore, type LoginResult, type LoginRole } from '@/stores/user'
@@ -148,6 +202,8 @@ import {
   saveRememberedAccount,
 } from '@/utils/rememberAccount'
 import ModerationIcon from '@/assets/svg/moderation-icon.svg?component'
+import PasswordResetForm from '@/components/auth/PasswordResetForm.vue'
+import { apiErrorMessage } from '@/utils/apiError'
 // npm install bootstrap-icons
 // 引入 Bootstrap Icons
 import 'bootstrap-icons/font/bootstrap-icons.css'
@@ -228,6 +284,28 @@ const model = reactive({
   username: registeredUsername || rememberedAccount?.username || '',
   password: '',
 })
+const loginMethod = ref<'username' | 'email'>(
+  registeredUsername ? 'username' : (rememberedAccount?.method ?? 'username'),
+)
+const logging = ref(false)
+const forgotPasswordVisible = ref(false)
+
+const switchLoginMethod = (method: 'username' | 'email') => {
+  if (logging.value || loginMethod.value === method) return
+  loginMethod.value = method
+  model.username = ''
+  model.password = ''
+  form.value?.clearValidate?.()
+}
+
+const onPasswordReset = (email: string) => {
+  forgotPasswordVisible.value = false
+  userStore.logout()
+  loginMethod.value = 'email'
+  model.username = email
+  model.password = ''
+  form.value?.clearValidate?.()
+}
 
 const switchLoginRole = (role: LoginRole) => {
   if (model.role === role) return
@@ -238,25 +316,44 @@ const switchLoginRole = (role: LoginRole) => {
   )
 }
 
-const rules = reactive({
-  username: [
-    {
-      required: true,
-      whitespace: true,
-      get message() {
-        return t('请输入用户名')
-      },
-      trigger: 'blur',
-    },
-    {
-      min: 2,
-      max: 16,
-      get message() {
-        return t('用户名需2–16个字符')
-      },
-      trigger: 'change',
-    },
-  ],
+const rules = computed<FormRules>(() => ({
+  username:
+    loginMethod.value === 'email'
+      ? [
+          {
+            required: true,
+            get message() {
+              return t('请输入已绑定邮箱')
+            },
+            trigger: 'blur',
+          },
+          {
+            type: 'email',
+            max: 128,
+            get message() {
+              return t('请输入有效的邮箱地址')
+            },
+            trigger: 'blur',
+          },
+        ]
+      : [
+          {
+            required: true,
+            whitespace: true,
+            get message() {
+              return t('请输入用户名')
+            },
+            trigger: 'blur',
+          },
+          {
+            min: 2,
+            max: 16,
+            get message() {
+              return t('用户名需2–16个字符')
+            },
+            trigger: 'change',
+          },
+        ],
   password: [
     {
       required: true,
@@ -275,7 +372,7 @@ const rules = reactive({
       trigger: 'change',
     },
   ],
-})
+}))
 
 // 给 body 添加暗黑主题类,让下拉框等弹出层也能应用暗黑样式（见下方全局 <style>）。
 // 主题全站共享，进入登录页时可能已经是暗色，所以跟随状态同步，而不是只在点击时设置
@@ -284,14 +381,20 @@ watchEffect(() => {
 })
 
 const login = () => {
-  if (!form.value) return
+  if (!form.value || logging.value) return
 
   form.value
     .validate()
     .then((result) => {
-      if (result === true) {
+      if (result === true && !logging.value) {
+        logging.value = true
         // 统一使用 /login 接口，后端会根据角色进行验证
-        const credentials = { ...model }
+        const method = loginMethod.value
+        const identifier = model.username
+        const credentials =
+          method === 'email'
+            ? { role: model.role, email: identifier.trim().toLowerCase(), password: model.password }
+            : { ...model }
         request
           .post<ApiResult<LoginResult>>('/login', credentials)
           .then((response) => {
@@ -301,7 +404,11 @@ const login = () => {
               userStore.login(userData)
 
               if (rememberAccount.value) {
-                saveRememberedAccount(userData.user.username, credentials.role)
+                saveRememberedAccount(
+                  method === 'email' ? identifier.trim().toLowerCase() : userData.user.username,
+                  credentials.role,
+                  method,
+                )
               } else {
                 clearRememberedAccount()
               }
@@ -320,8 +427,11 @@ const login = () => {
               ElMessage.error(t(message))
             }
           })
-          .catch(() => {
-            ElMessage.error(t('登录失败。'))
+          .catch((error: unknown) => {
+            ElMessage.error(t(apiErrorMessage(error, '登录失败。')))
+          })
+          .finally(() => {
+            logging.value = false
           })
       }
     })
@@ -335,6 +445,37 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.login-method-switch {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+
+  button {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--el-border-color);
+    border-radius: 6px;
+    color: var(--el-text-color-regular);
+    background: var(--el-fill-color-blank);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+
+    &[aria-pressed='true'] {
+      border-color: var(--el-color-primary);
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+    }
+  }
+}
+
+.forgot-password-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+}
+
 .login-container {
   display: flex;
   width: 100%;

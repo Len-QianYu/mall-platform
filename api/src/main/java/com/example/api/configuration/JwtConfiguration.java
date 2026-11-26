@@ -14,6 +14,10 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import com.example.api.security.AccountTokenValidator;
+import com.example.api.service.UserService;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -66,10 +70,12 @@ public class JwtConfiguration {
 
     // 提供JwtDecoder，用于解码JWT token
     @Bean
-    public JwtDecoder jwtDecoder(RSAKey rsaKey) {
+    public JwtDecoder jwtDecoder(RSAKey rsaKey, UserService users) {
         try {
-            return NimbusJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey())
-                    .build();
+            NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey()).build();
+            decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(getIssuer()), new AccountTokenValidator(users)));
+            return decoder;
         } catch (Exception e) {
             // 创建JwtDecoder失败，抛出异常
             throw new RuntimeException("未能创建 JWT 解码器", e);

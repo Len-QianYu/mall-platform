@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import com.example.api.dto.CategorySalesView;
 import com.example.api.dto.DashboardTrendPoint;
 import com.example.api.dto.OrderStatusCount;
 import com.example.api.dto.OrderWithItemsView;
@@ -43,8 +45,14 @@ public interface OrderService {
     // 已支付、已发货、已完成订单的金额合计
     BigDecimal sumSalesAmount();
 
+    // 累计销售额按已支付、已发货、已完成拆分，没有金额的状态返回零。
+    Map<OrderStatus, BigDecimal> fetchSalesAmountsByStatus();
+
     // 日期区间左闭右开；没有订单或销售额的日期补零，保证图表时间轴连续。
     List<DashboardTrendPoint> fetchTrend(LocalDate startDate, LocalDate endDate);
+
+    // 按当前商品分类汇总已支付且未退款的售出件数；区间左闭右开，零销量分类和日期也返回。
+    List<CategorySalesView> fetchCategorySales(LocalDate startDate, LocalDate endDate);
 
     // 所有订单的当前状态分布，包括数量为零的状态。
     List<OrderStatusCount> fetchStatusCounts();

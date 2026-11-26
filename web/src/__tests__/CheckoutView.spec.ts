@@ -81,7 +81,7 @@ const order: Order = {
   userId: 7,
   totalAmount: 33.6,
   status: 'PENDING_PAYMENT',
-  receiverName: '张三',
+  receiverName: 'checkout-user',
   receiverPhone: '13900139000',
   receiverAddress: '浙江省杭州市西湖区文三路1号',
   remark: null,
@@ -188,7 +188,8 @@ describe('checkout shipping information', () => {
     const { wrapper, store } = await mountCheckout()
 
     expect(getCheckout).toHaveBeenCalledWith('/user/profile')
-    expect(wrapper.get('.receiver-contact').text()).toContain('张三')
+    expect(wrapper.get('.receiver-contact').text()).toContain(user.username)
+    expect(wrapper.get('.receiver-contact').text()).not.toContain(user.name)
     expect(wrapper.get('.receiver-contact').text()).toContain('13900139000')
     expect(wrapper.get('.receiver-address').text()).toBe(user.receiverAddress)
     expect(wrapper.findAll('input')).toHaveLength(1)
@@ -275,7 +276,7 @@ describe('checkout shipping information', () => {
       requestId: expect.stringMatching(/^[A-Za-z0-9_-]{16,64}$/),
       items: [{ productId: 11, quantity: 2 }],
       fromCart: false,
-      receiverName: '张三',
+      receiverName: 'checkout-user',
       receiverPhone: '13900139000',
       receiverAddress: '浙江省杭州市西湖区文三路1号',
       remark: '请下午送达',
@@ -294,7 +295,7 @@ describe('checkout shipping information', () => {
       requestId: expect.stringMatching(/^[A-Za-z0-9_-]{16,64}$/),
       items: [{ productId: 11, quantity: 2 }],
       fromCart: true,
-      receiverName: '张三',
+      receiverName: 'checkout-user',
       receiverPhone: '13900139000',
       receiverAddress: '浙江省杭州市西湖区文三路1号',
       remark: null,
@@ -371,8 +372,22 @@ describe('checkout shipping information', () => {
     expect(postCheckout.mock.calls[1]?.[1].requestId).not.toBe(requestId)
   })
 
+  it('uses the username as recipient even when the profile has no display name', async () => {
+    getCheckout.mockImplementation((url) =>
+      url === '/user/profile'
+        ? Promise.resolve(response({ user: { ...user, name: null } }))
+        : defaultGet(url),
+    )
+    const { wrapper } = await mountCheckout()
+
+    expect(wrapper.get('.receiver-contact strong').text()).toBe(user.username)
+    expect(wrapper.get('.submit-button').attributes('disabled')).toBeUndefined()
+    await wrapper.get('.submit-button').trigger('click')
+    await flushPromises()
+    expect(postCheckout.mock.calls[0]?.[1].receiverName).toBe(user.username)
+  })
+
   it.each([
-    { field: 'recipient', missing: { name: null } },
     { field: 'phone', missing: { phone: null } },
     { field: 'valid phone', missing: { phone: '12345' } },
     { field: 'address', missing: { receiverAddress: null } },

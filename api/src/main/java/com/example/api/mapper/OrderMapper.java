@@ -12,7 +12,9 @@ import org.apache.ibatis.annotations.Select;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.api.dto.DashboardTrendPoint;
 import com.example.api.dto.OrderStatusCount;
+import com.example.api.dto.OrderStatusSalesAmount;
 import com.example.api.entity.OrderEntity;
+import com.example.api.entity.UserEntity;
 
 @Mapper
 public interface OrderMapper extends BaseMapper<OrderEntity> {
@@ -29,9 +31,29 @@ public interface OrderMapper extends BaseMapper<OrderEntity> {
     @Select("SELECT NOW()")
     LocalDateTime databaseNow();
 
+    // 订单收货人统一使用买家的用户名；一页订单批量查询，不逐单查用户。
+    @Select("""
+        <script>
+        SELECT id, username FROM `user` WHERE id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        </script>
+        """)
+    List<UserEntity> selectReceiverUsernames(@Param("userIds") List<Integer> userIds);
+
     // 销售额：已支付、已发货、已完成订单的金额合计（待支付、已取消的不算）
     @Select("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status IN ('PAID', 'SHIPPED', 'COMPLETED')")
     BigDecimal sumSalesAmount();
+
+    // 与累计销售额相同的状态范围，按当前订单状态拆分金额。
+    @Select("""
+        SELECT status, SUM(total_amount) AS amount
+        FROM orders
+        WHERE status IN ('PAID', 'SHIPPED', 'COMPLETED')
+        GROUP BY status
+        """)
+    List<OrderStatusSalesAmount> fetchSalesAmountsByStatus();
 
     @Select("""
         SELECT DATE(created_at) AS date, COUNT(*) AS orderCount, 0 AS salesAmount

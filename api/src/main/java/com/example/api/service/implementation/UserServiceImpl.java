@@ -16,6 +16,7 @@ import com.example.api.entity.UserEntity;
 import com.example.api.mapper.UserMapper;
 import com.example.api.service.UserService;
 import com.example.api.utils.Pagination;
+import com.example.api.utils.EmailAddresses;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -45,6 +46,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Optional<UserEntity> fetchByEmail(String email) {
+        String normalized = EmailAddresses.normalize(email);
+        if (normalized == null) return Optional.empty();
+        return Optional.ofNullable(this.userMapper.selectOne(
+            Wrappers.<UserEntity>query().eq("login_email", normalized)
+        ));
+    }
+
+    @Override
     public Integer create(UserEntity user) {
         // 密码统一在此加密，数据库只存 BCrypt 哈希
         user.setPassword(this.passwordEncoder.encode(user.getPassword()));
@@ -52,6 +62,8 @@ public class UserServiceImpl implements UserService {
             user.setRole("user");
         }
         user.setStatus(1);
+        user.setEmailVerified(false);
+        user.setAuthVersion(0L);
         user.setRegisteredAt(LocalDateTime.now());
         return this.userMapper.insert(user);
     }
@@ -79,9 +91,13 @@ public class UserServiceImpl implements UserService {
                 .set(UserEntity::getName, user.getName())
                 .set(UserEntity::getGender, user.getGender())
                 .set(UserEntity::getPhone, user.getPhone())
-                .set(UserEntity::getEmail, user.getEmail())
+                .set(UserEntity::getEmail, EmailAddresses.normalize(user.getEmail()))
                 .set(UserEntity::getRole, user.getRole())
+                .set("super_admin".equals(user.getRole()), UserEntity::getStatus, 1)
                 .eq(UserEntity::getId, user.getId())
+                .ne(!"super_admin".equals(user.getRole()), UserEntity::getRole, "super_admin")
+                .and(wrapper -> wrapper.eq(UserEntity::getEmailVerified, false)
+                    .or().eq(UserEntity::getEmail, EmailAddresses.normalize(user.getEmail())))
         );
     }
 
@@ -91,6 +107,8 @@ public class UserServiceImpl implements UserService {
             Wrappers.<UserEntity>lambdaUpdate()
                 .set(UserEntity::getStatus, status)
                 .eq(UserEntity::getId, id)
+                // 条件写入也校验角色，阻止角色刚被提升时的并发禁用。
+                .ne(status == 0, UserEntity::getRole, "super_admin")
         );
     }
 
@@ -101,13 +119,15 @@ public class UserServiceImpl implements UserService {
             Wrappers.<UserEntity>lambdaUpdate()
                 .set(UserEntity::getName, profile.name())
                 .set(UserEntity::getGender, profile.gender())
-                .set(UserEntity::getEmail, profile.email())
+                .set(UserEntity::getEmail, EmailAddresses.normalize(profile.email()))
                 .set(UserEntity::getPhone, profile.phone())
                 .set(UserEntity::getProvince, profile.province())
                 .set(UserEntity::getCity, profile.city())
                 .set(UserEntity::getReceiverAddress, profile.receiverAddress())
                 .set(UserEntity::getAvatarUrl, profile.avatarUrl())
                 .eq(UserEntity::getId, id)
+                .and(wrapper -> wrapper.eq(UserEntity::getEmailVerified, false)
+                    .or().eq(UserEntity::getEmail, EmailAddresses.normalize(profile.email())))
         );
     }
 
@@ -126,8 +146,32 @@ public class UserServiceImpl implements UserService {
         return this.userMapper.update(
             Wrappers.<UserEntity>lambdaUpdate()
                 .set(UserEntity::getPassword, this.passwordEncoder.encode(password))
+                .setSql("auth_version = auth_version + 1")
                 .eq(UserEntity::getId, id)
         );
+    }
+
+    @Override
+    public Integer bindEmail(Integer id, String email, long expectedVersion) {
+        return this.userMapper.update(Wrappers.<UserEntity>lambdaUpdate()
+            .set(UserEntity::getEmail, EmailAddresses.normalize(email))
+            .set(UserEntity::getEmailVerified, true)
+            .setSql("auth_version = auth_version + 1")
+            .eq(UserEntity::getId, id)
+            .eq(UserEntity::getStatus, 1)
+            .eq(UserEntity::getAuthVersion, expectedVersion));
+    }
+
+    @Override
+    public Integer resetPassword(Integer id, String email, long expectedVersion, String password) {
+        return this.userMapper.update(Wrappers.<UserEntity>lambdaUpdate()
+            .set(UserEntity::getPassword, this.passwordEncoder.encode(password))
+            .setSql("auth_version = auth_version + 1")
+            .eq(UserEntity::getId, id)
+            .eq(UserEntity::getEmail, EmailAddresses.normalize(email))
+            .eq(UserEntity::getEmailVerified, true)
+            .eq(UserEntity::getStatus, 1)
+            .eq(UserEntity::getAuthVersion, expectedVersion));
     }
 
     // 列表筛选条件：count 和 fetch 共用，保证总数和当前页按同一条件查询

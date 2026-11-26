@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -18,19 +20,27 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import com.example.api.entity.ProductNotificationEntity;
 import com.example.api.entity.OrderNotificationEntity;
 import com.example.api.entity.OrderShipmentNotificationEntity;
+import com.example.api.mapper.UserMapper;
 
 import tools.jackson.databind.json.JsonMapper;
 
 @Component
 public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(ProductNotificationWebSocketHandler.class);
-    private record Connection(Integer userId, Instant expiresAt, WebSocketSession session) { }
+    private record Connection(Integer userId, Instant expiresAt, long authVersion, WebSocketSession session) { }
     private record NotificationMessage(String type, Object notification) { }
 
     private final ConcurrentHashMap<Integer, ConcurrentHashMap<String, Connection>> connections = new ConcurrentHashMap<>();
     private final JsonMapper json;
+    private final UserMapper users;
 
-    public ProductNotificationWebSocketHandler(JsonMapper json) { this.json = json; }
+    public ProductNotificationWebSocketHandler(JsonMapper json) { this(json, null); }
+
+    @Autowired
+    public ProductNotificationWebSocketHandler(JsonMapper json, UserMapper users) {
+        this.json = json;
+        this.users = users;
+    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws IOException {
@@ -41,7 +51,8 @@ public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
             return;
         }
         session.setTextMessageSizeLimit(512);
-        Connection connection = new Connection(owner, expiresAt,
+        Object version = session.getAttributes().get(NotificationHandshakeInterceptor.AUTH_VERSION);
+        Connection connection = new Connection(owner, expiresAt, version instanceof Number value ? value.longValue() : 0L,
             new ConcurrentWebSocketSessionDecorator(session, 10000, 65536));
         this.connections.compute(owner, (id, existing) -> {
             ConcurrentHashMap<String, Connection> group = existing == null ? new ConcurrentHashMap<>() : existing;
@@ -54,7 +65,7 @@ public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
         Connection connection = this.find(session);
-        if (connection == null || !connection.expiresAt().isAfter(Instant.now())) {
+        if (connection == null || !this.current(connection)) {
             session.close(CloseStatus.POLICY_VIOLATION);
             this.remove(session);
         } else if ("ping".equals(message.getPayload())) {
@@ -104,7 +115,7 @@ public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
     @Scheduled(fixedDelay = 30000)
     public void closeExpiredConnections() {
         this.connections.values().forEach(group -> group.values().forEach(connection -> {
-            if (!connection.expiresAt().isAfter(Instant.now()) || !connection.session().isOpen()) this.close(connection);
+            if (!this.current(connection)) this.close(connection);
         }));
     }
 
@@ -123,7 +134,7 @@ public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void send(Connection connection, TextMessage message) {
-        if (!connection.expiresAt().isAfter(Instant.now()) || !connection.session().isOpen()) {
+        if (!this.current(connection)) {
             this.close(connection);
             return;
         }
@@ -139,6 +150,16 @@ public class ProductNotificationWebSocketHandler extends TextWebSocketHandler {
         this.remove(connection.session());
         try { connection.session().close(CloseStatus.POLICY_VIOLATION); }
         catch (IOException | RuntimeException error) { log.debug("关闭通知连接失败", error); }
+    }
+
+    private boolean current(Connection connection) {
+        if (!connection.expiresAt().isAfter(Instant.now()) || !connection.session().isOpen()) return false;
+        if (this.users == null) return true;
+        try {
+            var user = this.users.selectById(connection.userId());
+            return user != null && Integer.valueOf(1).equals(user.getStatus())
+                && connection.authVersion() == (user.getAuthVersion() == null ? 0L : user.getAuthVersion());
+        } catch (DataAccessException error) { return false; }
     }
 
     private void remove(WebSocketSession session) {

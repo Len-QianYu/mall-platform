@@ -7,6 +7,7 @@ import LoginView from '@/views/auth/LoginView.vue'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { saveRememberedAccount } from '@/utils/rememberAccount'
+import PasswordResetForm from '@/components/auth/PasswordResetForm.vue'
 
 vi.mock('@/utils/request', () => ({ default: { post: vi.fn<typeof request.post>() } }))
 vi.mock('/favicon.ico', () => ({ default: '/favicon.ico' }))
@@ -50,6 +51,15 @@ const mountLogin = async (url = '/login') => {
         }),
         ElButton: { template: '<button><slot /></button>' },
         ModerationIcon: true,
+        PasswordResetForm: {
+          name: 'PasswordResetForm',
+          props: ['initialEmail'],
+          template: '<div class="reset-form-stub" />',
+        },
+        ElDialog: {
+          props: ['modelValue'],
+          template: '<section v-if="modelValue"><slot /></section>',
+        },
       },
     },
   })
@@ -76,6 +86,61 @@ describe('login view', () => {
     localStorage.removeItem('remembered-account')
     vi.useRealTimers()
     vi.restoreAllMocks()
+  })
+
+  it('logs in with a linked email and remembers the email method', async () => {
+    const wrapper = await mountLogin()
+    vi.mocked(request.post).mockResolvedValue({
+      data: {
+        status: true,
+        payload: {
+          user: {
+            id: 10,
+            username: 'owner',
+            role: 'user',
+            email: 'owner@example.com',
+            emailVerified: true,
+          },
+          token: 'email-token',
+        },
+      },
+    })
+    await wrapper.get('.login-method-switch button:nth-child(2)').trigger('click')
+    const inputs = wrapper.findAll('input')
+    await inputs[0]!.setValue('OWNER@EXAMPLE.COM')
+    await inputs[1]!.setValue('123456')
+    await wrapper.get('#remember-account').setValue(true)
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(request.post).toHaveBeenCalledWith('/login', {
+      email: 'owner@example.com',
+      password: '123456',
+      role: 'user',
+    })
+    expect(JSON.parse(localStorage.getItem('remembered-account')!)).toMatchObject({
+      username: 'owner@example.com',
+      method: 'email',
+      role: 'user',
+    })
+    useUserStore().logout()
+    const restored = await mountLogin()
+    expect(
+      restored.get('.login-method-switch button:nth-child(2)').attributes('aria-pressed'),
+    ).toBe('true')
+    expect((restored.get('input').element as HTMLInputElement).value).toBe('owner@example.com')
+  })
+
+  it('opens recovery and returns to email login with an empty password after success', async () => {
+    const wrapper = await mountLogin()
+    await wrapper.get('.forgot-password-link').trigger('click')
+    const resetForm = wrapper.findComponent(PasswordResetForm)
+    expect(resetForm.exists()).toBe(true)
+    resetForm.vm.$emit('success', 'owner@example.com')
+    await nextTick()
+    expect(wrapper.find('.reset-form-stub').exists()).toBe(false)
+    const inputs = wrapper.findAll('input')
+    expect((inputs[0]!.element as HTMLInputElement).value).toBe('owner@example.com')
+    expect((inputs[1]!.element as HTMLInputElement).value).toBe('')
   })
 
   it('shows on entry and hides only after 1.5 seconds', async () => {

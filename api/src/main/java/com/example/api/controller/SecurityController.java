@@ -8,12 +8,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.api.entity.UserEntity;
+import com.example.api.dto.AccountRequests;
 import com.example.api.exception.LoginFailedException;
 import com.example.api.exception.ValidateFailedException;
 import com.example.api.service.UserService;
 import com.example.api.utils.JwtUtils;
 import com.example.api.utils.ResultTemplate;
-import com.example.api.validator.UserValidateGroup;
 
 @RestController
 public class SecurityController {
@@ -37,21 +37,23 @@ public class SecurityController {
     // 使用JWT进行登录认证
     @PostMapping("/login")
     public ResultTemplate login(
-        @RequestBody @Validated({ UserValidateGroup.Login.class }) UserEntity fields,
+        @RequestBody @Validated AccountRequests.Login fields,
         BindingResult bindingResult
     ) {
         ResultTemplate result = new ResultTemplate();
 
         if (bindingResult.hasErrors()) {
-            throw new ValidateFailedException("用户名或密码格式不正确");
+            throw new ValidateFailedException("账号或密码格式不正确");
         }
 
         // 验证用户名和密码
-        UserEntity user = this.userService.fetchByUsername(fields.getUsername()).orElseThrow(
+        UserEntity user = (fields.email() == null
+            ? this.userService.fetchByUsername(fields.username())
+            : this.userService.fetchByEmail(fields.email())).orElseThrow(
             () -> new LoginFailedException()
         );
 
-        if (!this.passwordEncoder.matches(fields.getPassword(), user.getPassword())) {
+        if (!this.passwordEncoder.matches(fields.password(), user.getPassword())) {
             throw new LoginFailedException();
         }
 
@@ -63,7 +65,7 @@ public class SecurityController {
         }
 
         // 检查角色是否匹配（如果前端提供了角色）
-        String requestedRole = fields.getRole(); // 前端获取
+        String requestedRole = fields.role(); // 前端获取
         String actualRole = user.getRole();      // 数据库获取
         boolean superAdminLogin = "admin".equals(requestedRole) && "super_admin".equals(actualRole);
         if (requestedRole != null && !requestedRole.isEmpty()
@@ -81,7 +83,6 @@ public class SecurityController {
         String jwtToken = this.jwtUtils.generateToken(user);
 
         // Never expose the stored password hash in the response.
-        user.setPassword(null);
         result.putPayload("user", user);
         result.putPayload("token", jwtToken);
 

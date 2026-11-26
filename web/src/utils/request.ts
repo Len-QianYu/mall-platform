@@ -6,11 +6,20 @@ const instance: AxiosInstance = axios.create({
   baseURL: import.meta.env.APP_BASE_URL,
 })
 
+const anonymousEndpoints = new Set([
+  '/login',
+  '/user/create',
+  '/account/password-reset/code',
+  '/account/password-reset',
+])
+
 // 请求拦截器：自动添加 Authorization 头
 instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const userStore = useUserStore()
 
-  if (userStore.logged && userStore.user) {
+  if (anonymousEndpoints.has(config.url ?? '')) {
+    config.headers.delete('Authorization')
+  } else if (userStore.logged && userStore.user) {
     // Spring Security 资源服务器要求 Bearer 前缀
     config.headers.Authorization = `Bearer ${userStore.user.token}`
   }

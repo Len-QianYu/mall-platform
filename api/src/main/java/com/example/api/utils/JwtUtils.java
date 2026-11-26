@@ -39,6 +39,7 @@ public class JwtUtils {
                 .claim("userId", user.getId())
                 .claim("username", user.getUsername())
                 .claim("role", role)
+                .claim("authVersion", user.getAuthVersion() == null ? 0L : user.getAuthVersion())
                 .claim("authorities", authorities)
                 .build();
 

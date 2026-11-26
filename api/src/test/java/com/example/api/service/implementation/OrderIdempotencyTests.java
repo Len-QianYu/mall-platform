@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -46,6 +47,7 @@ import com.example.api.entity.CartEntity;
 import com.example.api.entity.OrderEntity;
 import com.example.api.entity.OrderItemEntity;
 import com.example.api.entity.ProductEntity;
+import com.example.api.entity.UserEntity;
 import com.example.api.exception.TradeFailedException;
 import com.example.api.mapper.CartMapper;
 import com.example.api.mapper.OrderItemMapper;
@@ -85,6 +87,16 @@ class OrderIdempotencyTests {
     @BeforeEach
     void setUp() throws Exception {
         this.orders = mock(OrderMapper.class);
+        when(this.orders.selectReceiverUsernames(anyList())).thenAnswer(call -> {
+            List<Integer> userIds = call.getArgument(0);
+            return userIds.stream().map(id -> {
+                UserEntity user = new UserEntity();
+                user.setId(id);
+                user.setUsername("buyer-" + id);
+                user.setName("客户一");
+                return user;
+            }).toList();
+        });
         this.items = mock(OrderItemMapper.class);
         this.products = mock(ProductMapper.class);
         this.stock = mock(ProductService.class);
@@ -149,6 +161,21 @@ class OrderIdempotencyTests {
             product.setStock(7);
             when(this.products.selectById(id)).thenReturn(product);
         }
+    }
+
+    @Test
+    void savesTheAuthenticatedBuyersUsernameInsteadOfTheSubmittedRecipientName() {
+        TradeRequests.OrderCreate request = new TradeRequests.OrderCreate(this.requestId,
+            List.of(new TradeRequests.OrderCreateItem(11, 2)), false,
+            "客户一", "13900139000", "address", null);
+
+        OrderEntity order = this.service.create(7, request);
+
+        assertEquals("buyer-7", order.getReceiverName());
+        assertEquals("13900139000", order.getReceiverPhone());
+        assertEquals("address", order.getReceiverAddress());
+        assertSame(order, this.service.create(7, request));
+        verify(this.orders, times(1)).insert(any(OrderEntity.class));
     }
 
     @Test

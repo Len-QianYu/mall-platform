@@ -14,6 +14,7 @@ export interface UserInfo {
   gender?: 'F' | 'M' | null
   role: UserRole
   email?: string | null
+  emailVerified?: boolean
   phone?: string | null
   province?: string | null
   city?: string | null

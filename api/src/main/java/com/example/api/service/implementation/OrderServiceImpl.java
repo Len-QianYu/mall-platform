@@ -9,6 +9,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -36,14 +39,18 @@ import org.springframework.util.StringUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.api.dto.CategorySalesPoint;
+import com.example.api.dto.CategorySalesView;
 import com.example.api.dto.DashboardTrendPoint;
 import com.example.api.dto.OrderStatusCount;
+import com.example.api.dto.OrderStatusSalesAmount;
 import com.example.api.dto.OrderWithItemsView;
 import com.example.api.dto.TradeRequests;
 import com.example.api.entity.CartEntity;
 import com.example.api.entity.OrderEntity;
 import com.example.api.entity.OrderItemEntity;
 import com.example.api.entity.ProductEntity;
+import com.example.api.entity.UserEntity;
 import com.example.api.enums.OrderStatus;
 import com.example.api.exception.TradeFailedException;
 import com.example.api.mapper.CartMapper;
@@ -130,10 +137,10 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderEntity> fetch(String keyword, OrderStatus status, Pagination pagination) {
         // 总数已由 count 查过，分页插件只负责拼 LIMIT（searchCount = false，不重复计数）
-        return this.orderMapper.selectList(
+        return this.useReceiverUsernames(this.orderMapper.selectList(
             new Page<>(pagination.getCurrentPage(), pagination.getPageSize(), false),
             this.filter(keyword, status).orderByDesc(OrderEntity::getId)
-        );
+        ));
     }
 
     @Override
@@ -144,12 +151,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderWithItemsView> fetchForUser(Integer userId, OrderStatus status, Pagination pagination) {
         // 按下单时间倒序，正好走 idx_user_created 索引；主键兜底，同一秒下的单顺序也稳定
-        List<OrderEntity> orders = this.orderMapper.selectList(
+        List<OrderEntity> orders = this.useReceiverUsernames(this.orderMapper.selectList(
             new Page<>(pagination.getCurrentPage(), pagination.getPageSize(), false),
             this.filterForUser(userId, status)
                 .orderByDesc(OrderEntity::getCreatedAt)
                 .orderByDesc(OrderEntity::getId)
-        );
+        ));
         if (orders.isEmpty()) {
             return List.of();
         }
@@ -168,15 +175,16 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<OrderEntity> fetchRecent(Integer limit) {
-        return this.orderMapper.selectList(
+        return this.useReceiverUsernames(this.orderMapper.selectList(
             new Page<>(1, limit, false),
             Wrappers.<OrderEntity>lambdaQuery().orderByDesc(OrderEntity::getId)
-        );
+        ));
     }
 
     @Override
     public Optional<OrderEntity> fetchById(Long id) {
-        return Optional.ofNullable(this.orderMapper.selectById(id));
+        return Optional.ofNullable(this.orderMapper.selectById(id))
+            .map(order -> this.useReceiverUsernames(List.of(order)).getFirst());
     }
 
     @Override
@@ -185,7 +193,24 @@ public class OrderServiceImpl implements OrderService {
             Wrappers.<OrderEntity>lambdaQuery()
                 .eq(OrderEntity::getId, id)
                 .eq(OrderEntity::getUserId, userId)
-        ));
+        )).map(order -> this.useReceiverUsernames(List.of(order)).getFirst());
+    }
+
+    private Map<Integer, String> receiverUsernames(List<Integer> userIds) {
+        return this.orderMapper.selectReceiverUsernames(userIds).stream()
+            .filter(user -> StringUtils.hasText(user.getUsername()))
+            .collect(Collectors.toMap(UserEntity::getId, UserEntity::getUsername));
+    }
+
+    private <T extends OrderEntity> List<T> useReceiverUsernames(List<T> orders) {
+        if (orders.isEmpty()) return orders;
+        Map<Integer, String> usernames = this.receiverUsernames(
+            orders.stream().map(OrderEntity::getUserId).distinct().toList());
+        for (OrderEntity order : orders) {
+            String username = usernames.get(order.getUserId());
+            if (username != null) order.setReceiverName(username);
+        }
+        return orders;
     }
 
     @Override
@@ -203,6 +228,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public Map<OrderStatus, BigDecimal> fetchSalesAmountsByStatus() {
+        Map<OrderStatus, BigDecimal> amounts = new EnumMap<>(OrderStatus.class);
+        for (OrderStatus status : List.of(OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.COMPLETED)) {
+            amounts.put(status, BigDecimal.ZERO);
+        }
+        for (OrderStatusSalesAmount row : this.orderMapper.fetchSalesAmountsByStatus()) {
+            amounts.replace(row.status(), row.amount());
+        }
+        return amounts;
+    }
+
+    @Override
     public List<DashboardTrendPoint> fetchTrend(LocalDate startDate, LocalDate endDate) {
         LocalDateTime start = startDate.atStartOfDay();
         LocalDateTime end = endDate.atStartOfDay();
@@ -215,6 +252,36 @@ public class OrderServiceImpl implements OrderService {
             .map(date -> new DashboardTrendPoint(
                 date, orders.getOrDefault(date, 0L), sales.getOrDefault(date, BigDecimal.ZERO)
             ))
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategorySalesView> fetchCategorySales(LocalDate startDate, LocalDate endDate) {
+        Map<String, Map<LocalDate, Long>> salesByCategory = new HashMap<>();
+        // 包括下架商品的分类，让未售出的分类仍显示为零；两次查询处于同一只读事务。
+        for (String category : this.productMapper.selectCategories()) {
+            String normalized = StringUtils.hasText(category) ? category.trim() : null;
+            salesByCategory.putIfAbsent(normalized, new HashMap<>());
+        }
+        for (CategorySalesPoint point : this.orderItemMapper.fetchDailyCategorySales(
+            startDate.atStartOfDay(), endDate.atStartOfDay()
+        )) {
+            salesByCategory.computeIfAbsent(point.category(), category -> new HashMap<>())
+                .merge(point.date(), point.soldQuantity(), Long::sum);
+        }
+
+        List<LocalDate> dates = startDate.datesUntil(endDate).toList();
+        return salesByCategory.entrySet().stream()
+            .map(entry -> {
+                List<CategorySalesView.DailySales> trend = dates.stream()
+                    .map(date -> new CategorySalesView.DailySales(date, entry.getValue().getOrDefault(date, 0L)))
+                    .toList();
+                long total = trend.stream().mapToLong(CategorySalesView.DailySales::soldQuantity).sum();
+                return new CategorySalesView(entry.getKey(), total, trend);
+            })
+            .sorted(Comparator.comparingLong(CategorySalesView::soldQuantity).reversed()
+                .thenComparing(CategorySalesView::category, Comparator.nullsLast(Comparator.naturalOrder())))
             .toList();
     }
 
@@ -294,7 +361,7 @@ public class OrderServiceImpl implements OrderService {
         if (!Objects.equals(order.getRequestHash(), requestHash)) {
             throw new TradeFailedException("该下单请求号已用于其他订单内容，请重新发起结算");
         }
-        return order;
+        return this.useReceiverUsernames(List.of(order)).getFirst();
     }
 
     private String requestHash(TradeRequests.OrderCreate request, Map<Integer, Integer> quantities) {
@@ -320,6 +387,9 @@ public class OrderServiceImpl implements OrderService {
 
     private OrderEntity createOnce(Integer userId, TradeRequests.OrderCreate request,
         Map<Integer, Integer> quantities, String requestHash) {
+
+        String receiverName = this.receiverUsernames(List.of(userId)).get(userId);
+        if (!StringUtils.hasText(receiverName)) throw new TradeFailedException("用户不存在");
 
         List<OrderItemEntity> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -360,7 +430,8 @@ public class OrderServiceImpl implements OrderService {
         order.setRequestHash(requestHash);
         order.setTotalAmount(totalAmount);
         order.setStatus(OrderStatus.PENDING_PAYMENT);
-        order.setReceiverName(request.receiverName());
+        // 以服务端查到的用户名为准，客户端不能把昵称或其他称呼写成收货人。
+        order.setReceiverName(receiverName);
         order.setReceiverPhone(request.receiverPhone());
         order.setReceiverAddress(request.receiverAddress());
         order.setRemark(request.remark());
@@ -480,7 +551,8 @@ public class OrderServiceImpl implements OrderService {
         return Wrappers.<OrderEntity>lambdaQuery()
             .and(StringUtils.hasText(keyword), wrapper -> wrapper
                 .like(OrderEntity::getOrderNo, keyword)
-                .or().like(OrderEntity::getReceiverName, keyword)
+                .or().apply("EXISTS (SELECT 1 FROM `user` u WHERE u.id = orders.user_id AND u.username LIKE {0})",
+                    "%" + keyword + "%")
                 .or().like(OrderEntity::getReceiverPhone, keyword)
             )
             .eq(status != null, OrderEntity::getStatus, status);

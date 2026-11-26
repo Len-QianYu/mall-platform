@@ -84,7 +84,7 @@
         <!-- 表格行是 Element Plus 的 DefaultRow（字段为 any），传给按 User 声明的函数前先断言 -->
         <template #default="{ row }">
           <ElButton link type="primary" @click="openEdit(row as User)">{{ t('编辑') }}</ElButton>
-          <!-- 不能禁用自己，否则当前管理员会被锁在系统外 -->
+          <!-- 当前账号与超级管理员不可禁用 -->
           <ElPopconfirm
             :title="
               row.status === 1 ? t('禁用后该用户无法登录，确定禁用吗？') : t('确定启用该用户吗？')
@@ -96,7 +96,12 @@
               <ElButton
                 link
                 :type="row.status === 1 ? 'danger' : 'success'"
-                :disabled="isSelf(row.id)"
+                :disabled="cannotToggleStatus(row as User)"
+                :title="
+                  row.role === 'super_admin' && row.status === 1
+                    ? t('超级管理员不可禁用')
+                    : undefined
+                "
               >
                 {{ row.status === 1 ? t('禁用') : t('启用') }}
               </ElButton>
@@ -180,11 +185,20 @@
         <ElInput v-model="form.phone" :maxlength="11" :placeholder="t('选填')" />
       </ElFormItem>
       <ElFormItem :label="t('邮箱')" prop="email">
-        <ElInput v-model="form.email" :maxlength="128" :placeholder="t('选填')" />
+        <ElInput
+          v-model="form.email"
+          :maxlength="128"
+          :disabled="form.emailVerified"
+          :placeholder="t('选填')"
+        />
       </ElFormItem>
       <ElFormItem :label="t('角色')" prop="role">
-        <!-- 不能改自己的角色，避免把自己降成普通用户后失去管理权限 -->
-        <ElSelect v-model="form.role" :disabled="isSelf(form.id)" style="width: 100%">
+        <!-- 超级管理员的身份固定，保留资料编辑功能 -->
+        <ElSelect
+          v-model="form.role"
+          :disabled="isSelf(form.id) || editingSuperAdmin"
+          style="width: 100%"
+        >
           <ElOption :label="t('用户')" value="user" />
           <ElOption :label="t('管理员')" value="admin" />
           <ElOption :label="t('super管理员')" value="super_admin" />
@@ -300,8 +314,11 @@ const resetFilter = () => {
 
 // 是否为当前登录的管理员
 const isSelf = (id: number) => id === userStore.user?.user.id
+const cannotToggleStatus = (row: User) =>
+  row.status === 1 && (isSelf(row.id) || row.role === 'super_admin')
 
 const toggleStatus = async (row: User) => {
+  if (cannotToggleStatus(row)) return
   const status = row.status === 1 ? 0 : 1
   try {
     const { data } = await request.post<ApiResult>('/admin/user/status', { id: row.id, status })
@@ -320,6 +337,7 @@ const toggleStatus = async (row: User) => {
 const drawerVisible = ref(false)
 const saving = ref(false)
 const formRef = ref<FormInstance>()
+const editingSuperAdmin = ref(false)
 
 const form = reactive({
   id: 0,
@@ -328,6 +346,7 @@ const form = reactive({
   gender: '' as 'M' | 'F' | '',
   phone: '',
   email: '',
+  emailVerified: false,
   role: 'user' as UserRole,
 })
 
@@ -362,6 +381,7 @@ const rules: FormRules<typeof form> = {
 }
 
 const openEdit = (row: User) => {
+  editingSuperAdmin.value = row.role === 'super_admin'
   Object.assign(form, {
     id: row.id,
     username: row.username,
@@ -369,6 +389,7 @@ const openEdit = (row: User) => {
     gender: row.gender ?? '',
     phone: row.phone ?? '',
     email: row.email ?? '',
+    emailVerified: Boolean(row.emailVerified),
     role: row.role,
   })
   drawerVisible.value = true

@@ -42,7 +42,7 @@ docker compose stop      # 停止
 
 已有数据库接入个人资料地点功能时，先执行 [`upgrade-user-location.sql`](api/src/main/resources/db/upgrade-user-location.sql)，为 `user` 表新增省份和城市列，再重启后端。新建库的 [`schema.sql`](api/src/main/resources/db/schema.sql) 已包含这两个字段。
 
-收货地址在个人中心保存，下单页直接展示个人资料中的名字、手机号和收货地址，并提供修改入口。已有数据库先执行 [`upgrade-user-receiver-address.sql`](api/src/main/resources/db/upgrade-user-receiver-address.sql)，新增默认收货地址字段，再重启后端；新建库的 `schema.sql` 已包含该字段。
+收货地址在个人中心保存，下单页使用用户名作为收货人，并展示个人资料中的手机号和收货地址，提供修改入口；无需填写个人资料中的名字即可下单。后端按登录账号的用户名保存新订单收货人，已有订单在列表、详情和仪表盘中也统一显示对应买家的用户名，管理端可按该用户名搜索订单。已有数据库先执行 [`upgrade-user-receiver-address.sql`](api/src/main/resources/db/upgrade-user-receiver-address.sql)，新增默认收货地址字段，再重启后端；新建库的 `schema.sql` 已包含该字段。
 
 后端依赖 RocketMQ，启动前先执行 `docker compose up -d`；首次使用还要建一次 Topic 和消费组（命令见 [`docker-compose.yml`](docker-compose.yml) 顶部注释）。
 
@@ -157,6 +157,39 @@ npm run dev        # 开发服务器，默认端口 5173
 ```
 
 打包命令：`npm run build`（类型检查 + 生产构建）
+
+后台仪表盘新增“分类销量”，按商品当前分类展示近期售出件数和每日折线图，支持近 7 天、近 30 天（含今天），与销售趋势共用时间范围。统计汇总订单明细的 `quantity`，按订单 `paid_at` 归属日期，仅计入 `PAID`、`SHIPPED`、`COMPLETED`，退款后从原支付日期的销量中扣除；不使用商品累计销量或订单笔数。下架商品也参与统计，零销量分类和日期保留，缺失商品或空分类归入“未分类”。数据通过现有 `GET /admin/dashboard?days=7|30` 的 `categorySales` 返回，图例可显示或隐藏各分类曲线。
+
+### 邮箱绑定、邮箱登录与找回密码
+
+在商城或管理端的“个人中心”点击“绑定邮箱”，输入当前密码，获取邮件中的 6 位验证码后确认绑定。已绑定的邮箱可以在登录页选择“邮箱登录”，使用邮箱与密码登录；管理员和超级管理员仍选择“管理员登录”入口。绑定成功会更新当前页面的登录凭据。
+
+登录页“忘记密码”打开找回表单，填写已绑定邮箱、邮件验证码和两次新密码。重置成功后返回邮箱登录，密码输入框保持为空；旧密码、旧 JWT 和旧通知连接的授权失效。资料中原有但未验证的邮箱需要先完成绑定验证。
+
+QQ 发信账号在 `api/.env` 中配置（本文件被 Git 忽略）。QQ 邮箱网页版“设置→账户”开启 SMTP 后取得授权码，`MAIL_PASSWORD` 使用授权码，不能使用 QQ 登录密码：
+
+```properties
+MAIL_HOST=smtp.qq.com
+MAIL_PORT=465
+MAIL_USERNAME=你的QQ邮箱地址
+MAIL_PASSWORD=QQ邮箱SMTP授权码
+MAIL_SSL_ENABLED=true
+MAIL_STARTTLS_ENABLED=false
+```
+
+验证码 10 分钟有效，同一邮箱 60 秒后可重发，最多 5 次错误尝试，只能成功使用一次；每小时每个邮箱最多发送 5 次、每个 IP 最多 20 次。验证码按用途、账号和登录版本隔离，在 Redis 中仅保存 HMAC；SMTP 或 Redis 不可用时会提示重试。多个后端实例须设置相同的随机 `EMAIL_CODE_SECRET`（至少 32 字节）；单实例未填写时在启动时安全生成，重启后需要重新获取验证码。
+
+已有数据库执行 [`upgrade-email-auth.sql`](api/src/main/resources/db/upgrade-email-auth.sql)，新增邮箱验证状态、登录版本及已验证邮箱唯一索引；脚本可重复执行，旧邮箱资料保留，未验证的历史邮箱可以重复。新建库已包含这些字段。本地辅助工具 [`UpgradeEmailAuth.java`](api/tools/UpgradeEmailAuth.java) 从 `api/.env` 读取连接信息，使用 MySQL JDBC 驱动作为 classpath，在 `api/` 下执行即可应用此脚本。
+
+| 接口 | 用途 |
+|---|---|
+| `POST /login` | 发送 `{username, password, role}` 或 `{email, password, role}`，两种账号字段二选一 |
+| `POST /account/email/code` | 登录后用当前密码获取绑定验证码，发送 `{email, password}` |
+| `POST /account/email/bind` | 登录后确认绑定，发送 `{email, password, code}`，返回新的 `{user, token}` |
+| `POST /account/password-reset/code` | 匿名获取找回验证码，发送 `{email}`，统一返回受理信息 |
+| `POST /account/password-reset` | 匿名重置密码，发送 `{email, code, newPassword}`，成功后重新登录 |
+
+在 `api/` 中设置 `EMAIL_AUTH_INTEGRATION_TESTS=true` 后运行 `mvnw.cmd test -Dtest=EmailAccountIntegrationTests`，可验证真实 MySQL / Redis / JWT 全链路；测试不发送外部邮件，数据库写入回滚，Redis 使用随机测试命名空间并清理自身数据。设置 `SMTP_CONNECTION_TESTS=true` 后运行 `mvnw.cmd test -Dtest=SmtpConnectionTests` 可检查本地发信配置的 TLS 连接与认证，此检查也不发送邮件。
 
 ## 性能压测
 
