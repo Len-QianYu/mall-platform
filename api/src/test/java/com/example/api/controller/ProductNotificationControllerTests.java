@@ -131,7 +131,7 @@ class ProductNotificationControllerTests {
         when(this.tickets.issue(eq(7), any(), eq(0L))).thenReturn("one-time-ticket");
         this.mvc.perform(post("/notification/socket-ticket").header(HttpHeaders.AUTHORIZATION, "Bearer notification-token"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.payload.ticket").value("one-time-ticket"));
-        verify(this.tickets).issue(eq(7), any());
+        verify(this.tickets).issue(eq(7), any(), eq(0L));
     }
 
     private void authenticate() {

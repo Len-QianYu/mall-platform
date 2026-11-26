@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import { createPinia } from 'pinia'
-import { createMemoryHistory, createRouter } from 'vue-router'
+import { createMemoryHistory, createRouter, RouterView } from 'vue-router'
 import LoginView from '@/views/auth/LoginView.vue'
 import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
@@ -19,13 +19,15 @@ const mountLogin = async (url = '/login') => {
     history: createMemoryHistory(),
     routes: [
       { path: '/login', name: 'login', component: LoginView },
+      { path: '/login/email', name: 'email_login', component: LoginView },
       { path: '/register', name: 'register', component: { template: '<p>register</p>' } },
       { path: '/', name: 'index', component: { template: '<p>shop</p>' } },
+      { path: '/cart', name: 'cart', component: { template: '<p>cart</p>' } },
       { path: '/admin', name: 'admin_dashboard', component: { template: '<p>admin</p>' } },
     ],
   })
   await router.push(url)
-  const wrapper = mount(LoginView, {
+  const wrapper = mount(RouterView, {
     attachTo: document.body,
     global: {
       plugins: [createPinia(), router],
@@ -64,7 +66,8 @@ const mountLogin = async (url = '/login') => {
     },
   })
   wrappers.push(wrapper)
-  return wrapper
+  await flushPromises()
+  return wrapper.getComponent(LoginView)
 }
 
 const advanceTime = async (milliseconds: number) => {
@@ -89,7 +92,7 @@ describe('login view', () => {
   })
 
   it('logs in with a linked email and remembers the email method', async () => {
-    const wrapper = await mountLogin()
+    const wrapper = await mountLogin('/login?redirect=/cart')
     vi.mocked(request.post).mockResolvedValue({
       data: {
         status: true,
@@ -105,7 +108,8 @@ describe('login view', () => {
         },
       },
     })
-    await wrapper.get('.login-method-switch button:nth-child(2)').trigger('click')
+    await wrapper.get('.email-login-entry').trigger('click')
+    await flushPromises()
     const inputs = wrapper.findAll('input')
     await inputs[0]!.setValue('OWNER@EXAMPLE.COM')
     await inputs[1]!.setValue('123456')
@@ -122,25 +126,80 @@ describe('login view', () => {
       method: 'email',
       role: 'user',
     })
+    expect(wrapper.vm.$router.currentRoute.value.name).toBe('cart')
     useUserStore().logout()
     const restored = await mountLogin()
-    expect(
-      restored.get('.login-method-switch button:nth-child(2)').attributes('aria-pressed'),
-    ).toBe('true')
+    expect(restored.vm.$router.currentRoute.value.name).toBe('email_login')
+    expect(restored.find('.email-login-entry').exists()).toBe(false)
+    expect(restored.find('.login-back-button').exists()).toBe(true)
     expect((restored.get('input').element as HTMLInputElement).value).toBe('owner@example.com')
+  })
+
+  it('opens the email page and returns to the original login with its account and role', async () => {
+    const wrapper = await mountLogin('/login?username=new-user&redirect=/cart#account')
+    const originalPath = wrapper.vm.$router.currentRoute.value.fullPath
+    await wrapper.get('button[aria-label="管理员登录"]').trigger('click')
+    await wrapper.findAll('input')[0]!.setValue('admin-owner')
+    await wrapper.findAll('input')[1]!.setValue('username-password')
+    await wrapper.get('#remember-account').setValue(true)
+
+    const entry = wrapper.get('.email-login-entry')
+    expect(entry.text()).toBe('')
+    expect(entry.get('.bi-envelope').attributes('aria-hidden')).toBe('true')
+    await entry.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/login/email')
+    expect(wrapper.vm.$router.currentRoute.value.query).toEqual({
+      username: 'new-user',
+      redirect: '/cart',
+    })
+    expect(wrapper.get('.form-title').text()).toBe('邮箱登录')
+    expect(wrapper.get('input').attributes('type')).toBe('email')
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('')
+    expect(wrapper.find('.email-login-entry').exists()).toBe(false)
+    await wrapper.findAll('input')[0]!.setValue('admin@example.com')
+    await wrapper.findAll('input')[1]!.setValue('email-password')
+    await wrapper.get('.login-back-button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.vm.$router.currentRoute.value.fullPath).toBe(originalPath)
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('admin-owner')
+    expect((wrapper.findAll('input')[1]!.element as HTMLInputElement).value).toBe('')
+    expect((wrapper.get('#remember-account').element as HTMLInputElement).checked).toBe(true)
+    expect(wrapper.get('button[aria-label="管理员登录"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('.login-back-button').exists()).toBe(false)
+    expect(wrapper.find('.email-login-entry').exists()).toBe(true)
+  })
+
+  it('returns to username login when the email page is opened directly', async () => {
+    const wrapper = await mountLogin('/login/email?redirect=/cart')
+    expect(wrapper.get('input').attributes('type')).toBe('email')
+    await wrapper.get('.login-back-button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/login')
+    expect(wrapper.vm.$router.currentRoute.value.query.redirect).toBe('/cart')
+    expect(wrapper.get('input').attributes('type')).toBe('text')
+    expect(wrapper.find('.email-login-entry').exists()).toBe(true)
   })
 
   it('opens recovery and returns to email login with an empty password after success', async () => {
     const wrapper = await mountLogin()
+    useUserStore().login({ token: 'previous-token', user: { username: 'owner', role: 'user' } })
+    await wrapper.findAll('input')[1]!.setValue('previous-password')
     await wrapper.get('.forgot-password-link').trigger('click')
     const resetForm = wrapper.findComponent(PasswordResetForm)
     expect(resetForm.exists()).toBe(true)
     resetForm.vm.$emit('success', 'owner@example.com')
-    await nextTick()
+    await flushPromises()
     expect(wrapper.find('.reset-form-stub').exists()).toBe(false)
+    expect(wrapper.vm.$router.currentRoute.value.name).toBe('email_login')
     const inputs = wrapper.findAll('input')
     expect((inputs[0]!.element as HTMLInputElement).value).toBe('owner@example.com')
     expect((inputs[1]!.element as HTMLInputElement).value).toBe('')
+    expect(useUserStore().logged).toBe(false)
+    expect(localStorage.getItem('user')).toBeNull()
   })
 
   it('shows on entry and hides only after 1.5 seconds', async () => {

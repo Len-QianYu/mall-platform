@@ -70,22 +70,8 @@
                   <ElRadio value="">{{ t('保密') }}</ElRadio>
                 </ElRadioGroup>
               </ElFormItem>
-              <ElFormItem :label="t('邮箱')" prop="email">
-                <div class="profile-email-field">
-                  <ElInput
-                    v-model="form.email"
-                    maxlength="128"
-                    :disabled="emailVerified"
-                    :placeholder="t('选填')"
-                  />
-                  <ElTag v-if="emailVerified" type="success" effect="plain">{{
-                    t('已绑定')
-                  }}</ElTag>
-                  <ElButton @click="emailBindingVisible = true">{{
-                    t(emailVerified ? '修改绑定邮箱' : '绑定邮箱')
-                  }}</ElButton>
-                </div>
-                <div class="address-note">{{ t('验证邮箱后可使用邮箱登录和找回密码。') }}</div>
+              <ElFormItem :label="t('邮箱')" class="profile-email-field">
+                <ElButton @click="emailBindingVisible = true">{{ t('绑定邮箱') }}</ElButton>
               </ElFormItem>
               <ElFormItem :label="t('手机号')" prop="phone">
                 <ElInput
@@ -139,7 +125,12 @@
                 <div class="address-note">{{ t('下单时使用上方的名字、手机号和此地址。') }}</div>
               </ElFormItem>
               <ElFormItem>
-                <ElButton type="primary" :loading="saving" @click="saveProfile">
+                <ElButton
+                  class="save-profile-button"
+                  type="primary"
+                  :loading="saving"
+                  @click="saveProfile"
+                >
                   {{ returnToCheckout ? t('保存并返回下单') : t('保存') }}
                 </ElButton>
               </ElFormItem>
@@ -199,7 +190,6 @@ import {
   ElRadioGroup,
   ElSelect,
   ElTabPane,
-  ElTag,
   ElTabs,
   vLoading,
   type FormInstance,
@@ -229,12 +219,10 @@ const loading = ref(false)
 const loaded = ref(false)
 const avatarUploading = ref(false)
 const registeredAt = ref<string | null>(null)
-const emailVerified = ref(false)
 const emailBindingVisible = ref(false)
 
 const onEmailBound = (account: LoginResult) => {
   form.email = account.user.email ?? ''
-  emailVerified.value = Boolean(account.user.emailVerified)
   userStore.login(account)
 }
 
@@ -257,15 +245,6 @@ const profileFormRef = ref<FormInstance>()
 
 // 与后端 UserEntity 的校验规则一致
 const profileRules: FormRules = {
-  email: [
-    {
-      type: 'email',
-      get message() {
-        return t('请输入有效的邮箱')
-      },
-      trigger: 'blur',
-    },
-  ],
   phone: [
     {
       pattern: /^1[3-9]\d{9}$/,
@@ -317,7 +296,6 @@ onMounted(async () => {
     form.name = user.name ?? ''
     form.gender = user.gender ?? ''
     form.email = user.email ?? ''
-    emailVerified.value = Boolean(user.emailVerified)
     form.phone = user.phone ?? ''
     form.province = user.province ?? ''
     form.city = user.city ?? ''
@@ -465,18 +443,6 @@ const changePassword = async () => {
 </script>
 
 <style lang="scss" scoped>
-.profile-email-field {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-
-  .el-input {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
 .profile-body {
   display: flex;
   align-items: flex-start;

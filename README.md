@@ -189,7 +189,7 @@ MAIL_STARTTLS_ENABLED=false
 | `POST /account/password-reset/code` | 匿名获取找回验证码，发送 `{email}`，统一返回受理信息 |
 | `POST /account/password-reset` | 匿名重置密码，发送 `{email, code, newPassword}`，成功后重新登录 |
 
-在 `api/` 中设置 `EMAIL_AUTH_INTEGRATION_TESTS=true` 后运行 `mvnw.cmd test -Dtest=EmailAccountIntegrationTests`，可验证真实 MySQL / Redis / JWT 全链路；测试不发送外部邮件，数据库写入回滚，Redis 使用随机测试命名空间并清理自身数据。设置 `SMTP_CONNECTION_TESTS=true` 后运行 `mvnw.cmd test -Dtest=SmtpConnectionTests` 可检查本地发信配置的 TLS 连接与认证，此检查也不发送邮件。
+在 `api/` 中设置 `EMAIL_AUTH_INTEGRATION_TESTS=true` 后运行 `mvnw.cmd test -Dtest=EmailAccountIntegrationTests`，可验证真实 MySQL / Redis / JWT 全链路，覆盖验证码重复与并发消费、邮箱大小写及空白归一化、并发绑定唯一性、改绑后旧邮箱找回失效，以及重置后旧密码和登录令牌失效。测试不发送外部邮件；普通用例数据库写入回滚，并发用例使用临时账号并在结束后清理；Redis 使用随机测试命名空间并清理自身数据。设置 `SMTP_CONNECTION_TESTS=true` 后运行 `mvnw.cmd test -Dtest=SmtpConnectionTests` 可检查本地发信配置的 TLS 连接与认证，此检查也不发送邮件。
 
 ## 性能压测
 

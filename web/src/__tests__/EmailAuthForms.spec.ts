@@ -41,6 +41,7 @@ describe('email authentication forms', () => {
       newPassword: 'new-password',
     })
     expect(wrapper.emitted('success')).toEqual([['owner@example.com']])
+    expect((inputs[1]!.element as HTMLInputElement).value).toBe('')
     expect((inputs[2]!.element as HTMLInputElement).value).toBe('')
     expect((inputs[3]!.element as HTMLInputElement).value).toBe('')
   })

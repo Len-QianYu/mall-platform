@@ -29,6 +29,8 @@ import com.example.api.entity.ProductNotificationEntity;
 import com.example.api.entity.OrderNotificationEntity;
 import com.example.api.entity.OrderShipmentNotificationEntity;
 import com.example.api.enums.ProductNotificationType;
+import com.example.api.entity.UserEntity;
+import com.example.api.mapper.UserMapper;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -152,6 +154,22 @@ class NotificationSocketTests {
         attributes.put(NotificationHandshakeInterceptor.TOKEN_EXPIRES_AT, Instant.now().plusSeconds(3600));
         when(session.getAttributes()).thenReturn(attributes);
         return session;
+    }
+
+    @Test
+    void passwordChangesStopPreviouslyAuthenticatedNotificationConnections() throws Exception {
+        UserMapper users = mock(UserMapper.class);
+        UserEntity user = new UserEntity(); user.setId(7); user.setAuthVersion(0L);
+        when(users.selectById(7)).thenReturn(user);
+        ProductNotificationWebSocketHandler handler = new ProductNotificationWebSocketHandler(JsonMapper.builder().build(), users);
+        WebSocketSession session = this.session("versioned", 7);
+        session.getAttributes().put(NotificationHandshakeInterceptor.AUTH_VERSION, 0L);
+        handler.afterConnectionEstablished(session);
+        clearInvocations(session);
+        user.setAuthVersion(1L);
+        handler.sendRefresh(7);
+        verify(session, never()).sendMessage(any());
+        verify(session).close(CloseStatus.POLICY_VIOLATION);
     }
 
     @Test

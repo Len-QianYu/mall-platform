@@ -24,6 +24,18 @@
     <!-- 右侧:登录表单 -->
     <div class="login-right">
       <div class="login-form-box">
+        <button
+          v-if="loginMethod === 'email'"
+          type="button"
+          class="login-back-button"
+          :aria-label="t('返回登录')"
+          :disabled="logging"
+          @click="returnToLogin"
+        >
+          <i class="bi bi-arrow-left" aria-hidden="true"></i>
+          <span>{{ t('返回') }}</span>
+        </button>
+
         <!-- 主题切换按钮：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
         <div class="theme-toggle-button_box">
           <button
@@ -44,27 +56,16 @@
           :label-width="formLabelWidth('80')"
           label-position="left"
         >
-          <h2 class="form-title">{{ t('欢迎回来🤖') }}</h2>
-          <p class="welcome-text">{{ t('请输入账号信息，登录商城') }}</p>
-
-          <div class="login-method-switch" role="group" :aria-label="t('账号登录方式')">
-            <button
-              type="button"
-              :aria-pressed="loginMethod === 'username'"
-              :disabled="logging"
-              @click="switchLoginMethod('username')"
-            >
-              {{ t('用户名登录') }}
-            </button>
-            <button
-              type="button"
-              :aria-pressed="loginMethod === 'email'"
-              :disabled="logging"
-              @click="switchLoginMethod('email')"
-            >
-              {{ t('邮箱登录') }}
-            </button>
-          </div>
+          <h2 class="form-title">{{ t(loginMethod === 'email' ? '邮箱登录' : '欢迎回来🤖') }}</h2>
+          <p class="welcome-text">
+            {{
+              t(
+                loginMethod === 'email'
+                  ? '使用已绑定邮箱和密码登录商城'
+                  : '请输入账号信息，登录商城',
+              )
+            }}
+          </p>
 
           <ElFormItem prop="username" :label="t(loginMethod === 'email' ? '邮箱' : '用户名')">
             <ElInput
@@ -75,7 +76,11 @@
               :placeholder="t(loginMethod === 'email' ? '请输入已绑定邮箱' : '请输入用户名')"
             >
               <template v-slot:suffix>
-                <i class="bi bi-person-fill icon-suffix"></i>
+                <i
+                  class="bi icon-suffix"
+                  :class="loginMethod === 'email' ? 'bi-envelope' : 'bi-person-fill'"
+                  aria-hidden="true"
+                ></i>
               </template>
             </ElInput>
           </ElFormItem>
@@ -87,6 +92,18 @@
               </template>
             </ElInput>
           </ElFormItem>
+
+          <button
+            v-if="loginMethod === 'username'"
+            type="button"
+            class="email-login-entry"
+            :aria-label="t('邮箱登录')"
+            :title="t('邮箱登录')"
+            :disabled="logging"
+            @click="openEmailLogin"
+          >
+            <i class="bi bi-envelope" aria-hidden="true"></i>
+          </button>
 
           <!-- 记住账号和忘记密码 -->
           <div class="remember-forgot-box">
@@ -272,39 +289,80 @@ onMounted(scheduleRoleSwitchHide)
 
 const registeredUsername = typeof route.query.username === 'string' ? route.query.username : ''
 // 只接受站内路径（排除 // 开头的协议相对地址），防止 ?redirect= 被拼成外部地址
-const redirect =
+const redirect = computed(() =>
   typeof route.query.redirect === 'string' &&
   route.query.redirect.startsWith('/') &&
   !route.query.redirect.startsWith('//')
     ? route.query.redirect
-    : ''
+    : '',
+)
+
+const loginMethod = computed<'username' | 'email'>(() =>
+  route.name === 'email_login' ? 'email' : 'username',
+)
+const accountIdentifiers = reactive({
+  username:
+    registeredUsername ||
+    (rememberedAccount?.method !== 'email' ? (rememberedAccount?.username ?? '') : ''),
+  email: rememberedAccount?.method === 'email' ? rememberedAccount.username : '',
+})
 
 const model = reactive({
   role: (registeredUsername ? 'user' : (rememberedAccount?.role ?? 'user')) as LoginRole,
-  username: registeredUsername || rememberedAccount?.username || '',
+  username: accountIdentifiers[loginMethod.value],
   password: '',
 })
-const loginMethod = ref<'username' | 'email'>(
-  registeredUsername ? 'username' : (rememberedAccount?.method ?? 'username'),
-)
 const logging = ref(false)
 const forgotPasswordVisible = ref(false)
+const loginReturnPath = ref(
+  loginMethod.value === 'username'
+    ? route.fullPath
+    : router.resolve({ name: 'login', query: route.query, hash: route.hash }).fullPath,
+)
 
-const switchLoginMethod = (method: 'username' | 'email') => {
-  if (logging.value || loginMethod.value === method) return
-  loginMethod.value = method
-  model.username = ''
+watch(loginMethod, (method, previousMethod) => {
+  accountIdentifiers[previousMethod] = model.username
+  model.username = accountIdentifiers[method]
   model.password = ''
   form.value?.clearValidate?.()
+})
+
+const openEmailLogin = () => {
+  if (logging.value || loginMethod.value === 'email') return
+  loginReturnPath.value = route.fullPath
+  return router.push({ name: 'email_login', query: route.query, hash: route.hash })
 }
 
-const onPasswordReset = (email: string) => {
+const returnToLogin = () => {
+  if (logging.value) return
+  if (router.options.history.state.back === loginReturnPath.value) {
+    router.back()
+  } else {
+    void router.replace(loginReturnPath.value)
+  }
+}
+
+onMounted(() => {
+  if (
+    !registeredUsername &&
+    rememberedAccount?.method === 'email' &&
+    loginMethod.value === 'username'
+  ) {
+    void router.replace({ name: 'email_login', query: route.query, hash: route.hash })
+  }
+})
+
+const onPasswordReset = async (email: string) => {
   forgotPasswordVisible.value = false
   userStore.logout()
-  loginMethod.value = 'email'
-  model.username = email
+  accountIdentifiers.email = email
   model.password = ''
-  form.value?.clearValidate?.()
+  if (loginMethod.value === 'email') {
+    model.username = email
+    form.value?.clearValidate?.()
+  } else {
+    await openEmailLogin()
+  }
 }
 
 const switchLoginRole = (role: LoginRole) => {
@@ -416,8 +474,8 @@ const login = () => {
               // 根据角色跳转到不同首页；普通用户若是从需登录的页面被拦过来的，跳回原页面
               if (userStore.isAdmin) {
                 router.replace({ name: 'admin_dashboard' }) // 管理员首页
-              } else if (redirect) {
-                router.replace(redirect)
+              } else if (redirect.value) {
+                router.replace(redirect.value)
               } else {
                 router.replace({ name: 'index' }) // 用户首页
               }
@@ -445,28 +503,62 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.login-method-switch {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
+.email-login-entry,
+.login-back-button {
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-blank);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
 
-  button {
-    flex: 1;
-    padding: 0.5rem;
-    border: 1px solid var(--el-border-color);
-    border-radius: 6px;
-    color: var(--el-text-color-regular);
-    background: var(--el-fill-color-blank);
-    font: inherit;
-    font-size: 0.875rem;
-    cursor: pointer;
-
-    &[aria-pressed='true'] {
-      border-color: var(--el-color-primary);
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-    }
+  &:hover:not(:disabled) {
+    border-color: var(--el-color-primary);
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.email-login-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 2rem;
+  margin-bottom: 1.25rem;
+  padding: 0;
+  border-radius: 999px;
+
+  .bi {
+    font-size: 1rem;
+    line-height: 1;
+  }
+}
+
+.login-back-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
 }
 
 .forgot-password-link {

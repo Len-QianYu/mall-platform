@@ -4,11 +4,14 @@ import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { ElAvatar, ElOption, ElSelect } from 'element-plus'
 import type { ApiResult, User } from '@/types/api'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, type LoginResult } from '@/stores/user'
 import ProfileView from '@/views/shop/ProfileView.vue'
 import ImageUploader from '@/components/ImageUploader.vue'
+import EmailBindingDialog from '@/components/auth/EmailBindingDialog.vue'
 
-type ProfileResponse = { data: ApiResult<{ url?: string }> }
+type ProfileResponse = {
+  data: ApiResult<{ url?: string } | { resendAfterSeconds: number } | LoginResult>
+}
 
 const { getProfile, postProfile } = vi.hoisted(() => ({
   getProfile: vi.fn<(url: string) => Promise<{ data: ApiResult<{ user: User }> }>>(),
@@ -56,6 +59,10 @@ const mountProfile = async (admin = true, query: Record<string, string> = {}) =>
       plugins: [pinia, router],
       stubs: {
         ElCard: { template: '<div><slot /></div>' },
+        ElDialog: {
+          props: ['modelValue'],
+          template: '<section v-if="modelValue"><slot /><slot name="footer" /></section>',
+        },
       },
     },
   })
@@ -107,7 +114,7 @@ describe('personal information page', () => {
       })
       const inputs = wrapper.get('.profile-form').findAll('input.el-input__inner')
       await inputs[1]!.setValue('未保存的名字')
-      await inputs[2]!.setValue('invalid-email')
+      await inputs[2]!.setValue('invalid-phone')
 
       const input = wrapper.get<HTMLInputElement>('input[type="file"]')
       const openFilePicker = vi.spyOn(input.element, 'click')
@@ -130,7 +137,7 @@ describe('personal information page', () => {
       for (const form of wrapper.findAll('.profile-form')) {
         expect((form.get('button').element as HTMLButtonElement).disabled).toBe(true)
       }
-      await wrapper.get('.profile-form button').trigger('click')
+      await wrapper.get('.profile-form .save-profile-button').trigger('click')
       expect(postProfile).toHaveBeenCalledOnce()
 
       complete({ data: { status: true, payload: { url: '/avatars/new.png' } } })
@@ -141,8 +148,9 @@ describe('personal information page', () => {
       expect(JSON.parse(localStorage.getItem('user')!).user.avatarUrl).toBe('/avatars/new.png')
       expect(store.user?.user.name).toBe(user.name)
       expect(store.user?.user.email).toBe(user.email)
+      expect(store.user?.user.phone).toBe(user.phone)
       expect((inputs[1]!.element as HTMLInputElement).value).toBe('未保存的名字')
-      expect((inputs[2]!.element as HTMLInputElement).value).toBe('invalid-email')
+      expect((inputs[2]!.element as HTMLInputElement).value).toBe('invalid-phone')
       expect(store.user?.token).toBe('profile-test-token')
       expect(store.user?.user.role).toBe(admin ? 'admin' : 'user')
       expect(router.currentRoute.value.name).toBe(admin ? 'admin_profile' : 'profile')
@@ -167,7 +175,9 @@ describe('personal information page', () => {
     expect(wrapper.getComponent(ElAvatar).props('src')).toContain('/avatars/previous.png')
     expect(JSON.parse(localStorage.getItem('user')!).user.avatarUrl).toBe('/avatars/previous.png')
     expect(wrapper.getComponent(ImageUploader).props('uploading')).toBe(false)
-    expect((wrapper.get('.profile-form button').element as HTMLButtonElement).disabled).toBe(false)
+    expect(
+      (wrapper.get('.profile-form .save-profile-button').element as HTMLButtonElement).disabled,
+    ).toBe(false)
 
     postProfile.mockResolvedValueOnce({
       data: { status: true, payload: { url: '/avatars/retry.png' } },
@@ -199,7 +209,7 @@ describe('personal information page', () => {
           complete = resolve
         }),
     )
-    await form.get('button').trigger('click')
+    await form.get('.save-profile-button').trigger('click')
     await flushPromises()
 
     expect(postProfile).toHaveBeenCalledWith('/user/update', {
@@ -232,11 +242,71 @@ describe('personal information page', () => {
     expect((wrapper.get('.profile-form textarea').element as HTMLTextAreaElement).disabled).toBe(
       true,
     )
-    await wrapper.get('.profile-form button').trigger('click')
+    await wrapper.get('.profile-form .save-profile-button').trigger('click')
     await flushPromises()
 
     expect(postProfile).not.toHaveBeenCalled()
   })
+
+  it.each([true, false])(
+    'opens the email dialog and updates the account after verification (admin: %s)',
+    async (admin) => {
+      const { wrapper, store } = await mountProfile(admin)
+      const emailField = wrapper.get('.profile-email-field')
+      expect(emailField.findAll('button')).toHaveLength(1)
+      expect(emailField.get('button').text()).toBe('绑定邮箱')
+      expect(emailField.find('input').exists()).toBe(false)
+      expect(emailField.find('.el-tag').exists()).toBe(false)
+      await wrapper.get('.profile-email-field button').trigger('click')
+      const dialog = wrapper.findComponent(EmailBindingDialog)
+      expect(dialog.props('modelValue')).toBe(true)
+      expect(dialog.props('initialEmail')).toBe(user.email)
+      const inputs = dialog.findAll('input')
+      await inputs[0]!.setValue('BOUND@EXAMPLE.COM')
+      await inputs[1]!.setValue('current-password')
+      postProfile.mockResolvedValueOnce({
+        data: { status: true, payload: { resendAfterSeconds: 60 } },
+      })
+      await dialog
+        .findAll('button')
+        .find((button) => button.text() === '发送验证码')!
+        .trigger('click')
+      await flushPromises()
+
+      expect(postProfile).toHaveBeenCalledWith('/account/email/code', {
+        email: 'bound@example.com',
+        password: 'current-password',
+      })
+      expect(store.user?.token).toBe('profile-test-token')
+      expect(dialog.props('modelValue')).toBe(true)
+      const account = {
+        token: 'refreshed-profile-token',
+        user: {
+          ...user,
+          role: admin ? ('admin' as const) : ('user' as const),
+          email: 'bound@example.com',
+          emailVerified: true,
+        },
+      }
+      postProfile.mockResolvedValueOnce({ data: { status: true, payload: account } })
+      await inputs[2]!.setValue('123456')
+      await dialog.get('button.el-button--primary').trigger('click')
+      await flushPromises()
+
+      expect(postProfile).toHaveBeenLastCalledWith('/account/email/bind', {
+        email: 'bound@example.com',
+        password: 'current-password',
+        code: '123456',
+      })
+      expect(store.user).toEqual(account)
+      expect(JSON.parse(localStorage.getItem('user')!)).toEqual(account)
+      expect(emailField.find('input').exists()).toBe(false)
+      expect(emailField.find('.el-tag').exists()).toBe(false)
+      expect(emailField.get('button').text()).toBe('绑定邮箱')
+      expect(dialog.props('initialEmail')).toBe('bound@example.com')
+      expect(dialog.props('modelValue')).toBe(false)
+    },
+  )
 
   it.each([true, false])(
     'restores searchable province and city selections (admin: %s)',
@@ -282,7 +352,7 @@ describe('personal information page', () => {
 
     city!.vm.$emit('update:modelValue', '杭州市')
     await flushPromises()
-    await wrapper.get('.profile-form button.el-button').trigger('click')
+    await wrapper.get('.profile-form .save-profile-button').trigger('click')
     await flushPromises()
 
     expect(postProfile).toHaveBeenCalledWith(
@@ -307,7 +377,7 @@ describe('personal information page', () => {
     expect(city!.props('modelValue')).toBe('')
     expect(city!.props('disabled')).toBe(true)
     expect(city!.findAllComponents(ElOption)).toHaveLength(0)
-    await wrapper.get('.profile-form button.el-button').trigger('click')
+    await wrapper.get('.profile-form .save-profile-button').trigger('click')
     await flushPromises()
 
     expect(postProfile).toHaveBeenCalledWith(
@@ -328,7 +398,7 @@ describe('personal information page', () => {
     await flushPromises()
     postProfile.mockResolvedValueOnce({ data: { status: false, payload: { message: '保存失败' } } })
 
-    await wrapper.get('.profile-form button.el-button').trigger('click')
+    await wrapper.get('.profile-form .save-profile-button').trigger('click')
     await flushPromises()
 
     expect(store.user?.user.province).toBe('北京市')
@@ -343,7 +413,7 @@ describe('personal information page', () => {
     expect((address.element as HTMLTextAreaElement).value).toBe(user.receiverAddress)
 
     await address.setValue(' 浙江省杭州市西湖区文三路1号 ')
-    await wrapper.get('.profile-form button.el-button').trigger('click')
+    await wrapper.get('.profile-form .save-profile-button').trigger('click')
     await flushPromises()
 
     expect(postProfile).toHaveBeenCalledWith(
@@ -359,7 +429,7 @@ describe('personal information page', () => {
   it('allows clearing the saved shipping address', async () => {
     const { wrapper, store } = await mountProfile(false)
     await wrapper.get('.profile-form textarea').setValue('   ')
-    await wrapper.get('.profile-form button.el-button').trigger('click')
+    await wrapper.get('.profile-form .save-profile-button').trigger('click')
     await flushPromises()
 
     expect(postProfile).toHaveBeenCalledWith(
@@ -373,7 +443,7 @@ describe('personal information page', () => {
     const { wrapper, store, router } = await mountProfile(false, {
       redirect: '/checkout?productId=11&quantity=2',
     })
-    const save = wrapper.get('.profile-form button.el-button')
+    const save = wrapper.get('.profile-form .save-profile-button')
     expect(save.text()).toBe('保存并返回下单')
     await wrapper.get('.profile-form textarea').setValue('浙江省杭州市西湖区文三路1号')
     postProfile.mockResolvedValueOnce({ data: { status: false, payload: { message: '保存失败' } } })
