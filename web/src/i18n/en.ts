@@ -520,6 +520,7 @@ export const english: Record<string, string> = {
   加载订单失败: 'Could not load order',
   '订单号：': 'Order number: ',
   实付: 'Paid',
+  该商品已经下架: 'This product is no longer available',
   暂无相关订单: 'No matching orders',
   待支付: 'Awaiting payment',
   待发货: 'Awaiting shipment',

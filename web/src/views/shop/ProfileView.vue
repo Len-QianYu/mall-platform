@@ -71,7 +71,8 @@
                 </ElRadioGroup>
               </ElFormItem>
               <ElFormItem :label="t('邮箱')" class="profile-email-field">
-                <ElButton @click="emailBindingVisible = true">{{ t('绑定邮箱') }}</ElButton>
+                <ElInput v-if="form.email && emailVerified" :model-value="form.email" readonly />
+                <ElButton v-else @click="emailBindingVisible = true">{{ t('绑定邮箱') }}</ElButton>
               </ElFormItem>
               <ElFormItem :label="t('手机号')" prop="phone">
                 <ElInput
@@ -220,9 +221,11 @@ const loaded = ref(false)
 const avatarUploading = ref(false)
 const registeredAt = ref<string | null>(null)
 const emailBindingVisible = ref(false)
+const emailVerified = ref(false)
 
 const onEmailBound = (account: LoginResult) => {
   form.email = account.user.email ?? ''
+  emailVerified.value = account.user.emailVerified === true
   userStore.login(account)
 }
 
@@ -296,6 +299,7 @@ onMounted(async () => {
     form.name = user.name ?? ''
     form.gender = user.gender ?? ''
     form.email = user.email ?? ''
+    emailVerified.value = user.emailVerified === true
     form.phone = user.phone ?? ''
     form.province = user.province ?? ''
     form.city = user.city ?? ''

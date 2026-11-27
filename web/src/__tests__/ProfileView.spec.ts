@@ -28,6 +28,7 @@ const user: User = {
   gender: 'F',
   role: 'admin',
   email: 'admin@example.com',
+  emailVerified: false,
   phone: '13800138000',
   province: '北京市',
   city: '海淀区',
@@ -249,6 +250,25 @@ describe('personal information page', () => {
   })
 
   it.each([true, false])(
+    'shows the verified email returned by the profile API (admin: %s)',
+    async (admin) => {
+      getProfile.mockResolvedValueOnce({
+        data: {
+          status: true,
+          payload: { user: { ...user, email: 'bound@example.com', emailVerified: true } },
+        },
+      })
+      const { wrapper } = await mountProfile(admin)
+      const emailField = wrapper.get('.profile-email-field')
+      const emailInput = emailField.get<HTMLInputElement>('input')
+
+      expect(emailInput.element.value).toBe('bound@example.com')
+      expect(emailInput.element.readOnly).toBe(true)
+      expect(emailField.find('button').exists()).toBe(false)
+    },
+  )
+
+  it.each([true, false])(
     'opens the email dialog and updates the account after verification (admin: %s)',
     async (admin) => {
       const { wrapper, store } = await mountProfile(admin)
@@ -279,6 +299,8 @@ describe('personal information page', () => {
       })
       expect(store.user?.token).toBe('profile-test-token')
       expect(dialog.props('modelValue')).toBe(true)
+      expect(emailField.find('input').exists()).toBe(false)
+      expect(emailField.get('button').text()).toBe('绑定邮箱')
       const account = {
         token: 'refreshed-profile-token',
         user: {
@@ -300,9 +322,11 @@ describe('personal information page', () => {
       })
       expect(store.user).toEqual(account)
       expect(JSON.parse(localStorage.getItem('user')!)).toEqual(account)
-      expect(emailField.find('input').exists()).toBe(false)
+      const emailInput = emailField.get<HTMLInputElement>('input')
+      expect(emailInput.element.value).toBe('bound@example.com')
+      expect(emailInput.element.readOnly).toBe(true)
       expect(emailField.find('.el-tag').exists()).toBe(false)
-      expect(emailField.get('button').text()).toBe('绑定邮箱')
+      expect(emailField.find('button').exists()).toBe(false)
       expect(dialog.props('initialEmail')).toBe('bound@example.com')
       expect(dialog.props('modelValue')).toBe(false)
     },

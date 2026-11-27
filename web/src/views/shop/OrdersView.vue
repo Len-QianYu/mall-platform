@@ -22,7 +22,15 @@
           <div class="order-content">
             <!-- 商品名、主图、单价是下单时的快照 -->
             <div class="order-items">
-              <div v-for="item in order.items" :key="item.id" class="order-item">
+              <button
+                v-for="item in order.items"
+                :key="item.id"
+                type="button"
+                class="order-item"
+                :title="t('查看商品')"
+                :disabled="openingProduct"
+                @click="openProduct(item.productId)"
+              >
                 <ElImage
                   v-if="item.productImage"
                   class="product-image"
@@ -36,11 +44,11 @@
                 <span class="text-secondary">
                   {{ formatMoney(item.unitPrice) }} × {{ item.quantity }}
                 </span>
-              </div>
+              </button>
             </div>
 
             <div class="order-side">
-              <div>
+              <div class="order-payment">
                 {{ t('实付') }}
                 <span class="price order-amount">{{ formatMoney(order.totalAmount) }}</span>
               </div>
@@ -131,7 +139,7 @@ import {
   vLoading,
 } from 'element-plus'
 import request from '@/utils/request'
-import type { ApiResult, OrderStatus, OrderWithItems, Pagination } from '@/types/api'
+import type { ApiResult, OrderStatus, OrderWithItems, Pagination, Product } from '@/types/api'
 import { ORDER_STATUS, assetUrl, formatDateTime, formatMoney } from '@/utils/format'
 import { changeOrderStatus, type UserOrderAction } from '@/utils/order'
 
@@ -151,6 +159,26 @@ const router = useRouter()
 const activeTab = ref<OrderStatus | 'ALL'>('ALL')
 const loading = ref(false)
 const orders = ref<OrderWithItems[]>([])
+const openingProduct = ref(false)
+
+const openProduct = async (productId: number) => {
+  if (openingProduct.value) return
+  openingProduct.value = true
+  const originRoute = router.currentRoute.value
+  try {
+    const { data } = await request.get<ApiResult<{ product: Product }>>(`/product/${productId}`)
+    if (router.currentRoute.value !== originRoute) return
+    if (!data.status || data.payload.product.status !== 1) {
+      ElMessage.warning(t('该商品已经下架'))
+      return
+    }
+    await router.push({ name: 'product_detail', params: { id: productId } })
+  } catch {
+    if (router.currentRoute.value === originRoute) ElMessage.error(t('加载商品失败'))
+  } finally {
+    openingProduct.value = false
+  }
+}
 
 const pagination = reactive({
   currentPage: 1,
@@ -246,6 +274,28 @@ const changeStatus = async (id: number, action: UserOrderAction) => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--el-fill-color-light);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: wait;
+  }
 }
 
 .product-image {
@@ -267,14 +317,17 @@ const changeStatus = async (id: number, action: UserOrderAction) => {
 .order-side {
   display: flex;
   flex-shrink: 0;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   gap: 0.75rem;
   padding-left: 1.5rem;
   border-left: 1px solid var(--el-border-color-lighter);
   color: var(--el-text-color-regular);
   font-size: 0.875rem;
+}
+
+.order-payment {
+  white-space: nowrap;
 }
 
 .order-amount {
@@ -297,9 +350,16 @@ const changeStatus = async (id: number, action: UserOrderAction) => {
   }
 
   .order-side {
+    flex-wrap: wrap;
+    justify-content: flex-end;
     padding: 0.75rem 0 0;
     border-top: 1px solid var(--el-border-color-lighter);
     border-left: none;
+  }
+
+  .order-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
 </style>

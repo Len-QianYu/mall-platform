@@ -24,18 +24,6 @@
     <!-- 右侧:登录表单 -->
     <div class="login-right">
       <div class="login-form-box">
-        <button
-          v-if="loginMethod === 'email'"
-          type="button"
-          class="login-back-button"
-          :aria-label="t('返回登录')"
-          :disabled="logging"
-          @click="returnToLogin"
-        >
-          <i class="bi bi-arrow-left" aria-hidden="true"></i>
-          <span>{{ t('返回') }}</span>
-        </button>
-
         <!-- 主题切换按钮：图标表示点击后切换到的模式，亮色时显示月亮，暗色时显示太阳 -->
         <div class="theme-toggle-button_box">
           <button
@@ -103,6 +91,17 @@
             @click="openEmailLogin"
           >
             <i class="bi bi-envelope" aria-hidden="true"></i>
+          </button>
+          <button
+            v-else
+            type="button"
+            class="login-back-button"
+            :aria-label="t('返回登录')"
+            :title="t('返回登录')"
+            :disabled="logging"
+            @click="returnToLogin"
+          >
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
           </button>
 
           <!-- 记住账号和忘记密码 -->
@@ -505,10 +504,17 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .email-login-entry,
 .login-back-button {
-  border: 1px solid var(--el-border-color);
-  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 65%;
+  height: 2rem;
+  margin: 0 auto 1.25rem;
+  padding: 0;
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 999px;
   color: var(--el-text-color-regular);
-  background: var(--el-fill-color-blank);
+  background: var(--el-color-primary-light-9);
   font: inherit;
   cursor: pointer;
   transition:
@@ -519,7 +525,7 @@ onUnmounted(() => {
   &:hover:not(:disabled) {
     border-color: var(--el-color-primary);
     color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
+    background: var(--el-color-primary-light-8);
   }
 
   &:focus-visible {
@@ -531,34 +537,11 @@ onUnmounted(() => {
     opacity: 0.6;
     cursor: not-allowed;
   }
-}
-
-.email-login-entry {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 2rem;
-  margin-bottom: 1.25rem;
-  padding: 0;
-  border-radius: 999px;
 
   .bi {
     font-size: 1rem;
     line-height: 1;
   }
-}
-
-.login-back-button {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 40px;
-  padding: 0 0.75rem;
-  font-size: 0.875rem;
 }
 
 .forgot-password-link {
