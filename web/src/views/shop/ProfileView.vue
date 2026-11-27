@@ -6,64 +6,87 @@
     <h1 v-else class="section-title"><i class="bi bi-person"></i>{{ t('个人中心') }}</h1>
 
     <div v-loading="loading" class="profile-body">
-      <ElCard shadow="never" class="profile-side">
-        <ImageUploader
-          :model-value="form.avatarUrl"
-          v-model:uploading="avatarUploading"
-          type="avatars"
-          :disabled="loading || saving || changingPassword || avatarUploading || !loaded"
-          :show-tip="false"
-          class="profile-avatar"
-          @update:model-value="onAvatarUploaded"
-        >
-          <template #trigger="{ uploading, disabled }">
-            <div
-              v-loading="uploading"
-              class="avatar-trigger"
-              :class="{ 'is-disabled': disabled }"
-              :title="t('支持 JPG、PNG、GIF、WEBP，不超过 5MB')"
-            >
-              <ElAvatar :size="88" :src="assetUrl(form.avatarUrl)">
-                <span class="avatar-letter">{{ userStore.name.charAt(0).toUpperCase() }}</span>
-              </ElAvatar>
-              <span class="avatar-action">{{ t('更换头像') }}</span>
-            </div>
-          </template>
-        </ImageUploader>
-        <div class="avatar-tip text-secondary">{{ t('点击头像更换') }}</div>
-        <div class="side-name">{{ form.name || userStore.name }}</div>
-        <div class="text-secondary">@{{ userStore.name }}</div>
-        <div v-if="registeredAt" class="text-secondary side-meta">
-          {{ t('注册于') }} {{ formatDateTime(registeredAt) }}
-        </div>
-        <div v-if="!admin" class="side-links">
-          <ElButton @click="router.push({ name: 'orders' })">
-            <i class="bi bi-receipt btn-icon"></i>{{ t('我的订单') }}
-          </ElButton>
-          <ElButton @click="router.push({ name: 'cart' })">
-            <i class="bi bi-cart3 btn-icon"></i>{{ t('购物车') }}
-          </ElButton>
-        </div>
-      </ElCard>
+      <div class="profile-sidebar">
+        <ElCard shadow="never" class="profile-side">
+          <ImageUploader
+            :model-value="form.avatarUrl"
+            v-model:uploading="avatarUploading"
+            type="avatars"
+            :disabled="loading || saving || changingPassword || avatarUploading || !loaded"
+            :show-tip="false"
+            class="profile-avatar"
+            @update:model-value="onAvatarUploaded"
+          >
+            <template #trigger="{ uploading, disabled }">
+              <div
+                v-loading="uploading"
+                class="avatar-trigger"
+                :class="{ 'is-disabled': disabled }"
+                :title="t('支持 JPG、PNG、GIF、WEBP，不超过 5MB')"
+              >
+                <ElAvatar :size="88" :src="assetUrl(form.avatarUrl)">
+                  <span class="avatar-letter">{{ userStore.name.charAt(0).toUpperCase() }}</span>
+                </ElAvatar>
+                <span class="avatar-action">{{ t('更换头像') }}</span>
+              </div>
+            </template>
+          </ImageUploader>
+          <div class="avatar-tip text-secondary">{{ t('点击头像更换') }}</div>
+          <div class="side-name">{{ form.name || userStore.name }}</div>
+          <div class="text-secondary">@{{ userStore.name }}</div>
+          <div v-if="registeredAt" class="text-secondary side-meta">
+            {{ t('注册于') }} {{ formatDateTime(registeredAt) }}
+          </div>
+          <div v-if="!admin" class="side-links">
+            <ElButton @click="router.push({ name: 'orders' })">
+              <i class="bi bi-receipt btn-icon"></i>{{ t('我的订单') }}
+            </ElButton>
+            <ElButton @click="router.push({ name: 'cart' })">
+              <i class="bi bi-cart3 btn-icon"></i>{{ t('购物车') }}
+            </ElButton>
+          </div>
+        </ElCard>
+        <SuperAdminDetails v-if="userStore.role === 'super_admin'" />
+      </div>
 
       <ElCard shadow="never" class="profile-main">
         <ElTabs v-model="activeTab">
           <ElTabPane :label="t('基本资料')" name="profile">
+            <template #label>
+              <span class="profile-tab-label">
+                <i class="bi bi-person-vcard" aria-hidden="true"></i>{{ t('基本资料') }}
+              </span>
+            </template>
             <ElForm
               ref="profileFormRef"
               :model="form"
               :rules="profileRules"
               :disabled="loading || saving || changingPassword || avatarUploading || !loaded"
-              :label-width="formLabelWidth('80px')"
+              :label-width="locale === 'en' ? '152px' : '100px'"
               class="profile-form"
             >
               <ElFormItem :label="t('用户名')">
+                <template #label>
+                  <span class="profile-field-label">
+                    <i class="bi bi-person-badge" aria-hidden="true"></i>{{ t('用户名') }}
+                  </span>
+                </template>
                 <ElInput :model-value="userStore.name" disabled />
               </ElFormItem>
               <ElFormItem :label="t('名字')" prop="name">
+                <template #label>
+                  <span class="profile-field-label">
+                    <i class="bi bi-person" aria-hidden="true"></i>{{ t('名字') }}
+                  </span>
+                </template>
                 <ElInput v-model="form.name" maxlength="32" :placeholder="t('选填')" />
               </ElFormItem>
               <ElFormItem :label="t('性别')" prop="gender">
+                <template #label>
+                  <span class="profile-field-label">
+                    <i class="bi bi-gender-ambiguous" aria-hidden="true"></i>{{ t('性别') }}
+                  </span>
+                </template>
                 <ElRadioGroup v-model="form.gender">
                   <ElRadio value="M">{{ t('男') }}</ElRadio>
                   <ElRadio value="F">{{ t('女') }}</ElRadio>
@@ -71,49 +94,78 @@
                 </ElRadioGroup>
               </ElFormItem>
               <ElFormItem :label="t('邮箱')" class="profile-email-field">
+                <template #label>
+                  <span class="profile-field-label">
+                    <i class="bi bi-envelope" aria-hidden="true"></i>{{ t('邮箱') }}
+                  </span>
+                </template>
                 <ElInput v-if="form.email && emailVerified" :model-value="form.email" readonly />
-                <ElButton v-else @click="emailBindingVisible = true">{{ t('绑定邮箱') }}</ElButton>
+                <ElButton v-else @click="emailBindingVisible = true">
+                  <i class="bi bi-envelope-plus btn-icon" aria-hidden="true"></i>{{ t('绑定邮箱') }}
+                </ElButton>
               </ElFormItem>
               <ElFormItem :label="t('手机号')" prop="phone">
+                <template #label>
+                  <span class="profile-field-label">
+                    <i class="bi bi-phone" aria-hidden="true"></i>{{ t('手机号') }}
+                  </span>
+                </template>
                 <ElInput
                   v-model="form.phone"
                   maxlength="11"
                   :placeholder="t(admin ? '选填' : '选填，用于收货联系')"
                 />
               </ElFormItem>
-              <ElFormItem :label="t('省份')" prop="province">
-                <ElSelect
-                  v-model="form.province"
-                  :placeholder="t('请选择省份（选填）')"
-                  filterable
-                  clearable
-                  @change="form.city = ''"
-                >
-                  <ElOption
-                    v-for="province in provinceList"
-                    :key="province.value"
-                    :label="t(province.label)"
-                    :value="province.value"
-                  />
-                </ElSelect>
-              </ElFormItem>
-              <ElFormItem :label="t('城市')" prop="city">
-                <ElSelect
-                  v-model="form.city"
-                  :placeholder="t(form.province ? '请选择城市（选填）' : '请先选择省份')"
-                  :disabled="cityList.length === 0"
-                  filterable
-                  clearable
-                >
-                  <ElOption
-                    v-for="city in cityList"
-                    :key="city.value"
-                    :label="t(city.label)"
-                    :value="city.value"
-                  />
-                </ElSelect>
-              </ElFormItem>
+              <div class="profile-location-row">
+                <ElFormItem :label="t('省份')" prop="province" label-width="100px">
+                  <template #label>
+                    <span class="profile-field-label">
+                      <i class="bi bi-map" aria-hidden="true"></i>{{ t('省份') }}
+                    </span>
+                  </template>
+                  <ElSelect
+                    v-model="form.province"
+                    :placeholder="t('请选择省份（选填）')"
+                    filterable
+                    clearable
+                    @change="form.city = ''"
+                  >
+                    <ElOption
+                      v-for="province in provinceList"
+                      :key="province.value"
+                      :label="t(province.label)"
+                      :value="province.value"
+                    />
+                  </ElSelect>
+                </ElFormItem>
+                <ElFormItem :label="t('城市')" prop="city" label-width="64px">
+                  <template #label>
+                    <span class="profile-field-label">
+                      <i class="bi bi-buildings" aria-hidden="true"></i>{{ t('城市') }}
+                    </span>
+                  </template>
+                  <ElSelect
+                    v-model="form.city"
+                    :placeholder="t(form.province ? '请选择城市（选填）' : '请先选择省份')"
+                    :disabled="cityList.length === 0"
+                    filterable
+                    clearable
+                  >
+                    <ElOption
+                      v-for="city in cityList"
+                      :key="city.value"
+                      :label="t(city.label)"
+                      :value="city.value"
+                    />
+                  </ElSelect>
+                </ElFormItem>
+              </div>
               <ElFormItem :label="t('收货地址')" prop="receiverAddress">
+                <template #label>
+                  <span class="profile-field-label">
+                    <i class="bi bi-geo-alt" aria-hidden="true"></i>{{ t('收货地址') }}
+                  </span>
+                </template>
                 <ElInput
                   v-model="form.receiverAddress"
                   type="textarea"
@@ -132,6 +184,7 @@
                   :loading="saving"
                   @click="saveProfile"
                 >
+                  <i class="bi bi-check2-circle btn-icon" aria-hidden="true"></i>
                   {{ returnToCheckout ? t('保存并返回下单') : t('保存') }}
                 </ElButton>
               </ElFormItem>
@@ -139,6 +192,11 @@
           </ElTabPane>
 
           <ElTabPane :label="t('修改密码')" name="password">
+            <template #label>
+              <span class="profile-tab-label">
+                <i class="bi bi-shield-lock" aria-hidden="true"></i>{{ t('修改密码') }}
+              </span>
+            </template>
             <ElForm
               ref="passwordFormRef"
               :model="passwordForm"
@@ -175,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { t, formLabelWidth } from '@/i18n'
+import { t, formLabelWidth, useLocale } from '@/i18n'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -203,11 +261,13 @@ import { getCitiesByProvince, getProvinceList } from '@/utils/regions'
 import { useUserStore, type LoginResult } from '@/stores/user'
 import ImageUploader from '@/components/ImageUploader.vue'
 import EmailBindingDialog from '@/components/auth/EmailBindingDialog.vue'
+import SuperAdminDetails from '@/components/admin/SuperAdminDetails.vue'
 
 withDefaults(defineProps<{ admin?: boolean }>(), { admin: false })
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const { locale } = useLocale()
 
 const returnToCheckout = computed(() => {
   const redirect = route.query.redirect
@@ -454,10 +514,15 @@ const changePassword = async () => {
   min-height: 300px;
 }
 
-.profile-side {
+.profile-sidebar {
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
+  gap: 1rem;
   width: 260px;
+}
 
+.profile-side {
   :deep(.el-card__body) {
     display: flex;
     flex-direction: column;
@@ -551,9 +616,35 @@ const changePassword = async () => {
 .profile-form {
   max-width: 480px;
   padding-top: 0.5rem;
+  container-type: inline-size;
 
   :deep(.el-select) {
     width: 100%;
+  }
+}
+
+.profile-location-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  :deep(.el-form-item) {
+    min-width: 0;
+  }
+}
+
+.profile-tab-label,
+.profile-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  white-space: nowrap;
+
+  i {
+    flex-shrink: 0;
+    width: 1rem;
+    color: #000;
+    text-align: center;
   }
 }
 
@@ -569,9 +660,27 @@ const changePassword = async () => {
     flex-direction: column;
   }
 
-  .profile-side,
+  .profile-sidebar,
   .profile-main {
     width: 100%;
+  }
+}
+
+@container (max-width: 400px) {
+  .profile-location-row {
+    :deep(.el-form-item) {
+      flex-direction: column;
+    }
+
+    :deep(.el-form-item__label) {
+      justify-content: flex-start;
+      width: auto !important;
+      padding: 0 0 0.25rem;
+    }
+
+    :deep(.el-form-item__content) {
+      width: 100%;
+    }
   }
 }
 </style>
