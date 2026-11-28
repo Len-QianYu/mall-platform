@@ -148,7 +148,7 @@ class SeckillIntegrationTests {
         SeckillActivityEntity activity = this.activity(3, 1);
         TradeRequests.OrderCreate valid = this.request(activity, 1);
         TradeRequests.OrderCreate broken = new TradeRequests.OrderCreate(valid.requestId(), valid.items(), false,
-            null, valid.receiverPhone(), valid.receiverAddress(), null, activity.getId());
+            valid.receiverName(), null, valid.receiverAddress(), null, activity.getId());
         assertThrows(DataIntegrityViolationException.class, () -> this.orders.create(7, broken));
         assertEquals(3, this.activities.selectById(activity.getId()).getStock());
         assertNull(this.orderMapper.selectByRequest(7, valid.requestId()));

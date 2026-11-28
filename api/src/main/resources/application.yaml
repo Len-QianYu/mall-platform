@@ -116,6 +116,11 @@ payment:
 
 seckill:
   expiry-enabled: ${SECKILL_EXPIRY_ENABLED:true}
+  executor:
+    enabled: ${SECKILL_EXECUTOR_ENABLED:true}
+    workers: ${SECKILL_EXECUTOR_WORKERS:4}
+    queue-capacity: ${SECKILL_EXECUTOR_QUEUE_CAPACITY:256}
+    timeout: ${SECKILL_EXECUTOR_TIMEOUT:60s}
 
 account:
   email:

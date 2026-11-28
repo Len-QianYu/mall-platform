@@ -2,11 +2,11 @@ package com.example.api.utils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HexFormat;
 import java.util.concurrent.ThreadLocalRandom;
 
-// 订单号、支付流水号：时间到秒 + 6 位随机数。
-// 唯一性由 uk_order_no / uk_payment_no 兜底：同一秒的两笔交易撞号的概率是百万分之一，
-// 撞上时插入报错、整笔交易回滚，用户重试即可
+// 秒级时间 + 64 位随机后缀，订单号 30 字符、支付号 31 字符，均满足数据库的 32 字符限制。
+// 大样本会放大原 6 位随机后缀的生日碰撞；数据库唯一索引继续作最终校验。
 public final class TradeNo {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -26,7 +26,7 @@ public final class TradeNo {
     private static String generate(String prefix) {
         return prefix
             + LocalDateTime.now().format(TIME_FORMAT)
-            + String.format("%06d", ThreadLocalRandom.current().nextInt(1_000_000));
+            + HexFormat.of().toHexDigits(ThreadLocalRandom.current().nextLong());
     }
 
 }

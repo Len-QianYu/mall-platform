@@ -1,0 +1,15 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>10 万请求秒杀抢购压测</title>
+<style>body{margin:0;background:#f1f5f9;font:22px "Microsoft YaHei",sans-serif;color:#172554}
+main{margin:60px auto;padding:50px;background:white;border-radius:20px;max-width:1580px}
+h1{font-size:42px}p{color:#64748b;line-height:1.8}table{width:100%;border-collapse:collapse;margin:30px 0}
+td,th{padding:20px;border-bottom:1px solid #e2e8f0;text-align:right}td:first-child,th:first-child{text-align:left}
+th{background:#f1f5f9}td:nth-child(2){color:#2563eb}td:nth-child(3){color:#047857}
+.hash{font:14px Consolas,monospace}</style><main>
+<p>Prompt Pals · 2026-11-28 · Apache JMeter 5.6.3</p><h1>10 万次请求 · 争抢 1,000 件库存</h1>
+<p>100 个并发客户端 · 100,000 个独立账号 · 每人限购 1 件 · 10 个数据库连接 · 同一份代码与初始数据</p>
+<table><tr><th>实测指标</th><th>同步基线</th><th>4 线程 / 256 队列</th></tr><tr><td>独立请求 / 测试账号</td><td>100,000.00</td><td>100,000.00</td></tr><tr><td>成功落库订单</td><td>1,000.00</td><td>1,000.00</td></tr><tr><td>预期售罄拒绝</td><td>99,000.00</td><td>99,000.00</td></tr><tr><td>非预期失败</td><td>0.00</td><td>0.00</td></tr><tr><td>HTTP 处理吞吐（含售罄拒绝，requests/s）</td><td>589.96</td><td>264.85</td></tr><tr><td>全部响应 P95（ms）</td><td>312.00</td><td>489.00</td></tr><tr><td>全部响应 P99（ms）</td><td>839.05</td><td>761.03</td></tr><tr><td>单用户超限数量</td><td>0.00</td><td>0.00</td></tr></table>
+<p>售罄拒绝单独记录。HTTP 吞吐包含售罄后的业务响应；成功下单数量以实际落库订单为准。</p>
+<p>SQL 核验：基线库存守恒 True，线程池库存守恒 True；
+所有成功响应的订单均持久化，且每笔保存两位管理员的通知。</p>
+<p>测量真实 HTTP、JWT、Redis 与 MySQL 订单链路。支付及真实 MQ 网络传输不计入。</p>
+<p class="hash">Baseline SHA-256: 71ac5ca788c74e93b21e8775b7186a3075baff3cb330132cacbc1254c97e7803<br>Pool SHA-256: 04d7a3d5ae9a18db2dc68360560c33358c6102a3a39433dd8b851a0b7b687584</p></main></html>

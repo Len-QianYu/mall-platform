@@ -1,0 +1,130 @@
+{
+  "baseline": {
+    "requests": 100000,
+    "successes": 1000,
+    "failures": 99000,
+    "duration_seconds": 169.504,
+    "completed_requests_per_second": 589.96,
+    "committed_orders_per_second": 5.9,
+    "mean_ms": 162.9,
+    "p50_ms": 134.0,
+    "p95_ms": 312.0,
+    "p99_ms": 839.0499999999738,
+    "max_ms": 3005,
+    "error_percent": 99.0,
+    "expected_stock_rejections": 99000,
+    "unexpected_failures": 0,
+    "stock": {
+      "total_stock": 1000,
+      "stock": 0,
+      "returned_stock": 0,
+      "limit_per_user": 1
+    },
+    "database_orders": 1000,
+    "distinct_buyers": 1000,
+    "purchased_quantity": 1000,
+    "over_limit_buyers": 0,
+    "admin_notifications": 2000,
+    "no_overselling": true,
+    "all_response_orders_persisted": true,
+    "notifications_complete": true,
+    "failure_reasons": {
+      "秒杀商品已抢完": 98991,
+      "秒杀配额不足或活动已结束，请刷新后重试": 9
+    },
+    "mysql": {
+      "version": "8.4.6",
+      "durability": 1,
+      "isolation": "REPEATABLE-READ"
+    },
+    "jtl_sha256": "71ac5ca788c74e93b21e8775b7186a3075baff3cb330132cacbc1254c97e7803",
+    "sample_start_epoch_ms": 1795804947428,
+    "sample_end_epoch_ms": 1795805116932
+  },
+  "pool": {
+    "requests": 100000,
+    "successes": 1000,
+    "failures": 99000,
+    "duration_seconds": 377.574,
+    "completed_requests_per_second": 264.85,
+    "committed_orders_per_second": 2.65,
+    "mean_ms": 372.85,
+    "p50_ms": 346.0,
+    "p95_ms": 489.0,
+    "p99_ms": 761.0299999999843,
+    "max_ms": 2366,
+    "error_percent": 99.0,
+    "expected_stock_rejections": 99000,
+    "unexpected_failures": 0,
+    "stock": {
+      "total_stock": 1000,
+      "stock": 0,
+      "returned_stock": 0,
+      "limit_per_user": 1
+    },
+    "database_orders": 1000,
+    "distinct_buyers": 1000,
+    "purchased_quantity": 1000,
+    "over_limit_buyers": 0,
+    "admin_notifications": 2000,
+    "no_overselling": true,
+    "all_response_orders_persisted": true,
+    "notifications_complete": true,
+    "failure_reasons": {
+      "秒杀配额不足或活动已结束，请刷新后重试": 3,
+      "秒杀商品已抢完": 98997
+    },
+    "mysql": {
+      "version": "8.4.6",
+      "durability": 1,
+      "isolation": "REPEATABLE-READ"
+    },
+    "jtl_sha256": "04d7a3d5ae9a18db2dc68360560c33358c6102a3a39433dd8b851a0b7b687584",
+    "sample_start_epoch_ms": 1795805332711,
+    "sample_end_epoch_ms": 1795805710285
+  },
+  "baseline_metadata": {
+    "variant": "servlet-synchronous",
+    "workers": null,
+    "queue_capacity": null,
+    "requests": 100000,
+    "stock_quota": 1000,
+    "concurrency": 100,
+    "db_connections": 10,
+    "source_sha256": "49fec8ddf2c5c19baabe58d545ec6d232a12bbd0e38fb4015d40532775e809c5",
+    "heap_max_mib": 512,
+    "tomcat_max_threads": 200,
+    "user_indexes": [
+      "PRIMARY",
+      "idx_user_role_status",
+      "uk_user_login_email",
+      "uk_username"
+    ],
+    "http_connection_reuse": true,
+    "jmx_sha256": "6ec39c1e01084b755e9184d06d7d7e5a8cc8a491373aa8e56a2b31dc3ba3c407",
+    "scope": "Real HTTP + production RS256/account validation + Redis Lua/Redisson + MySQL committed orders; MQ transport stubbed equally; payment excluded.",
+    "source_commit": "3f26456da6c7e13190b5092c87fdf332dc5dde00"
+  },
+  "pool_metadata": {
+    "variant": "bounded-business-pool",
+    "workers": 4,
+    "queue_capacity": 256,
+    "requests": 100000,
+    "stock_quota": 1000,
+    "concurrency": 100,
+    "db_connections": 10,
+    "source_sha256": "49fec8ddf2c5c19baabe58d545ec6d232a12bbd0e38fb4015d40532775e809c5",
+    "heap_max_mib": 512,
+    "tomcat_max_threads": 200,
+    "user_indexes": [
+      "PRIMARY",
+      "idx_user_role_status",
+      "uk_user_login_email",
+      "uk_username"
+    ],
+    "http_connection_reuse": true,
+    "jmx_sha256": "6ec39c1e01084b755e9184d06d7d7e5a8cc8a491373aa8e56a2b31dc3ba3c407",
+    "scope": "Real HTTP + production RS256/account validation + Redis Lua/Redisson + MySQL committed orders; MQ transport stubbed equally; payment excluded.",
+    "source_commit": "3f26456da6c7e13190b5092c87fdf332dc5dde00"
+  }
+}

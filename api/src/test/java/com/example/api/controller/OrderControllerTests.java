@@ -28,6 +28,7 @@ import com.example.api.exception.TradeFailedException;
 import com.example.api.security.SecurityConfiguration;
 import com.example.api.service.OrderService;
 import com.example.api.service.PaymentService;
+import com.example.api.service.SeckillOrderDispatcher;
 
 @WebMvcTest(OrderController.class)
 @Import({ SecurityConfiguration.class, TradeExceptionHandler.class })
@@ -37,6 +38,7 @@ class OrderControllerTests {
     @MockitoBean private OrderService orders;
     @MockitoBean private PaymentService payments;
     @MockitoBean private JwtDecoder jwtDecoder;
+    @MockitoBean private SeckillOrderDispatcher seckillDispatcher;
 
     @Test
     void orderCreationRequiresAuthentication() throws Exception {

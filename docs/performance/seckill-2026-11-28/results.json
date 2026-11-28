@@ -1,0 +1,149 @@
+{
+  "environment": {
+    "database": "mall_seckill_bench_d7b5717e47f6",
+    "users": 100000,
+    "redis_database": 15,
+    "port": 8086,
+    "client_timezone": "Asia/Shanghai",
+    "created_at": "2026-11-28T00:48:00.355213+08:00",
+    "logical_cpus": 16,
+    "physical_cpus": 8,
+    "ram_gib": 15.39,
+    "cpu_identifier": "AMD64 Family 23 Model 104 Stepping 1, AuthenticAMD",
+    "scope": "Real HTTP + production RS256/account validation + Redis Lua/Redisson + MySQL committed orders; MQ transport stubbed equally; payment excluded."
+  },
+  "baseline": {
+    "requests": 10000,
+    "successes": 10000,
+    "failures": 0,
+    "duration_seconds": 150.488,
+    "completed_requests_per_second": 66.45,
+    "committed_orders_per_second": 66.45,
+    "mean_ms": 1458.58,
+    "p50_ms": 1439.0,
+    "p95_ms": 1844.0499999999993,
+    "p99_ms": 2082.0,
+    "max_ms": 2819,
+    "error_percent": 0.0,
+    "expected_stock_rejections": 0,
+    "unexpected_failures": 0,
+    "stock": {
+      "total_stock": 10000,
+      "stock": 0,
+      "returned_stock": 0,
+      "limit_per_user": 1
+    },
+    "database_orders": 10000,
+    "distinct_buyers": 10000,
+    "purchased_quantity": 10000,
+    "over_limit_buyers": 0,
+    "admin_notifications": 20000,
+    "no_overselling": true,
+    "all_response_orders_persisted": true,
+    "notifications_complete": true,
+    "failure_reasons": {},
+    "mysql": {
+      "version": "8.4.6",
+      "durability": 1,
+      "isolation": "REPEATABLE-READ"
+    },
+    "jtl_sha256": "85f5e49765ca06b32995904f2f7a8c6a514527f0f2e67a9f7304ded803972e69",
+    "sample_start_epoch_ms": 1795804318996,
+    "sample_end_epoch_ms": 1795804469484
+  },
+  "pool": {
+    "requests": 10000,
+    "successes": 10000,
+    "failures": 0,
+    "duration_seconds": 148.151,
+    "completed_requests_per_second": 67.5,
+    "committed_orders_per_second": 67.5,
+    "mean_ms": 1435.06,
+    "p50_ms": 1381.0,
+    "p95_ms": 1877.0,
+    "p99_ms": 2006.0,
+    "max_ms": 2088,
+    "error_percent": 0.0,
+    "expected_stock_rejections": 0,
+    "unexpected_failures": 0,
+    "stock": {
+      "total_stock": 10000,
+      "stock": 0,
+      "returned_stock": 0,
+      "limit_per_user": 1
+    },
+    "database_orders": 10000,
+    "distinct_buyers": 10000,
+    "purchased_quantity": 10000,
+    "over_limit_buyers": 0,
+    "admin_notifications": 20000,
+    "no_overselling": true,
+    "all_response_orders_persisted": true,
+    "notifications_complete": true,
+    "failure_reasons": {},
+    "mysql": {
+      "version": "8.4.6",
+      "durability": 1,
+      "isolation": "REPEATABLE-READ"
+    },
+    "jtl_sha256": "dba4e89b914213d4f28fbc87bf9a2591695b3580702912f1e495a007e75e8200",
+    "sample_start_epoch_ms": 1795804579302,
+    "sample_end_epoch_ms": 1795804727453
+  },
+  "baseline_metadata": {
+    "variant": "servlet-synchronous",
+    "workers": null,
+    "queue_capacity": null,
+    "requests": 10000,
+    "stock_quota": 10000,
+    "concurrency": 100,
+    "db_connections": 10,
+    "source_sha256": "49fec8ddf2c5c19baabe58d545ec6d232a12bbd0e38fb4015d40532775e809c5",
+    "heap_max_mib": 512,
+    "tomcat_max_threads": 200,
+    "user_indexes": [
+      "PRIMARY",
+      "idx_user_role_status",
+      "uk_user_login_email",
+      "uk_username"
+    ],
+    "http_connection_reuse": true,
+    "jmx_sha256": "6ec39c1e01084b755e9184d06d7d7e5a8cc8a491373aa8e56a2b31dc3ba3c407",
+    "scope": "Real HTTP + production RS256/account validation + Redis Lua/Redisson + MySQL committed orders; MQ transport stubbed equally; payment excluded.",
+    "source_commit": "3f26456da6c7e13190b5092c87fdf332dc5dde00"
+  },
+  "pool_metadata": {
+    "variant": "bounded-business-pool",
+    "workers": 4,
+    "queue_capacity": 256,
+    "requests": 10000,
+    "stock_quota": 10000,
+    "concurrency": 100,
+    "db_connections": 10,
+    "source_sha256": "49fec8ddf2c5c19baabe58d545ec6d232a12bbd0e38fb4015d40532775e809c5",
+    "heap_max_mib": 512,
+    "tomcat_max_threads": 200,
+    "user_indexes": [
+      "PRIMARY",
+      "idx_user_role_status",
+      "uk_user_login_email",
+      "uk_username"
+    ],
+    "http_connection_reuse": true,
+    "jmx_sha256": "6ec39c1e01084b755e9184d06d7d7e5a8cc8a491373aa8e56a2b31dc3ba3c407",
+    "scope": "Real HTTP + production RS256/account validation + Redis Lua/Redisson + MySQL committed orders; MQ transport stubbed equally; payment excluded.",
+    "source_commit": "3f26456da6c7e13190b5092c87fdf332dc5dde00"
+  },
+  "baseline_resources": {
+    "peak_threads": 158,
+    "peak_rss_mib": 483.74,
+    "mean_process_cpu_percent": 134.3
+  },
+  "pool_resources": {
+    "peak_threads": 84,
+    "peak_rss_mib": 468.29,
+    "mean_process_cpu_percent": 138.74
+  },
+  "committed_throughput_change_percent": 1.58,
+  "p95_reduction_percent": -1.79
+}

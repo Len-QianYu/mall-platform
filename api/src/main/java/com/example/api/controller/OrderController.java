@@ -23,6 +23,7 @@ import com.example.api.exception.TradeFailedException;
 import com.example.api.exception.ValidateFailedException;
 import com.example.api.service.OrderService;
 import com.example.api.service.PaymentService;
+import com.example.api.service.SeckillOrderDispatcher;
 import com.example.api.utils.CurrentUser;
 import com.example.api.utils.Pagination;
 import com.example.api.utils.ResultTemplate;
@@ -37,9 +38,13 @@ public class OrderController {
 
     private final PaymentService paymentService;
 
-    public OrderController(OrderService orderService, PaymentService paymentService) {
+    private final SeckillOrderDispatcher seckillDispatcher;
+
+    public OrderController(OrderService orderService, PaymentService paymentService,
+        SeckillOrderDispatcher seckillDispatcher) {
         this.orderService = orderService;
         this.paymentService = paymentService;
+        this.seckillDispatcher = seckillDispatcher;
     }
 
     // 我的订单：可按状态筛选，每个订单带上商品明细
@@ -82,19 +87,26 @@ public class OrderController {
 
     // 下单：请求体只有商品 ID 和数量，价格以服务端查库为准
     @PostMapping("/create")
-    public ResultTemplate create(
+    public Object create(
         @RequestBody @Validated TradeRequests.OrderCreate fields,
         BindingResult bindingResult,
         @AuthenticationPrincipal Jwt jwt
     ) {
-        ResultTemplate result = new ResultTemplate();
-
         if (bindingResult.hasErrors()) {
             throw new ValidateFailedException("订单信息不符合要求");
         }
 
+        Integer userId = CurrentUser.id(jwt);
+        if (fields.seckillActivityId() != null && this.seckillDispatcher.isEnabled()) {
+            return this.seckillDispatcher.dispatch(() -> this.createForUser(userId, fields));
+        }
+        return this.createForUser(userId, fields);
+    }
+
+    private ResultTemplate createForUser(Integer userId, TradeRequests.OrderCreate fields) {
+        ResultTemplate result = new ResultTemplate();
         try {
-            result.putPayload("order", this.orderService.create(CurrentUser.id(jwt), fields));
+            result.putPayload("order", this.orderService.create(userId, fields));
         } catch (TradeFailedException exception) {
             // 商品下架、库存不足：已扣的库存已随事务回滚，把原因返回给前端
             result.setStatus(false);

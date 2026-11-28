@@ -1,0 +1,35 @@
+{
+  "before": [
+    [
+      1,
+      "SIMPLE",
+      "user",
+      null,
+      "index",
+      null,
+      "PRIMARY",
+      "4",
+      null,
+      99262,
+      2.0,
+      "Using where"
+    ]
+  ],
+  "after": [
+    [
+      1,
+      "SIMPLE",
+      "user",
+      null,
+      "range",
+      "idx_user_role_status",
+      "idx_user_role_status",
+      "67",
+      null,
+      2,
+      100.0,
+      "Using where; Using index; Using filesort"
+    ]
+  ],
+  "database": "mall_seckill_bench_d7b5717e47f6"
+}

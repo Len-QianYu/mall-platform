@@ -104,6 +104,12 @@ WebSocket 使用 `POST /notification/socket-ticket` 将 JWT 换成 30 秒内有�
 
 Redis Lua 把库存检查、每人额度检查、请求预占和扣减合并执行，数据库用活动库存条件更新、用户额度条件更新和订单唯一索引作最终校验。Redis 预扣缓存固定 10 秒过期，数据库失败显式补偿，进程崩溃或缓存重建不会绕过数据库防超卖与限购；Redis 预扣与数据库不构成跨系统事务。Redis 不可用时新秒杀订单返回可重试的错误。
 
+秒杀下单由有界业务线程池执行，默认 4 个工作线程、256 个排队任务，HTTP 响应仍等待订单事务完成；满载时在启动异步响应前返回 503。可用 `SECKILL_EXECUTOR_ENABLED=false` 复现 Tomcat 同步基线，线程数、队列容量和等待超时通过 `SECKILL_EXECUTOR_WORKERS`、`SECKILL_EXECUTOR_QUEUE_CAPACITY`、`SECKILL_EXECUTOR_TIMEOUT` 调整。普通下单继续同步执行。
+
+事务管理器只对真实事务绑定同步资源，避免 `NOT_SUPPORTED` 的幂等预查询占用连接后，`REQUIRES_NEW` 再申请第二条连接导致满池等待。管理员通知使用用户 `(role, status)` 索引，已有库执行 [`upgrade-user-role-index.sql`](api/src/main/resources/db/upgrade-user-role-index.sql)。订单号与支付号使用秒级时间加 64 位随机后缀，分别为 30、31 字符，现有 32 字符数据库列即可存储。
+
+10 万账号、持续下单与限量抢购的压测工具见 [`api/bench/seckill/README.md`](api/bench/seckill/README.md)，本次结果和截图见 [`2026-11-28 压测记录`](docs/performance/seckill-2026-11-28/README.md)。测试使用独立 MySQL 库和 Redis DB，不消费开发环境 MQ 消息；分别统计成功落库吞吐、售罄拒绝、非预期失败和库存核验，支付与 MQ 网络传输不计入指标。
+
 已有数据库先执行 [`upgrade-seckill.sql`](api/src/main/resources/db/upgrade-seckill.sql)，增加 `seckill_activity`、`seckill_purchase`、订单明细活动字段和索引，脚本可重复执行；新建库直接使用 `schema.sql`。在 `api/` 的 PowerShell 中设置 `$env:SECKILL_INTEGRATION_TESTS = 'true'` 后运行 `.\mvnw.cmd test`，可执行真实 Redis / MySQL 并发验证，覆盖抢完库存、不同请求号限购、数据库兜底、失败补偿、取消、退款和到期回补。测试禁用真实消息和定时任务，只清理自己创建的随机数据。
 
 头像、商品图片上传到 RustFS（AWS SDK for Java 2.x，S3 path-style 访问），默认使用 `mall-uploads` 私有桶，首次上传会自动创建。上传接口保持 `POST /upload/avatars`（需登录）和 `POST /upload/images`（仅管理员），支持 JPG / PNG / GIF / WEBP，单个文件不超过 5MB；扩展名和 Content-Type 按文件内容识别。返回的 `/avatars/...`、`/images/...` 由后端从 RustFS 读取，前端和数据库仍保存这些稳定路径。连接信息可在 `api/.env` 里通过 `RUSTFS_*` 修改（见 [`api/.env.example`](api/.env.example)）；RustFS 暂未启动时后端仍可启动，上传或读取文件返回 503。

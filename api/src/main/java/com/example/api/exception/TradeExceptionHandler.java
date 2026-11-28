@@ -4,6 +4,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
+import org.springframework.core.task.TaskRejectedException;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 import com.example.api.controller.OrderController;
 import com.example.api.controller.PaymentController;
@@ -33,5 +35,21 @@ public class TradeExceptionHandler {
         ResultTemplate result = new ResultTemplate();
         result.setStatus(false);
         return result.putPayload("message", error.getMessage());
+    }
+
+    @ExceptionHandler(TaskRejectedException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ResultTemplate busy(TaskRejectedException error) {
+        ResultTemplate result = new ResultTemplate();
+        result.setStatus(false);
+        return result.putPayload("message", "秒杀请求过多，请稍后重试");
+    }
+
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ResultTemplate timeout(AsyncRequestTimeoutException error) {
+        ResultTemplate result = new ResultTemplate();
+        result.setStatus(false);
+        return result.putPayload("message", "秒杀请求等待超时，请稍后重试");
     }
 }

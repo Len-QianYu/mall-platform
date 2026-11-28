@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>秒杀系统真实压测对比</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#172554;font:18px "Microsoft YaHei",sans-serif}
+main{max-width:1640px;margin:40px auto;padding:34px 48px;background:white;border-radius:20px}
+small,.note{color:#64748b}h1{font-size:40px;margin:6px 0 16px}p{line-height:1.65;margin:10px 0}
+.tags{display:flex;gap:12px;margin:22px 0}.tags span{background:#eff6ff;padding:10px 16px;border-radius:8px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin:24px 0}.card{padding:22px;border:1px solid #dbeafe;border-radius:12px;background:#f8fafc}
+.card strong{font-size:42px;display:block;margin:8px 0;color:#2563eb}.card.pool strong{color:#047857}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;margin:20px 0}
+th,td{padding:12px 20px;border-bottom:1px solid #e2e8f0;text-align:right}th:first-child,td:first-child{text-align:left;width:52%}th{background:#f1f5f9}
+td:nth-child(2){color:#2563eb}td:nth-child(3){color:#047857}.audit{font-size:16px}.source{font:12px Consolas,monospace;color:#64748b;overflow-wrap:anywhere}
+</style><main><small>Prompt Pals · 2026-11-28 · Apache JMeter 5.6.3</small>
+<h1>秒杀系统 · 10 万用户真实压测</h1>
+<p>同一台 AMD Ryzen 7 5700U（8 核 / 16 线程，15.39 GiB 内存），Java 21 · Spring Boot 4.1 · MySQL 8.4 · Redis</p>
+<div class="tags"><span>每轮 10,000 次下单</span><span>100 并发客户端</span><span>10 个数据库连接</span><span>JVM 最大堆 512 MiB</span><span>相同初始数据与索引</span></div>
+<div class="cards"><div class="card">基线 · Tomcat 同步下单<strong>66.45 orders/s</strong>P95 1,844.05 ms</div>
+<div class="card pool">业务线程池 · 4 个工作线程 / 256 个排队任务<strong>67.50 orders/s</strong>吞吐基本持平 · P95 增加 1.79%</div>
+<div class="card">应用进程峰值线程<strong>158 → 84</strong>实测减少 46.84%</div></div>
+<table><thead><tr><th>测量指标</th><th>基线</th><th>业务线程池</th></tr></thead><tbody><tr><td>HTTP 请求数</td><td>10,000</td><td>10,000</td></tr><tr><td>成功落库订单</td><td>10,000</td><td>10,000</td></tr><tr><td>成功落库吞吐（orders/s）</td><td>66.45</td><td>67.50</td></tr><tr><td>平均响应时间（ms）</td><td>1,458.58</td><td>1,435.06</td></tr><tr><td>P95 响应时间（ms）</td><td>1,844.05</td><td>1,877.00</td></tr><tr><td>P99 响应时间（ms）</td><td>2,082.00</td><td>2,006.00</td></tr><tr><td>失败率（%）</td><td>0.00</td><td>0.00</td></tr><tr><td>应用进程峰值线程数</td><td>158</td><td>84</td></tr><tr><td>库存超卖 / 用户超限</td><td>0</td><td>0</td></tr></tbody></table>
+<table class="audit"><thead><tr><th>独立 SQL / 原始响应核验</th><th>基线</th><th>业务线程池</th></tr></thead><tbody><tr><td>库存守恒（配额 = 剩余 + 购买 + 归还）</td><td>通过</td><td>通过</td></tr><tr><td>响应订单 ID 与数据库记录逐项一致</td><td>通过</td><td>通过</td></tr><tr><td>每笔订单保存两位管理员的通知</td><td>通过</td><td>通过</td></tr></tbody></table>
+<p class="note">真实 HTTP、RS256 JWT / 账号校验、Redis Lua / Redisson、MySQL 事务和订单通知。两轮均使用隔离的 MQ 发送桩，不计支付和真实 MQ 网络传输。成功只统计已返回订单 ID 并通过 SQL 核验的订单。</p><p class="note">数据集：100,000 个普通账号 + 2 个管理员。预热不计入正式结果。P95/P99 从完整 JTL 样本计算。</p>
+<div class="source">Baseline JTL SHA-256: 85f5e49765ca06b32995904f2f7a8c6a514527f0f2e67a9f7304ded803972e69<br>Pool JTL SHA-256: dba4e89b914213d4f28fbc87bf9a2591695b3580702912f1e495a007e75e8200</div></main></html>

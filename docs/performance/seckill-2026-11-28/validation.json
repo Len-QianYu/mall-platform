@@ -1,0 +1,8 @@
+{
+  "backend_tests_total": 320,
+  "backend_tests_executed": 306,
+  "backend_tests_skipped": 14,
+  "failures": 0,
+  "errors": 0,
+  "source_log": "C:\\Code-AI\\mall-platform\\api\\bench\\results\\seckill\\2026-11-28_100k_v2\\backend-tests-final-identifiers.log"
+}

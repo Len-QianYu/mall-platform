@@ -646,6 +646,8 @@ export const english: Record<string, string> = {
   正在秒杀: 'Live now',
   即将开始: 'Coming soon',
   已抢完: 'Sold out',
+  '秒杀请求过多，请稍后重试': 'Flash sale is busy. Please try again shortly.',
+  '秒杀请求等待超时，请稍后重试': 'The flash sale request timed out. Please try again shortly.',
   '秒杀活动加载失败，请重试': 'Could not load flash sales. Please try again.',
   '秒杀活动加载失败，请检查网络后重试':
     'Could not load flash sales. Check your connection and try again.',

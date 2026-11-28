@@ -71,6 +71,10 @@ docker compose stop      # 停止；更多命令见 docker-compose.yml 顶部注
 
 库存与秒杀约定：商品编辑接口不修改库存，库存使用 `POST /admin/product/stock` 按 `delta` 条件增减。商城 `/seckill` 和管理端 `/admin/seckill` 提供完整活动流程；创建时从普通库存划拨独立配额，价格冻结，每人额度持久化。秒杀下单仍走 `/order/create`，活动 ID 参与幂等哈希；Redis Lua 预扣固定 10 秒过期，数据库条件库存与额度更新最终兜底。取消、退款和到期归还正确的库存池，到期每 30 秒扫描（`SECKILL_EXPIRY_ENABLED`）；数据库测试禁用扫描。已有库执行 `api/src/main/resources/db/upgrade-seckill.sql`；真实 Redis / MySQL 测试通过 `SECKILL_INTEGRATION_TESTS=true` 显式开启，并清理本测试随机数据。
 
+秒杀 HTTP 下单使用有界业务线程池（默认 4 个工作线程、256 个排队任务），普通订单同步执行。先提交任务，再启动异步响应；满载返回 503，成功响应等待原有独立订单事务完成。`SECKILL_EXECUTOR_ENABLED` 可关闭线程池复现同步基线。事务管理器仅为真实事务启用同步，避免 `NOT_SUPPORTED` 幂等预查询保留连接后再为 `REQUIRES_NEW` 申请第二条连接。管理员通知使用用户 `(role, status)` 索引，已有库升级脚本为 `upgrade-user-role-index.sql`。真实连接池回归通过 `TRADE_CONNECTION_POOL_TESTS=true` 开启。压测工具见 `api/bench/seckill/README.md`，使用独立 MySQL 库与 Redis DB，不连接开发环境 MQ 消费组；支付与 MQ 网络传输不计入压测指标。
+
+订单号、支付号采用秒级时间加 64 位随机后缀，分别 30、31 字符，数据库唯一索引继续兜底。压测发现原六位随机后缀的生日碰撞后扩大了随机空间；`TradeNoTests` 各用 10 万并发生成样本验证唯一性与存储长度。
+
 - 业务库 11 表：用户 / 商品 / 订单主表 + 订单明细 / 购物车 / 支付流水 / 秒杀活动 / 秒杀用户额度 / 商品收藏 / 通知发件箱 / 商品通知。
 - AI 域独立库 `mall_ai`：会话消息 / 知识库 / 反馈与 QA 对 / 售后工单 / 问数审计、权限、指标字典。
 

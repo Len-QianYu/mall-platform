@@ -38,7 +38,8 @@ CREATE TABLE `user` (
   `updated_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_username` (`username`),
-  UNIQUE KEY `uk_user_login_email` (`login_email`)
+  UNIQUE KEY `uk_user_login_email` (`login_email`),
+  KEY `idx_user_role_status` (`role`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT '用户表';
 
 /* ---------- 2. 商品 ---------- */
